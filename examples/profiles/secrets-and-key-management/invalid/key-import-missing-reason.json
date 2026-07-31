@@ -1,0 +1,59 @@
+{
+  "specVersion": "0.1",
+  "id": "018f6d10-0210-7a2b-9c3d-4e5f60710210",
+  "time": "2026-05-15T16:48:30.109Z",
+  "event": {
+    "name": "key.import",
+    "category": "security",
+    "type": "import",
+    "outcome": "success",
+    "severity": "critical",
+    "summary": "Externally generated key material was accepted into the custody system."
+  },
+  "actor": {
+    "type": "admin",
+    "id": "user-6033",
+    "tenantId": "tenant-4"
+  },
+  "resource": {
+    "type": "key",
+    "id": "key-3341",
+    "name": "counterparty-file-exchange",
+    "classification": "restricted",
+    "ownerId": "team-integration",
+    "tenantId": "tenant-4"
+  },
+  "application": {
+    "name": "key-custody-service",
+    "environment": "production",
+    "version": "6.0.1"
+  },
+  "request": {
+    "requestId": "request-e63",
+    "correlationId": "key-exchange-4415"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "key-custody",
+    "policyVersion": "4"
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "key-import-review",
+    "requestId": "approval-8891",
+    "requiredApprovals": 2,
+    "receivedApprovals": 2,
+    "approvedAt": "2026-05-15T15:30:00Z"
+  },
+  "controlCategories": ["key-management", "privileged-access"],
+  "metadata": {
+    "secret": {
+      "type": "encryption-key",
+      "provider": "hardware-security-module",
+      "algorithm": "aes-256-gcm",
+      "origin": "external-party",
+      "approvalRequired": false
+    }
+  }
+}

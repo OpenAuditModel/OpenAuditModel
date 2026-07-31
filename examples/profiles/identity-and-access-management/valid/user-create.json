@@ -1,0 +1,55 @@
+{
+  "specVersion": "0.1",
+  "id": "018f4a01-1111-7222-8333-000000000001",
+  "time": "2026-06-01T08:00:00.000Z",
+  "event": {
+    "name": "identity.user.create",
+    "category": "identity",
+    "type": "create",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Account created for a new joiner."
+  },
+  "actor": {
+    "type": "admin",
+    "id": "admin-4821",
+    "roles": ["identity-administrator"]
+  },
+  "application": {
+    "name": "identity-service",
+    "environment": "production",
+    "version": "3.4.1"
+  },
+  "resource": {
+    "type": "user",
+    "id": "user-9001",
+    "tenantId": "tenant-42"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "identity-user-lifecycle",
+    "policyVersion": "7"
+  },
+  "reason": {
+    "code": "onboarding",
+    "text": "Scheduled onboarding for a confirmed start date.",
+    "reference": "onboarding-7741"
+  },
+  "request": {
+    "requestId": "request-a1",
+    "correlationId": "correlation-a1",
+    "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+    "spanId": "00f067aa0ba902b7",
+    "protocol": "https",
+    "method": "POST",
+    "route": "/identity/{principalId}/access"
+  },
+  "controlCategories": ["privileged-access"],
+  "metadata": {
+    "user": {
+      "type": "employee",
+      "departmentId": "department-support"
+    }
+  }
+}

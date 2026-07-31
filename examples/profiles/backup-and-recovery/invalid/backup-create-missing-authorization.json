@@ -1,0 +1,50 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2a10-0001-7c4d-8b1e-2f3a40516201",
+  "time": "2026-03-14T02:00:04.120Z",
+  "event": {
+    "name": "backup.create",
+    "category": "data-infrastructure",
+    "type": "create",
+    "outcome": "success",
+    "severity": "info",
+    "summary": "Scheduled nightly backup run created for the orders database."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-backup-scheduler",
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "database",
+    "id": "database-orders",
+    "name": "orders-primary",
+    "parentId": "cluster-north-primary",
+    "classification": "confidential",
+    "ownerId": "team-payments",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "backup-service",
+    "environment": "production",
+    "version": "4.2.0",
+    "region": "region-north"
+  },
+  "organization": {
+    "tenantId": "tenant-7",
+    "businessUnitId": "unit-payments"
+  },
+  "request": {
+    "correlationId": "backup-run-2026-0314-0200"
+  },
+  "controlCategories": ["data-protection", "recoverability"],
+  "metadata": {
+    "backup": {
+      "backupId": "backup-2026-0314-0200",
+      "backupType": "full",
+      "retentionClass": "operational-35-day",
+      "targetScope": "object-store-region-north",
+      "scheduleId": "schedule-nightly-orders"
+    }
+  }
+}

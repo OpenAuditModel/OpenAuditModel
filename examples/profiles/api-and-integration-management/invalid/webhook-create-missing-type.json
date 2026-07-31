@@ -1,0 +1,63 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0004-7a2b-9c3d-4e5f60718293",
+  "time": "2026-04-12T08:05:31.005Z",
+  "event": {
+    "name": "webhook.create",
+    "category": "configuration",
+    "type": "create",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Outbound webhook subscription created for order lifecycle events."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-5120",
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "webhook",
+    "id": "webhook-2207",
+    "name": "order-events-partner-feed",
+    "classification": "internal",
+    "ownerId": "team-commerce",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "integration-service",
+    "environment": "production",
+    "version": "4.2.0"
+  },
+  "organization": {
+    "tenantId": "tenant-7"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "outbound-integration-policy",
+    "policyVersion": "3"
+  },
+  "request": {
+    "requestId": "request-b31e214",
+    "correlationId": "integration-onboarding-4102"
+  },
+  "approval": {
+    "status": "not-required",
+    "workflowId": "integration-change-workflow"
+  },
+  "reason": {
+    "code": "partner-onboarding",
+    "text": "Logistics partner requires order lifecycle notifications.",
+    "reference": "change-10419"
+  },
+  "controlCategories": ["outbound-data-flow", "third-party-access"],
+  "metadata": {
+    "integration": {
+      "provider": "partner-logistics-platform",
+      "webhookId": "webhook-2207",
+      "endpointClass": "partner-network",
+      "eventSelection": ["order-created", "order-cancelled"],
+      "approvalRequired": false
+    }
+  }
+}

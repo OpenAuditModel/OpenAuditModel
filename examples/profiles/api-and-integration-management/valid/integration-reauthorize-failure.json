@@ -1,0 +1,69 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0013-7a2b-9c3d-4e5f60718293",
+  "time": "2026-04-20T04:15:33.860Z",
+  "event": {
+    "name": "integration.reauthorize",
+    "category": "configuration",
+    "type": "update",
+    "outcome": "failure",
+    "severity": "high",
+    "summary": "Automatic reauthorization of the connector was rejected by the provider.",
+    "error": {
+      "code": "invalid-credentials",
+      "type": "authorization",
+      "message": "The provider rejected the stored credential reference during reauthorization.",
+      "retryable": false
+    }
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-integration-scheduler"
+  },
+  "resource": {
+    "type": "integration",
+    "id": "connection-3312",
+    "name": "customer-records-connector",
+    "classification": "confidential",
+    "ownerId": "team-revenue",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "integration-service",
+    "environment": "production",
+    "version": "4.2.0",
+    "component": "sync-scheduler"
+  },
+  "organization": {
+    "tenantId": "tenant-7"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "third-party-connection-policy",
+    "policyVersion": "5"
+  },
+  "request": {
+    "requestId": "request-b31f104",
+    "correlationId": "connection-reauthorization-3312"
+  },
+  "approval": {
+    "status": "not-required",
+    "workflowId": "integration-change-workflow"
+  },
+  "reason": {
+    "code": "scheduled-reauthorization",
+    "text": "Automatic reauthorization before the authorization grant expired."
+  },
+  "controlCategories": ["third-party-access", "credential-lifecycle"],
+  "metadata": {
+    "integration": {
+      "type": "service-connector",
+      "provider": "partner-crm-platform",
+      "connectionId": "connection-3312",
+      "credentialReference": "credential-ref-9902",
+      "endpointClass": "partner-network",
+      "approvalRequired": false
+    }
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c40-0035-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-17T12:17:38.640Z",
+  "event": {
+    "name": "broker.queue.purge",
+    "category": "data-infrastructure",
+    "type": "delete",
+    "outcome": "success",
+    "severity": "critical",
+    "summary": "Dead-letter queue purged after the poison messages were captured as evidence."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-6612",
+    "roles": ["messaging-operator"]
+  },
+  "resource": {
+    "type": "queue",
+    "id": "queue-fulfilment-dead-letter",
+    "name": "fulfilment-dead-letter",
+    "parentId": "vhost-order-processing",
+    "classification": "internal",
+    "ownerId": "team-fulfilment"
+  },
+  "relatedResources": [{ "type": "cluster", "id": "cluster-messaging-production" }],
+  "application": {
+    "name": "broker-control-service",
+    "environment": "production",
+    "version": "3.4.1",
+    "region": "region-1"
+  },
+  "authentication": {
+    "method": "oidc",
+    "provider": "corporate-idp",
+    "mfa": true
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "broker-administration",
+    "permissions": ["queue.purge"]
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-incident-change",
+    "requiredApprovals": 1,
+    "receivedApprovals": 1,
+    "approvedAt": "2026-03-17T12:14:02Z"
+  },
+  "request": {
+    "requestId": "request-6f0b83",
+    "correlationId": "correlation-incident-2026-0431"
+  },
+  "evidence": [
+    {
+      "type": "log",
+      "reference": "records/incident-2026-0431/dead-letter-inventory",
+      "contentType": "application/json",
+      "createdAt": "2026-03-17T12:10:44Z"
+    }
+  ],
+  "controlCategories": ["privileged-access", "incident-traceability"],
+  "tags": ["production", "incident-response"],
+  "metadata": {
+    "broker": {
+      "system": "rabbitmq",
+      "clusterId": "cluster-messaging-production",
+      "operation": {
+        "destructive": true
+      },
+      "queue": {
+        "purgedMessageCount": 1842
+      }
+    }
+  }
+}

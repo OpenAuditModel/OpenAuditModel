@@ -1,0 +1,44 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0102-7a2b-9c3d-4e5f60718293",
+  "time": "2026-04-18T09:02:14.905Z",
+  "event": {
+    "name": "webhook.delivery.attempt",
+    "category": "data-access",
+    "type": "execute",
+    "outcome": "success",
+    "severity": "info",
+    "summary": "Order lifecycle notification delivered to the subscribed destination."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-webhook-dispatcher"
+  },
+  "resource": {
+    "type": "webhook",
+    "id": "webhook-2207",
+    "name": "order-events-partner-feed",
+    "classification": "internal",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "integration-service",
+    "environment": "production",
+    "version": "4.2.0",
+    "component": "webhook-dispatcher"
+  },
+  "organization": {
+    "tenantId": "tenant-7"
+  },
+  "request": {
+    "requestId": "request-c00a204",
+    "correlationId": "delivery-batch-0418"
+  },
+  "metadata": {
+    "integration": {
+      "type": "outbound-webhook",
+      "webhookId": "webhook-2207",
+      "deliveryAttempt": 1
+    }
+  }
+}

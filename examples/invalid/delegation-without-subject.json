@@ -1,0 +1,27 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c05-5e6f-7071-c283-9e0f1a2b3c45",
+  "time": "2026-03-19T07:26:37Z",
+  "event": {
+    "name": "data.export.create",
+    "category": "data-access",
+    "outcome": "success"
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-account-reporting-worker"
+  },
+  "delegation": {
+    "type": "on-behalf-of",
+    "reason": "Deferred execution of a previously requested export.",
+    "reference": "export-request-4471"
+  },
+  "resource": {
+    "type": "report",
+    "id": "export-4471"
+  },
+  "application": {
+    "name": "reporting-service",
+    "environment": "production"
+  }
+}

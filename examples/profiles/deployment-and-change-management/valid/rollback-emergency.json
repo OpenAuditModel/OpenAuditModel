@@ -1,0 +1,80 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-1008-7a3b-8c4d-5e6f70819208",
+  "time": "2026-03-16T23:48:12.071Z",
+  "event": {
+    "name": "deployment.release.rollback",
+    "category": "deployment",
+    "type": "execute",
+    "outcome": "success",
+    "severity": "critical",
+    "summary": "Production reverted to the previous release during a customer facing outage."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-8814",
+    "roles": ["on-call-engineer"]
+  },
+  "resource": {
+    "type": "deployment",
+    "id": "deployment-2026-0316-11",
+    "name": "checkout-service-release",
+    "parentId": "cluster-production-1"
+  },
+  "relatedResources": [{ "type": "service", "id": "service-checkout" }],
+  "application": {
+    "name": "delivery-platform",
+    "environment": "production",
+    "version": "4.2.0",
+    "component": "release-controller"
+  },
+  "authentication": {
+    "method": "mfa",
+    "mfa": true,
+    "assuranceLevel": "high"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "break-glass-rollback",
+    "policyVersion": "2",
+    "reason": "Actor holds the on-call role for the affected service."
+  },
+  "approval": {
+    "status": "pending",
+    "workflowId": "workflow-emergency-change",
+    "requestId": "approval-request-4488",
+    "requiredApprovals": 1,
+    "receivedApprovals": 0
+  },
+  "request": {
+    "requestId": "request-b03f19",
+    "correlationId": "deployment-2026-0316-11"
+  },
+  "change": {
+    "type": "restore",
+    "changedFields": ["releaseVersion"],
+    "ticketId": "change-2026-0316-11",
+    "incidentId": "incident-2026-0316-2",
+    "deploymentId": "deployment-2026-0316-11"
+  },
+  "reason": {
+    "code": "service-outage",
+    "text": "Checkout failed for all customers after the release; the previous version was restored.",
+    "reference": "incident-2026-0316-2"
+  },
+  "controlCategories": ["change-management", "privileged-access"],
+  "tags": ["production", "emergency-change"],
+  "metadata": {
+    "deployment": {
+      "id": "deployment-2026-0316-11",
+      "environment": "production",
+      "version": "9.0.3",
+      "previousVersion": "9.1.0",
+      "approvalRequired": true,
+      "emergency": true,
+      "pipelineId": "pipeline-checkout-delivery",
+      "resultingState": "rolled-back"
+    }
+  }
+}

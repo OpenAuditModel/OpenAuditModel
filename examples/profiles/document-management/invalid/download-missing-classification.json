@@ -1,0 +1,46 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1b80-0002-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-14T12:22:02.100Z",
+  "event": {
+    "name": "document.file.download",
+    "category": "data-access",
+    "type": "read",
+    "outcome": "success",
+    "summary": "Contract document downloaded by an authorized reviewer."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-5120",
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "document",
+    "id": "document-90311",
+    "name": "quarterly-supplier-agreement",
+    "parentId": "workspace-14",
+    "ownerId": "user-4004",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "document-service",
+    "environment": "production",
+    "version": "2.11.0"
+  },
+  "organization": {
+    "tenantId": "tenant-7",
+    "workspaceId": "workspace-14"
+  },
+  "request": {
+    "requestId": "request-a91c4f2",
+    "correlationId": "document-lifecycle-7712",
+    "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+    "spanId": "00f067aa0ba902b7",
+    "protocol": "https"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "document-governance",
+    "policyVersion": "12"
+  }
+}

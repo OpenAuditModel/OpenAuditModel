@@ -1,0 +1,68 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c1a-0001-7a2b-9c3d-4e5f60718301",
+  "time": "2026-03-14T09:12:44.180Z",
+  "event": {
+    "name": "incident.case.create",
+    "category": "workflow",
+    "type": "create",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Incident raised after checkout response times crossed the agreed threshold."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-3301",
+    "roles": ["service-desk-agent"],
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "incident",
+    "id": "incident-2026-0418",
+    "name": "checkout-latency-degradation",
+    "classification": "internal",
+    "tenantId": "tenant-7"
+  },
+  "relatedResources": [
+    {
+      "type": "service",
+      "id": "service-checkout"
+    }
+  ],
+  "application": {
+    "name": "incident-service",
+    "environment": "production",
+    "version": "5.2.0"
+  },
+  "organization": {
+    "tenantId": "tenant-7",
+    "businessUnitId": "business-unit-commerce"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "incident-handling",
+    "policyVersion": "4",
+    "permissions": ["incident.case.create"]
+  },
+  "request": {
+    "requestId": "request-4471",
+    "correlationId": "correlation-incident-2026-0418"
+  },
+  "reason": {
+    "code": "threshold-breach",
+    "text": "Checkout response times stayed above the agreed threshold for ten minutes.",
+    "reference": "alert-rule-checkout-latency"
+  },
+  "controlCategories": ["incident-traceability"],
+  "metadata": {
+    "incident": {
+      "status": "open",
+      "priority": "p2",
+      "impact": "service-degraded",
+      "urgency": "high",
+      "detectedAt": "2026-03-14T09:02:10Z",
+      "detectionSource": "monitoring",
+      "reportedBySource": "automated-detection"
+    }
+  }
+}

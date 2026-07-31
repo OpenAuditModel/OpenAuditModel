@@ -1,0 +1,62 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2a10-0003-7c4d-8b1e-2f3a40516203",
+  "time": "2026-03-15T02:14:52.410Z",
+  "event": {
+    "name": "backup.complete",
+    "category": "data-infrastructure",
+    "type": "create",
+    "outcome": "failure",
+    "severity": "high",
+    "summary": "Nightly backup run ended without producing a recovery point.",
+    "error": {
+      "code": "storage-target-unavailable",
+      "type": "dependency",
+      "message": "The backup target refused the write session for the whole run window.",
+      "retryable": true
+    }
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-backup-engine",
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "database",
+    "id": "database-orders",
+    "name": "orders-primary",
+    "parentId": "cluster-north-primary",
+    "classification": "confidential",
+    "ownerId": "team-payments",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "backup-service",
+    "environment": "production",
+    "version": "4.2.0",
+    "region": "region-north"
+  },
+  "organization": {
+    "tenantId": "tenant-7"
+  },
+  "request": {
+    "correlationId": "backup-run-2026-0315-0200"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "backup-schedule-tier-1",
+    "policyVersion": "6"
+  },
+  "reason": {
+    "code": "scheduled-run",
+    "text": "Nightly protection run for the orders database."
+  },
+  "metadata": {
+    "backup": {
+      "backupId": "backup-2026-0315-0200",
+      "backupType": "full",
+      "retentionClass": "operational-35-day",
+      "targetScope": "object-store-region-north"
+    }
+  }
+}

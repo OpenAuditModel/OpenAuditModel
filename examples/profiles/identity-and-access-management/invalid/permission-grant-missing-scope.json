@@ -1,0 +1,54 @@
+{
+  "specVersion": "0.1",
+  "id": "018f4b05-1111-7222-8333-000000000005",
+  "time": "2026-06-02T10:00:00.000Z",
+  "event": {
+    "name": "identity.permission.grant",
+    "category": "identity",
+    "type": "grant",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Permission granted."
+  },
+  "actor": {
+    "type": "admin",
+    "id": "admin-4821",
+    "roles": ["identity-administrator"]
+  },
+  "application": {
+    "name": "identity-service",
+    "environment": "production",
+    "version": "3.4.1"
+  },
+  "resource": {
+    "type": "user",
+    "id": "user-5120",
+    "tenantId": "tenant-42"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "identity-permission-change",
+    "policyVersion": "7"
+  },
+  "reason": {
+    "code": "access-request",
+    "text": "Approved access request.",
+    "reference": "access-request-8843"
+  },
+  "request": {
+    "requestId": "request-b5",
+    "correlationId": "correlation-b5",
+    "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+    "spanId": "00f067aa0ba902b7",
+    "protocol": "https",
+    "method": "POST",
+    "route": "/identity/{principalId}/access"
+  },
+  "metadata": {
+    "permission": {
+      "id": "permission-report-export",
+      "privileged": false
+    }
+  }
+}

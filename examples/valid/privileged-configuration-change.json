@@ -1,0 +1,109 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1b95-4411-7c09-8d7a-6f1e2c3b4a50",
+  "time": "2026-03-16T22:04:09.882Z",
+  "sequence": 10428,
+  "event": {
+    "name": "configuration.setting.update",
+    "category": "configuration",
+    "type": "update",
+    "outcome": "success",
+    "severity": "critical",
+    "summary": "Session lifetime reduced on the production authentication configuration."
+  },
+  "actor": {
+    "type": "admin",
+    "id": "admin-0091",
+    "roles": ["platform-administrator"]
+  },
+  "resource": {
+    "type": "configuration",
+    "id": "configuration-authentication-session",
+    "name": "authentication-session-policy",
+    "parentId": "cluster-production-1",
+    "classification": "restricted"
+  },
+  "application": {
+    "name": "platform-control-service",
+    "environment": "production",
+    "version": "9.0.3",
+    "instance": "instance-7c1a",
+    "region": "region-1",
+    "zone": "zone-a"
+  },
+  "authentication": {
+    "method": "mfa",
+    "provider": "corporate-idp",
+    "mfa": true,
+    "assuranceLevel": "high",
+    "authenticatedAt": "2026-03-16T21:58:31Z"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "privileged-configuration-change",
+    "policyVersion": "23",
+    "reason": "Actor holds the platform administrator role within an approved change window.",
+    "permissions": ["configuration.setting.update"]
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-emergency-change",
+    "requestId": "approval-request-6120",
+    "requiredApprovals": 2,
+    "receivedApprovals": 2,
+    "approvers": [
+      {
+        "type": "user",
+        "id": "user-1180",
+        "roles": ["change-manager"]
+      },
+      {
+        "type": "user",
+        "id": "user-7702",
+        "roles": ["security-officer"]
+      }
+    ],
+    "approvedAt": "2026-03-16T22:01:55Z"
+  },
+  "request": {
+    "requestId": "request-cc10ab",
+    "traceId": "8a3c60f7d188f8fa79d48a391a778fa6",
+    "spanId": "5f3d2b1a0c9e8d7f",
+    "protocol": "https",
+    "method": "PATCH",
+    "route": "/clusters/{clusterId}/configurations/{configurationId}"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["sessionLifetimeMinutes", "requireReauthenticationForPrivilegedActions"],
+    "before": {
+      "sessionLifetimeMinutes": 720,
+      "requireReauthenticationForPrivilegedActions": false
+    },
+    "after": {
+      "sessionLifetimeMinutes": 60,
+      "requireReauthenticationForPrivilegedActions": true
+    },
+    "ticketId": "change-9910",
+    "deploymentId": "deployment-2026-03-16-3"
+  },
+  "reason": {
+    "code": "security-hardening",
+    "text": "Session lifetime reduced following a security review finding.",
+    "reference": "change-9910"
+  },
+  "integrity": {
+    "canonicalization": "RFC8785",
+    "hashAlgorithm": "SHA-256",
+    "hash": "7438093aa44b48f0b692e6d77de03fbf8bc823ac5442ce294bea5b9bfa06c77e",
+    "previousHash": "5c9a1f3e7b204d68a1c5e9f0b3d7a2c48e6f0b9d1a3c5e7f9b0d2a4c6e8f0b13",
+    "chainId": "chain-platform-control-service-instance-7c1a"
+  },
+  "controlCategories": ["privileged-access", "configuration-integrity", "change-approval"],
+  "tags": ["production", "emergency-change"],
+  "metadata": {
+    "changeWindow": "emergency",
+    "reviewReference": "security-review-2026-02"
+  }
+}

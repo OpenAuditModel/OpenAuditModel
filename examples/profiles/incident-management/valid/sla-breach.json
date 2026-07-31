@@ -1,0 +1,50 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c1a-000d-7a2b-9c3d-4e5f60718313",
+  "time": "2026-03-14T13:02:10.000Z",
+  "event": {
+    "name": "incident.sla.breach",
+    "category": "workflow",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "The restoration commitment for this incident was missed."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-incident-sla-monitor"
+  },
+  "resource": {
+    "type": "incident",
+    "id": "incident-2026-0418",
+    "name": "checkout-latency-degradation",
+    "classification": "internal",
+    "tenantId": "tenant-7"
+  },
+  "relatedResources": [
+    {
+      "type": "service",
+      "id": "service-checkout"
+    }
+  ],
+  "application": {
+    "name": "incident-service",
+    "environment": "production",
+    "version": "5.2.0",
+    "component": "commitment-monitor"
+  },
+  "request": {
+    "correlationId": "correlation-incident-2026-0418"
+  },
+  "controlCategories": ["incident-traceability"],
+  "metadata": {
+    "incident": {
+      "status": "major",
+      "priority": "p1",
+      "sla": {
+        "target": "restore-within-four-hours",
+        "breachedAt": "2026-03-14T13:02:10Z",
+        "elapsedMinutes": 241
+      }
+    }
+  }
+}

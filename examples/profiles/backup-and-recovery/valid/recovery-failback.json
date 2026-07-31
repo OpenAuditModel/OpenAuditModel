@@ -1,0 +1,72 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2a10-000e-7c4d-8b1e-2f3a4051620e",
+  "time": "2026-04-02T21:47:33.910Z",
+  "event": {
+    "name": "recovery.failback",
+    "category": "privileged-operation",
+    "type": "execute",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Payments platform returned to the primary region once storage availability was restored."
+  },
+  "actor": {
+    "type": "admin",
+    "id": "user-1180",
+    "tenantId": "tenant-7",
+    "roles": ["recovery-coordinator"]
+  },
+  "resource": {
+    "type": "service",
+    "id": "service-payments",
+    "name": "payments-platform",
+    "classification": "restricted",
+    "ownerId": "team-payments",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "recovery-orchestrator",
+    "environment": "production",
+    "version": "1.8.3",
+    "region": "region-north"
+  },
+  "organization": {
+    "tenantId": "tenant-7"
+  },
+  "request": {
+    "correlationId": "recovery-2026-0402"
+  },
+  "authentication": {
+    "method": "mfa",
+    "mfa": true,
+    "assuranceLevel": "high"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "disaster-recovery-runbook",
+    "policyVersion": "9"
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-failover-authorization",
+    "requestId": "request-9347",
+    "requiredApprovals": 1,
+    "receivedApprovals": 1,
+    "approvedAt": "2026-04-02T21:41:00Z"
+  },
+  "reason": {
+    "code": "primary-region-restored",
+    "text": "Primary storage was restored and resynchronized, so traffic was returned to the primary region.",
+    "reference": "incident-record-2214"
+  },
+  "controlCategories": ["recoverability", "privileged-access"],
+  "metadata": {
+    "backup": {
+      "recoveryId": "recovery-2026-0402-0311",
+      "targetScope": "region-north-primary",
+      "recoveryPoint": "2026-04-02T21:40:00Z",
+      "approvalRequired": true,
+      "rehearsal": false
+    }
+  }
+}

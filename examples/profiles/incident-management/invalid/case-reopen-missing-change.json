@@ -1,0 +1,66 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c1a-0007-7a2b-9c3d-4e5f60718307",
+  "time": "2026-04-02T07:31:12.905Z",
+  "event": {
+    "name": "incident.case.reopen",
+    "category": "workflow",
+    "type": "update",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Closed incident reopened after the same latency pattern returned."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-3301",
+    "roles": ["incident-manager"],
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "incident",
+    "id": "incident-2026-0418",
+    "name": "checkout-latency-degradation",
+    "classification": "internal",
+    "tenantId": "tenant-7"
+  },
+  "relatedResources": [
+    {
+      "type": "service",
+      "id": "service-checkout"
+    }
+  ],
+  "application": {
+    "name": "incident-service",
+    "environment": "production",
+    "version": "5.2.0"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "incident-handling",
+    "permissions": ["incident.case.reopen"]
+  },
+  "request": {
+    "requestId": "request-5012",
+    "correlationId": "correlation-incident-2026-0418"
+  },
+  "reason": {
+    "code": "recurrence-observed",
+    "text": "The same latency pattern returned nine days after closure, so the resolution did not hold.",
+    "reference": "rca-2026-0418"
+  },
+  "evidence": [
+    {
+      "type": "metric",
+      "reference": "records/monitoring/checkout-latency-2026-0402"
+    }
+  ],
+  "controlCategories": ["incident-traceability"],
+  "metadata": {
+    "incident": {
+      "status": "reopened",
+      "priority": "p1",
+      "reopenCount": 1,
+      "previousClosedAt": "2026-03-24T08:15:03Z"
+    }
+  }
+}

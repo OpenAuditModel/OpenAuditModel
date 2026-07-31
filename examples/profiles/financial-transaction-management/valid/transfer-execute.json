@@ -1,0 +1,74 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c90-0003-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-14T10:05:18.402Z",
+  "event": {
+    "name": "financial.transfer.execute",
+    "category": "data-modification",
+    "type": "execute",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Internal transfer posted between two ledger accounts."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-5120",
+    "tenantId": "tenant-12",
+    "roles": ["ledger-operator"]
+  },
+  "resource": {
+    "type": "account",
+    "id": "account-ref-781",
+    "name": "operating-account",
+    "classification": "confidential",
+    "tenantId": "tenant-12"
+  },
+  "relatedResources": [
+    {
+      "type": "account",
+      "id": "account-ref-902",
+      "name": "reserve-account",
+      "tenantId": "tenant-12"
+    }
+  ],
+  "application": {
+    "name": "ledger-service",
+    "environment": "production",
+    "version": "3.8.0"
+  },
+  "organization": {
+    "tenantId": "tenant-12",
+    "businessUnitId": "finance-operations"
+  },
+  "request": {
+    "requestId": "request-6f22c17",
+    "correlationId": "transfer-lifecycle-7712"
+  },
+  "authentication": {
+    "method": "mfa",
+    "mfa": true,
+    "provider": "corporate-idp"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "ledger-transfer-policy",
+    "policyVersion": "11",
+    "permissions": ["ledger.transfer.execute"]
+  },
+  "reason": {
+    "code": "liquidity-rebalance",
+    "text": "Scheduled rebalance of the operating account against the reserve account."
+  },
+  "controlCategories": ["financial-transaction-integrity"],
+  "metadata": {
+    "financial": {
+      "transactionId": "txn-2026-0314-0112",
+      "amount": 50000,
+      "currency": "EUR",
+      "direction": "debit",
+      "status": "posted",
+      "approvalRequired": false,
+      "manual": false
+    }
+  }
+}

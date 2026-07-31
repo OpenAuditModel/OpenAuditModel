@@ -1,0 +1,43 @@
+{
+  "specVersion": "0.1",
+  "id": "018f3a05-5a64-7f84-9b95-6c7d8e9fa0b4",
+  "time": "2026-05-04T12:05:11.470Z",
+  "event": {
+    "name": "identity.role.assign",
+    "category": "identity",
+    "type": "update",
+    "outcome": "success"
+  },
+  "actor": {
+    "type": "admin",
+    "id": "admin-4821",
+    "attributes": {
+      "workstationClass": "managed",
+      "onCall": true
+    }
+  },
+  "resource": {
+    "type": "user",
+    "id": "user-7391",
+    "attributes": {
+      "accountAge": 412,
+      "directoryPartition": "eu-partition-2"
+    }
+  },
+  "application": {
+    "name": "identity-service",
+    "environment": "production"
+  },
+  "metadata": {
+    "assignedRole": "support-agent",
+    "assignmentScope": "tenant",
+    "effectiveFrom": "2026-05-06T00:00:00Z",
+    "expiresAt": "2026-08-06T00:00:00Z",
+    "approverCount": 2
+  },
+  "extensions": {
+    "com.example.identity.directory.id": "directory-1",
+    "com.example.workflow.stage": "completed",
+    "io.vendor.product.feature.enabled": true
+  }
+}

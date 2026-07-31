@@ -1,0 +1,49 @@
+{
+  "specVersion": "0.1",
+  "id": "018f4c01-1111-7222-8333-000000000001",
+  "time": "2026-06-03T09:00:00.000Z",
+  "event": {
+    "name": "document.share.create",
+    "category": "data-access",
+    "type": "share",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Document shared with an external recipient."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-5120",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "document-service",
+    "environment": "production",
+    "version": "2.11.0"
+  },
+  "resource": {
+    "type": "document",
+    "id": "document-90311",
+    "classification": "confidential",
+    "tenantId": "tenant-7"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "external-sharing",
+    "policyVersion": "12"
+  },
+  "request": {
+    "requestId": "request-c1",
+    "correlationId": "correlation-c1",
+    "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+    "spanId": "00f067aa0ba902b7",
+    "protocol": "https",
+    "method": "POST",
+    "route": "/identity/{principalId}/access"
+  },
+  "controlCategories": ["external-data-sharing", "data-access-logging"],
+  "metadata": {
+    "recipientType": "external",
+    "recipientDomain": "example.net",
+    "expiresAt": "2026-06-10T09:00:00Z"
+  }
+}

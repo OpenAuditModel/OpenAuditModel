@@ -1,0 +1,85 @@
+{
+  "name": "@openauditmodel/cli",
+  "version": "0.1.0",
+  "description": "Conformance toolchain for OpenAuditModel: validate audit events against the canonical JSON Schema, verify tamper-evidence, lint for leaked secrets and check domain profiles. Offline and deterministic.",
+  "keywords": [
+    "audit",
+    "audit-event",
+    "audit-log",
+    "specification",
+    "json-schema",
+    "conformance",
+    "openauditmodel"
+  ],
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "bin": {
+    "auditmodel": "dist/conformance/src/cli.js",
+    "openauditmodel": "dist/conformance/src/cli.js"
+  },
+  "files": [
+    "dist/conformance/src",
+    "schemas",
+    "profiles",
+    "semantic-conventions",
+    "specification",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "node --eval \"import('node:fs').then((fs) => fs.rmSync('dist', { recursive: true, force: true }))\"",
+    "auditmodel": "node dist/conformance/src/cli.js",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "schema:validate": "npm run build && node --test dist/conformance/tests/schema-validation.test.js",
+    "test": "npm run build && node --test \"dist/conformance/tests/*.test.js\" \"dist/mcp/tests/*.test.js\"",
+    "validate:valid": "npm run build && node dist/conformance/src/cli.js validate examples/valid",
+    "verify:integrity": "npm run build && node dist/conformance/src/cli.js verify-integrity examples/integrity/valid && node dist/conformance/src/cli.js verify-chain examples/integrity/valid/three-event-chain",
+    "lint:privacy": "npm run build && node dist/conformance/src/cli.js lint-privacy examples/valid examples/integrity/valid examples/privacy/clean examples/profiles/identity-and-access-management/valid examples/profiles/document-management/valid examples/profiles/incident-management/valid examples/profiles/message-broker-management/valid examples/profiles/deployment-and-change-management/valid examples/profiles/financial-transaction-management/valid examples/profiles/secrets-and-key-management/valid examples/profiles/customer-and-account-management/valid examples/profiles/backup-and-recovery/valid examples/profiles/api-and-integration-management/valid",
+    "check:profile": "npm run build && node dist/conformance/src/cli.js check-profile examples/profiles/identity-and-access-management/valid --profile identity-and-access-management && node dist/conformance/src/cli.js check-profile examples/profiles/document-management/valid --profile document-management && node dist/conformance/src/cli.js check-profile examples/profiles/incident-management/valid --profile incident-management && node dist/conformance/src/cli.js check-profile examples/profiles/message-broker-management/valid --profile message-broker-management && node dist/conformance/src/cli.js check-profile examples/profiles/deployment-and-change-management/valid --profile deployment-and-change-management && node dist/conformance/src/cli.js check-profile examples/profiles/financial-transaction-management/valid --profile financial-transaction-management && node dist/conformance/src/cli.js check-profile examples/profiles/secrets-and-key-management/valid --profile secrets-and-key-management && node dist/conformance/src/cli.js check-profile examples/profiles/customer-and-account-management/valid --profile customer-and-account-management && node dist/conformance/src/cli.js check-profile examples/profiles/backup-and-recovery/valid --profile backup-and-recovery && node dist/conformance/src/cli.js check-profile examples/profiles/api-and-integration-management/valid --profile api-and-integration-management",
+    "fixtures:integrity": "npm run build && node dist/conformance/tools/generate-integrity-fixtures.js && prettier --write examples/integrity",
+    "fixtures:check": "npm run build && node dist/conformance/tools/generate-integrity-fixtures.js --check",
+    "verify": "npm run format:check && npm run lint && npm run test && npm run validate:valid && npm run verify:integrity && npm run lint:privacy && npm run check:profile",
+    "mcp:generate": "npm run generate --workspace mcp",
+    "mcp:check-generated": "npm run generate:check --workspace mcp",
+    "mcp:start": "npm run build && node dist/mcp/src/index.js",
+    "prepare": "npm run build",
+    "prepack": "npm run build && node scripts/verify-package.mjs",
+    "package:verify": "node scripts/verify-package.mjs",
+    "package:smoke": "npm run build && node scripts/package-smoke-test.mjs",
+    "site:build": "node scripts/build-site.mjs",
+    "site:check": "node scripts/build-site.mjs --check"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "canonicalize": "^3.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.10.2",
+    "eslint": "^10.8.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.1"
+  },
+  "homepage": "https://openauditmodel.org",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OpenAuditModel/OpenAuditModel.git"
+  },
+  "bugs": {
+    "url": "https://github.com/OpenAuditModel/OpenAuditModel/issues"
+  },
+  "workspaces": [
+    "mcp"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

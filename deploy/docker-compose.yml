@@ -1,0 +1,164 @@
+# OpenAuditModel — the site and the MCP server.
+#
+# Both images are built on the same Docker daemon that runs them, which may be a
+# remote one:
+#
+#   docker context create prod --docker "host=ssh://user@host"
+#   docker --context prod compose -f deploy/docker-compose.yml up -d --build
+#
+# There is no registry, so `docker compose pull` does not apply — rebuild and
+# recreate instead. See deploy/README.md.
+#
+# TLS is NOT terminated here, and neither service owns port 80 or 443. Each
+# publishes a plain-HTTP port that something in front terminates HTTPS for: a
+# Cloudflare tunnel, Cloudflare's proxy, or another reverse proxy already
+# serving other sites on the same machine. Ports are configurable so the
+# deployment fits a host that is already occupied:
+#
+#   OAM_SITE_PORT=2086  OAM_MCP_PORT=8880  docker compose ... up -d
+#
+# This is an example, not a configuration that suits every environment. Review
+# the limits, the network placement and the rate limiting before exposing it.
+
+services:
+  openauditmodel-site:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.site
+    image: openauditmodel-site:local
+    container_name: openauditmodel-site
+    restart: unless-stopped
+
+    # Bound to the loopback interface by default. Set OAM_BIND=0.0.0.0 only if
+    # the forwarding layer reaches the host from outside it.
+    ports:
+      - "${OAM_BIND:-127.0.0.1}:${OAM_SITE_PORT:-2086}:8080"
+
+    # Static files and nothing else: no application, no state, nothing to write.
+    # Non-root for the same reason the MCP container is: a process that only
+    # reads files off a read-only filesystem has no reason to be able to do more.
+    # Caddy writes nothing here, but it insists on its config and data
+    # directories existing and being writable, so they are tmpfs owned by the
+    # same unprivileged user.
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp:uid=1000,gid=1000
+      - /config:uid=1000,gid=1000
+      - /data:uid=1000,gid=1000
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "-O",
+          "/dev/null",
+          "http://127.0.0.1:8080/schemas/audit-event/0.1/schema.json",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 5s
+      retries: 3
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  openauditmodel-mcp:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    # A local tag, built from this repository. Pin an explicit version tag such
+    # as openauditmodel-mcp:0.1.0-alpha.1 for a release you intend to roll back
+    # to. `latest` is deliberately never used.
+    image: openauditmodel-mcp:local
+    container_name: openauditmodel-mcp
+    restart: unless-stopped
+
+    # Compose would try to fetch this image if it were missing rather than
+    # building it. Building is what `build:` above is for; there is no
+    # registry to pull from anyway.
+    pull_policy: never
+
+    # Bound to the loopback interface by default, so the container is reachable
+    # by whatever terminates TLS on this host and not by the internet. Override
+    # the port when 8880 is taken; override the bind address only if the
+    # forwarding layer is off-host.
+    ports:
+      - "${OAM_BIND:-127.0.0.1}:${OAM_MCP_PORT:-8880}:3000"
+
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOST: 0.0.0.0
+      OAM_ALLOWED_ORIGINS: https://openauditmodel.org,https://www.openauditmodel.org
+      # The public hostname, plus the loopback names. The loopback entries are
+      # required, not decorative: the health check below and any local curl
+      # reach the server as 127.0.0.1, and host validation runs before routing,
+      # so omitting them means the container never becomes healthy. Origin
+      # validation still refuses a browser-driven request to 127.0.0.1, so the
+      # rebinding defence does not rest on this list alone.
+      OAM_ALLOWED_HOSTS: mcp.openauditmodel.org,127.0.0.1,localhost
+      # Enable only when a trusted proxy sets X-Forwarded-Host. Believing that
+      # header without a proxy in front lets any client assert any host.
+      OAM_TRUST_PROXY: "true"
+      OAM_MAX_REQUEST_BYTES: "1000000"
+      OAM_MAX_EVENT_BYTES: "256000"
+      OAM_MAX_CHAIN_EVENTS: "200"
+      OAM_LOG_LEVEL: info
+
+    # The image writes nothing. A read-only root filesystem turns that from a
+    # property of the code into a property of the container.
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    user: "node"
+
+    # No tmpfs: the server writes no temporary files. Add one only if a future
+    # dependency proves it needs scratch space.
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+    # Starting points, not tuned figures. The workload is CPU-bound JSON
+    # analysis with no cache, so memory stays flat and concurrency drives CPU.
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          memory: 128M
+
+    # Give in-flight requests time to finish before SIGKILL. Must exceed
+    # OAM_SHUTDOWN_GRACE_MS.
+    stop_grace_period: 20s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+# Deliberately absent: no volumes, no host mounts, no Docker socket, no
+# privileged mode, no database. The service stores nothing, so it needs nothing
+# mounted, and anything mounted would only be a way to lose that property.

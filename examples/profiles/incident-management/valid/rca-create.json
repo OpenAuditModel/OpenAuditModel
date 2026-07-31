@@ -1,0 +1,73 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c1a-0009-7a2b-9c3d-4e5f60718309",
+  "time": "2026-03-16T10:05:41.660Z",
+  "event": {
+    "name": "incident.rca.create",
+    "category": "workflow",
+    "type": "create",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Root cause analysis recorded for the checkout latency incident."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-5140",
+    "roles": ["platform-engineer"],
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "root-cause-analysis",
+    "id": "rca-2026-0418",
+    "name": "checkout-connection-pool-exhaustion",
+    "classification": "internal",
+    "tenantId": "tenant-7"
+  },
+  "relatedResources": [
+    {
+      "type": "incident",
+      "id": "incident-2026-0418"
+    },
+    {
+      "type": "service",
+      "id": "service-checkout"
+    }
+  ],
+  "application": {
+    "name": "incident-service",
+    "environment": "production",
+    "version": "5.2.0"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "incident-handling",
+    "permissions": ["incident.rca.create"]
+  },
+  "request": {
+    "requestId": "request-4702",
+    "correlationId": "correlation-incident-2026-0418"
+  },
+  "reason": {
+    "code": "major-incident-followup",
+    "text": "A root cause analysis is produced for every incident declared major."
+  },
+  "evidence": [
+    {
+      "type": "document",
+      "reference": "records/root-cause-analysis/rca-2026-0418",
+      "contentType": "application/pdf",
+      "createdAt": "2026-03-16T10:00:00Z"
+    }
+  ],
+  "controlCategories": ["incident-traceability"],
+  "metadata": {
+    "incident": {
+      "status": "draft",
+      "rca": {
+        "method": "five-whys",
+        "completedAt": "2026-03-16T10:00:00Z",
+        "contributingFactorCount": 3
+      }
+    }
+  }
+}

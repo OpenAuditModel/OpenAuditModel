@@ -1,0 +1,68 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1b80-0005-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-14T15:22:05.100Z",
+  "event": {
+    "name": "document.share.create",
+    "category": "data-access",
+    "type": "share",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Confidential document shared with an external recipient."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-5120",
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "document",
+    "id": "document-90311",
+    "name": "quarterly-supplier-agreement",
+    "parentId": "workspace-14",
+    "classification": "confidential",
+    "ownerId": "user-4004",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "document-service",
+    "environment": "production",
+    "version": "2.11.0"
+  },
+  "organization": {
+    "tenantId": "tenant-7",
+    "workspaceId": "workspace-14"
+  },
+  "request": {
+    "requestId": "request-a91c4f5",
+    "correlationId": "document-lifecycle-7712",
+    "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+    "spanId": "00f067aa0ba902b7",
+    "protocol": "https"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "document-governance",
+    "policyVersion": "12"
+  },
+  "reason": {
+    "code": "customer-request",
+    "text": "Supplier requested the countersigned agreement.",
+    "reference": "support-case-3391"
+  },
+  "privacy": {
+    "containsPersonalData": true,
+    "dataCategories": ["identifier", "contact"],
+    "processing": "mask",
+    "minimized": true,
+    "purpose": "access-transparency"
+  },
+  "controlCategories": ["external-data-sharing"],
+  "metadata": {
+    "share": {
+      "recipientType": "external",
+      "permission": "view",
+      "watermarkApplied": true
+    }
+  }
+}

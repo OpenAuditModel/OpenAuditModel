@@ -1,0 +1,78 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c40-0039-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-17T13:02:19.330Z",
+  "event": {
+    "name": "broker.acl.grant",
+    "category": "data-infrastructure",
+    "type": "grant",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Write access to the orders topic granted to the fulfilment service account."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-4188",
+    "roles": ["streaming-administrator"]
+  },
+  "resource": {
+    "type": "topic",
+    "id": "topic-orders-events",
+    "name": "orders-events",
+    "parentId": "cluster-streaming-production",
+    "classification": "internal",
+    "ownerId": "team-orders-platform"
+  },
+  "application": {
+    "name": "broker-control-service",
+    "environment": "production",
+    "version": "3.4.1",
+    "region": "region-1"
+  },
+  "authentication": {
+    "method": "oidc",
+    "provider": "corporate-idp",
+    "mfa": true
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "broker-access-control",
+    "permissions": ["acl.write"]
+  },
+  "request": {
+    "requestId": "request-6f0b94",
+    "correlationId": "correlation-broker-access-3305"
+  },
+  "change": {
+    "type": "create",
+    "changedFields": ["acl.write"],
+    "after": {
+      "principalId": "service-account-fulfilment-worker",
+      "permission": "write",
+      "effect": "allow"
+    },
+    "ticketId": "change-8261"
+  },
+  "reason": {
+    "code": "service-onboarding",
+    "text": "Fulfilment worker now publishes order state transitions.",
+    "reference": "change-8261"
+  },
+  "controlCategories": ["privileged-access", "access-provisioning"],
+  "tags": ["production", "control-plane"],
+  "metadata": {
+    "broker": {
+      "system": "kafka",
+      "clusterId": "cluster-streaming-production",
+      "operation": {
+        "destructive": false
+      },
+      "acl": {
+        "permission": "write",
+        "effect": "allow",
+        "resourcePattern": "literal"
+      }
+    }
+  }
+}

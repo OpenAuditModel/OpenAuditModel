@@ -1,0 +1,79 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0012-7b3c-8d4e-5f6071829312",
+  "time": "2026-04-08T19:14:33.900Z",
+  "event": {
+    "name": "account.status.update",
+    "category": "resource-lifecycle",
+    "type": "update",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Account moved to dormant by a support operator acting for the account holder."
+  },
+  "actor": {
+    "type": "user",
+    "id": "operator-3318",
+    "tenantId": "tenant-19",
+    "roles": ["customer-support-operator"]
+  },
+  "subject": {
+    "type": "external",
+    "id": "customer-42",
+    "organizationId": "organization-155",
+    "tenantId": "tenant-19"
+  },
+  "resource": {
+    "type": "account",
+    "id": "account-ref-781",
+    "ownerId": "customer-42",
+    "classification": "restricted",
+    "tenantId": "tenant-19"
+  },
+  "application": {
+    "name": "customer-platform",
+    "environment": "production",
+    "version": "5.2.0",
+    "service": "account-records"
+  },
+  "organization": {
+    "tenantId": "tenant-19",
+    "businessUnitId": "unit-retail"
+  },
+  "request": {
+    "requestId": "request-9f325c",
+    "correlationId": "support-contact-9014"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "account-status-controls",
+    "policyVersion": "5"
+  },
+  "approval": {
+    "status": "not-required"
+  },
+  "reason": {
+    "code": "customer-request",
+    "text": "Account holder asked for the account to be made dormant during a seasonal pause.",
+    "reference": "case-4290"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["status"],
+    "before": {
+      "status": "active"
+    },
+    "after": {
+      "status": "dormant"
+    }
+  },
+  "controlCategories": ["account-lifecycle"],
+  "metadata": {
+    "customer": {
+      "customerType": "business",
+      "accountType": "settlement",
+      "status": "dormant",
+      "onBehalfOf": true
+    }
+  }
+}

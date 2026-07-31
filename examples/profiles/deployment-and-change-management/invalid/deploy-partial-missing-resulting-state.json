@@ -1,0 +1,68 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-1006-7a3b-8c4d-5e6f70819206",
+  "time": "2026-03-16T11:07:19.663Z",
+  "event": {
+    "name": "deployment.release.deploy",
+    "category": "deployment",
+    "type": "execute",
+    "outcome": "partial",
+    "severity": "high",
+    "summary": "Rollout replaced part of the fleet before it was halted, leaving two versions serving."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-delivery-runner",
+    "roles": ["deployment-runner"]
+  },
+  "subject": {
+    "type": "user",
+    "id": "user-2210"
+  },
+  "delegation": {
+    "type": "on-behalf-of",
+    "reason": "The pipeline deployed the change its author merged.",
+    "reference": "change-2026-0316-6"
+  },
+  "resource": {
+    "type": "deployment",
+    "id": "deployment-2026-0316-6",
+    "name": "checkout-service-release",
+    "parentId": "cluster-staging-1"
+  },
+  "relatedResources": [{ "type": "service", "id": "service-checkout" }],
+  "application": {
+    "name": "delivery-platform",
+    "environment": "production",
+    "version": "4.2.0",
+    "component": "release-controller"
+  },
+  "request": {
+    "requestId": "request-2ce917",
+    "correlationId": "deployment-2026-0316-6"
+  },
+  "change": {
+    "type": "execute",
+    "changedFields": ["releaseVersion"],
+    "ticketId": "change-2026-0316-6",
+    "deploymentId": "deployment-2026-0316-6"
+  },
+  "reason": {
+    "code": "scheduled-release",
+    "text": "Automated delivery of a merged change."
+  },
+  "controlCategories": ["change-management"],
+  "tags": ["staging"],
+  "metadata": {
+    "deployment": {
+      "id": "deployment-2026-0316-6",
+      "environment": "staging",
+      "version": "9.1.2",
+      "previousVersion": "9.1.0",
+      "approvalRequired": false,
+      "pipelineId": "pipeline-checkout-delivery",
+      "instancesUpdated": 4,
+      "instancesTotal": 12
+    }
+  }
+}

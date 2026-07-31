@@ -1,0 +1,65 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-1007-7a3b-8c4d-5e6f70819207",
+  "time": "2026-03-16T11:12:48.550Z",
+  "event": {
+    "name": "deployment.release.cancel",
+    "category": "deployment",
+    "type": "execute",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Rollout halted by the on-call engineer before the remaining instances were replaced."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-8814",
+    "roles": ["on-call-engineer"]
+  },
+  "resource": {
+    "type": "deployment",
+    "id": "deployment-2026-0316-6",
+    "name": "checkout-service-release",
+    "parentId": "cluster-staging-1"
+  },
+  "relatedResources": [{ "type": "service", "id": "service-checkout" }],
+  "application": {
+    "name": "delivery-platform",
+    "environment": "production",
+    "version": "4.2.0",
+    "component": "release-controller"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "rollout-control",
+    "policyVersion": "3"
+  },
+  "approval": {
+    "status": "not-required"
+  },
+  "request": {
+    "requestId": "request-4d8e05",
+    "correlationId": "deployment-2026-0316-6"
+  },
+  "change": {
+    "type": "none",
+    "ticketId": "change-2026-0316-6",
+    "deploymentId": "deployment-2026-0316-6"
+  },
+  "reason": {
+    "code": "error-rate-regression",
+    "text": "Checkout error rate rose on the updated instances during the canary window."
+  },
+  "controlCategories": ["change-management"],
+  "tags": ["staging"],
+  "metadata": {
+    "deployment": {
+      "id": "deployment-2026-0316-6",
+      "environment": "staging",
+      "version": "9.1.2",
+      "approvalRequired": false,
+      "pipelineId": "pipeline-checkout-delivery",
+      "resultingState": "partially-applied"
+    }
+  }
+}

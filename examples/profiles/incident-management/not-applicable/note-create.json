@@ -1,0 +1,46 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c1a-0102-7a2b-9c3d-4e5f60718402",
+  "time": "2026-03-14T10:18:02.910Z",
+  "event": {
+    "name": "incident.note.create",
+    "category": "workflow",
+    "type": "create",
+    "outcome": "success",
+    "severity": "debug",
+    "summary": "Working note appended to the incident timeline."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-5140",
+    "roles": ["platform-engineer"],
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "incident-note",
+    "id": "incident-note-2026-0418-0037",
+    "classification": "internal",
+    "tenantId": "tenant-7"
+  },
+  "relatedResources": [
+    {
+      "type": "incident",
+      "id": "incident-2026-0418"
+    }
+  ],
+  "application": {
+    "name": "incident-service",
+    "environment": "production",
+    "version": "5.2.0"
+  },
+  "request": {
+    "correlationId": "correlation-incident-2026-0418"
+  },
+  "metadata": {
+    "incidentNote": {
+      "channel": "chat-bridge",
+      "visibility": "internal",
+      "characterCount": 148
+    }
+  }
+}

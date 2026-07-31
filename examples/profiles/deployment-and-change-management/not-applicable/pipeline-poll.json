@@ -1,0 +1,33 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-2001-7a3b-8c4d-5e6f70819301",
+  "time": "2026-03-16T09:13:58.002Z",
+  "event": {
+    "name": "deployment.pipeline.poll",
+    "category": "deployment",
+    "type": "read",
+    "outcome": "success",
+    "severity": "debug",
+    "summary": "Pipeline runner polled for queued work."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-delivery-runner"
+  },
+  "resource": {
+    "type": "pipeline",
+    "id": "pipeline-checkout-delivery"
+  },
+  "application": {
+    "name": "delivery-platform",
+    "environment": "production",
+    "version": "4.2.0",
+    "component": "release-controller"
+  },
+  "metadata": {
+    "pipeline": {
+      "queuedJobs": 0,
+      "pollIntervalSeconds": 15
+    }
+  }
+}

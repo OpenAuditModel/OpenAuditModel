@@ -1,0 +1,57 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-100c-7a3b-8c4d-5e6f7081920c",
+  "time": "2026-03-17T09:44:51.492Z",
+  "event": {
+    "name": "change.request.approve",
+    "category": "workflow",
+    "type": "approve",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Change request approved for the production authentication configuration."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-7702",
+    "roles": ["security-officer"]
+  },
+  "resource": {
+    "type": "change-request",
+    "id": "change-2026-0317-4",
+    "name": "session-lifetime-reduction"
+  },
+  "relatedResources": [{ "type": "configuration", "id": "configuration-authentication-session" }],
+  "application": {
+    "name": "change-management-service",
+    "environment": "production",
+    "version": "6.4.2"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "change-approval",
+    "policyVersion": "11"
+  },
+  "request": {
+    "requestId": "request-31fa8c",
+    "correlationId": "change-2026-0317-4"
+  },
+  "change": {
+    "type": "none",
+    "ticketId": "change-2026-0317-4"
+  },
+  "reason": {
+    "code": "security-hardening",
+    "text": "Approved on the strength of the security review finding.",
+    "reference": "change-2026-0317-4"
+  },
+  "controlCategories": ["change-approval"],
+  "tags": ["production"],
+  "metadata": {
+    "deployment": {
+      "id": "change-2026-0317-4",
+      "environment": "production",
+      "approvalRequired": true,
+      "riskLevel": "high"
+    }
+  }
+}

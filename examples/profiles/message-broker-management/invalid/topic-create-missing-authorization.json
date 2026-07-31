@@ -1,0 +1,61 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c40-0031-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-17T08:12:04.220Z",
+  "event": {
+    "name": "broker.topic.create",
+    "category": "data-infrastructure",
+    "type": "create",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Topic created for settlement events on the production streaming cluster."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-6612",
+    "roles": ["streaming-operator"]
+  },
+  "resource": {
+    "type": "topic",
+    "id": "topic-payments-settlement-completed",
+    "name": "payments-settlement-completed",
+    "parentId": "cluster-streaming-production",
+    "classification": "confidential",
+    "ownerId": "team-payments-platform"
+  },
+  "relatedResources": [{ "type": "cluster", "id": "cluster-streaming-production" }],
+  "application": {
+    "name": "broker-control-service",
+    "environment": "production",
+    "version": "3.4.1",
+    "region": "region-1"
+  },
+  "authentication": {
+    "method": "oidc",
+    "provider": "corporate-idp",
+    "mfa": true
+  },
+  "request": {
+    "requestId": "request-6f0b31",
+    "correlationId": "correlation-broker-change-4471"
+  },
+  "reason": {
+    "code": "platform-onboarding",
+    "text": "New settlement pipeline requires a dedicated topic."
+  },
+  "controlCategories": ["privileged-access", "resource-provisioning"],
+  "tags": ["production", "control-plane"],
+  "metadata": {
+    "broker": {
+      "system": "kafka",
+      "clusterId": "cluster-streaming-production",
+      "operation": {
+        "destructive": false
+      },
+      "topic": {
+        "partitions": 12,
+        "replicationFactor": 3
+      }
+    }
+  }
+}

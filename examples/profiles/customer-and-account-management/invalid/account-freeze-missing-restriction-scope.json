@@ -1,0 +1,83 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0009-7b3c-8d4e-5f6071829309",
+  "time": "2026-04-08T17:33:44.190Z",
+  "event": {
+    "name": "account.freeze",
+    "category": "security",
+    "type": "update",
+    "outcome": "success",
+    "severity": "critical",
+    "summary": "Outbound transactions frozen on a settlement account after a fraud alert."
+  },
+  "actor": {
+    "type": "user",
+    "id": "operator-4102",
+    "tenantId": "tenant-19",
+    "roles": ["customer-risk-officer"]
+  },
+  "resource": {
+    "type": "account",
+    "id": "account-ref-781",
+    "ownerId": "customer-42",
+    "classification": "restricted",
+    "tenantId": "tenant-19"
+  },
+  "application": {
+    "name": "customer-platform",
+    "environment": "production",
+    "version": "5.2.0",
+    "service": "account-risk"
+  },
+  "organization": {
+    "tenantId": "tenant-19",
+    "businessUnitId": "unit-retail"
+  },
+  "request": {
+    "requestId": "request-9f3227",
+    "correlationId": "fraud-alert-8823"
+  },
+  "authentication": {
+    "method": "oidc",
+    "provider": "corporate-idp",
+    "mfa": true,
+    "authenticatedAt": "2026-04-08T17:29:02Z"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "account-risk-controls",
+    "policyVersion": "11"
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-account-freeze",
+    "requiredApprovals": 1,
+    "receivedApprovals": 1,
+    "approvedAt": "2026-04-08T17:32:18Z"
+  },
+  "reason": {
+    "code": "fraud-alert",
+    "text": "Automated monitoring flagged an unusual outbound pattern for manual review.",
+    "reference": "case-4180"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["status"],
+    "before": {
+      "status": "active"
+    },
+    "after": {
+      "status": "frozen"
+    }
+  },
+  "controlCategories": ["account-lifecycle", "account-restriction"],
+  "metadata": {
+    "customer": {
+      "customerType": "business",
+      "accountType": "settlement",
+      "status": "frozen",
+      "reviewId": "review-2026-051"
+    }
+  }
+}

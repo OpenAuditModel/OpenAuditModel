@@ -1,0 +1,78 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2a10-0005-7c4d-8b1e-2f3a40516205",
+  "time": "2026-03-16T09:14:30.220Z",
+  "event": {
+    "name": "backup.delete",
+    "category": "data-infrastructure",
+    "type": "delete",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Unrestorable backup copy removed ahead of its retention date."
+  },
+  "actor": {
+    "type": "admin",
+    "id": "user-3312",
+    "tenantId": "tenant-7",
+    "roles": ["backup-operator"]
+  },
+  "resource": {
+    "type": "database",
+    "id": "database-orders",
+    "name": "orders-primary",
+    "parentId": "cluster-north-primary",
+    "classification": "confidential",
+    "ownerId": "team-payments",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "backup-service",
+    "environment": "production",
+    "version": "4.2.0",
+    "region": "region-north"
+  },
+  "organization": {
+    "tenantId": "tenant-7"
+  },
+  "request": {
+    "correlationId": "backup-disposal-2026-0316"
+  },
+  "authentication": {
+    "method": "mfa",
+    "mfa": true,
+    "assuranceLevel": "high"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "backup-administration",
+    "policyVersion": "3",
+    "permissions": ["backup-delete"]
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-backup-disposal",
+    "requestId": "request-8842",
+    "requiredApprovals": 2,
+    "receivedApprovals": 2,
+    "approvers": [
+      {
+        "type": "user",
+        "id": "user-1180"
+      },
+      {
+        "type": "user",
+        "id": "user-2044"
+      }
+    ],
+    "approvedAt": "2026-03-16T09:12:00Z"
+  },
+  "controlCategories": ["data-protection", "recoverability"],
+  "metadata": {
+    "backup": {
+      "backupId": "backup-2026-0301-0200",
+      "backupType": "incremental",
+      "retentionClass": "operational-35-day",
+      "approvalRequired": true
+    }
+  }
+}

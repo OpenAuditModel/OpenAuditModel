@@ -1,0 +1,84 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c90-0036-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-14T13:20:47.128Z",
+  "event": {
+    "name": "financial.reversal.execute",
+    "category": "data-modification",
+    "type": "execute",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Duplicate capture unwound against the original payment."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-5120",
+    "tenantId": "tenant-12",
+    "roles": ["ledger-operator"]
+  },
+  "resource": {
+    "type": "payment",
+    "id": "payment-ref-4412",
+    "ownerId": "account-ref-781",
+    "tenantId": "tenant-12"
+  },
+  "relatedResources": [
+    {
+      "type": "account",
+      "id": "account-ref-781"
+    }
+  ],
+  "application": {
+    "name": "ledger-service",
+    "environment": "production",
+    "version": "3.8.0"
+  },
+  "organization": {
+    "tenantId": "tenant-12",
+    "businessUnitId": "finance-operations"
+  },
+  "request": {
+    "requestId": "request-7a04b08",
+    "correlationId": "payment-lifecycle-4412"
+  },
+  "authentication": {
+    "method": "mfa",
+    "mfa": true,
+    "provider": "corporate-idp"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "reversal-policy",
+    "policyVersion": "6"
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "ledger-reversal-review",
+    "requiredApprovals": 1,
+    "receivedApprovals": 1,
+    "approvers": [
+      {
+        "type": "user",
+        "id": "user-4477"
+      }
+    ],
+    "approvedAt": "2026-03-14T13:18:02Z"
+  },
+  "reason": {
+    "code": "duplicate-capture",
+    "text": "The same authorization was captured twice by a retried job, so the second capture was unwound.",
+    "reference": "case-88155"
+  },
+  "controlCategories": ["financial-transaction-integrity"],
+  "metadata": {
+    "financial": {
+      "transactionId": "txn-2026-0314-0161",
+      "amount": 148.5,
+      "currency": "EUR",
+      "direction": "outbound",
+      "status": "reversed",
+      "approvalRequired": true,
+      "manual": false
+    }
+  }
+}

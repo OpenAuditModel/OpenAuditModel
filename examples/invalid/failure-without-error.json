@@ -1,0 +1,28 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c04-4d5e-7f60-b172-8d9e0f1a2b34",
+  "time": "2026-03-19T07:19:03Z",
+  "event": {
+    "name": "authentication.login",
+    "category": "authentication",
+    "outcome": "failure",
+    "severity": "medium",
+    "summary": "Sign-in attempt rejected."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-2211"
+  },
+  "resource": {
+    "type": "session",
+    "id": "session-attempt-88f1"
+  },
+  "application": {
+    "name": "identity-service",
+    "environment": "production"
+  },
+  "authentication": {
+    "method": "password",
+    "provider": "corporate-idp"
+  }
+}

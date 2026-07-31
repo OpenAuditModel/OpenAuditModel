@@ -1,0 +1,105 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1ba3-0d77-7b42-a915-3c6e8f0d1b24",
+  "time": "2026-03-17T03:41:26Z",
+  "observedTime": "2026-03-17T03:41:27.014Z",
+  "sequence": 4,
+  "event": {
+    "name": "kafka.consumer.offset-reset",
+    "category": "data-infrastructure",
+    "type": "execute",
+    "outcome": "success",
+    "severity": "critical",
+    "summary": "Consumer group offsets reset on a production topic partition during incident recovery."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-6612",
+    "roles": ["streaming-operator"]
+  },
+  "resource": {
+    "type": "consumer-group",
+    "id": "payments-settlement-consumer",
+    "parentId": "cluster-streaming-production",
+    "classification": "internal"
+  },
+  "relatedResources": [
+    {
+      "type": "topic",
+      "id": "payments.settlement.completed",
+      "parentId": "cluster-streaming-production",
+      "classification": "confidential"
+    },
+    {
+      "type": "cluster",
+      "id": "cluster-streaming-production"
+    }
+  ],
+  "application": {
+    "name": "streaming-control-service",
+    "environment": "production",
+    "version": "1.8.2",
+    "region": "region-1"
+  },
+  "authentication": {
+    "method": "oidc",
+    "provider": "corporate-idp",
+    "mfa": true
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "streaming-privileged-operation",
+    "permissions": ["consumer-group.offset.reset"]
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-incident-change",
+    "requiredApprovals": 1,
+    "receivedApprovals": 1,
+    "approvers": [
+      {
+        "type": "user",
+        "id": "user-1180",
+        "roles": ["incident-commander"]
+      }
+    ],
+    "approvedAt": "2026-03-17T03:39:12Z"
+  },
+  "request": {
+    "requestId": "request-6f0b31",
+    "correlationId": "correlation-incident-2026-0431",
+    "traceId": "3c1a9d5e7f0b2468ac13579bdf024680",
+    "spanId": "9d5e7f0b24681357",
+    "protocol": "https",
+    "method": "POST",
+    "route": "/clusters/{clusterId}/consumer-groups/{consumerGroupId}/offsets"
+  },
+  "change": {
+    "type": "execute",
+    "changedFields": ["offset"],
+    "before": {
+      "offset": 918273645
+    },
+    "after": {
+      "offset": 918200000
+    },
+    "ticketId": "change-8123",
+    "incidentId": "incident-2026-0431"
+  },
+  "reason": {
+    "code": "incident-recovery",
+    "text": "Reprocessing required after an unprocessable message blocked the settlement consumers.",
+    "reference": "incident-2026-0431"
+  },
+  "controlCategories": ["privileged-access", "change-approval", "incident-traceability"],
+  "tags": ["production", "incident-response"],
+  "metadata": {
+    "brokerType": "kafka",
+    "partition": 7,
+    "previousOffset": 918273645,
+    "newOffset": 918200000,
+    "resetStrategy": "to-offset",
+    "estimatedReprocessedMessages": 73645
+  }
+}

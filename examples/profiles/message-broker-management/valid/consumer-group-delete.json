@@ -1,0 +1,64 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c40-0012-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-17T19:22:47.560Z",
+  "event": {
+    "name": "broker.consumer-group.delete",
+    "category": "data-infrastructure",
+    "type": "delete",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Consumer group removed together with its committed positions."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-4188",
+    "roles": ["streaming-administrator"]
+  },
+  "resource": {
+    "type": "consumer-group",
+    "id": "consumer-group-legacy-invoice-export",
+    "name": "legacy-invoice-export",
+    "parentId": "cluster-streaming-production",
+    "classification": "internal",
+    "ownerId": "team-finance-integration"
+  },
+  "relatedResources": [{ "type": "cluster", "id": "cluster-streaming-production" }],
+  "application": {
+    "name": "broker-control-service",
+    "environment": "production",
+    "version": "3.4.1",
+    "region": "region-1"
+  },
+  "authentication": {
+    "method": "oidc",
+    "provider": "corporate-idp",
+    "mfa": true
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "broker-administration",
+    "permissions": ["consumer-group.delete"]
+  },
+  "request": {
+    "requestId": "request-6f0bf1",
+    "correlationId": "correlation-broker-decommission-1180"
+  },
+  "reason": {
+    "code": "service-decommission",
+    "text": "Consuming service retired, so its committed positions were removed.",
+    "reference": "change-8244"
+  },
+  "controlCategories": ["privileged-access"],
+  "tags": ["production", "control-plane"],
+  "metadata": {
+    "broker": {
+      "system": "kafka",
+      "clusterId": "cluster-streaming-production",
+      "operation": {
+        "destructive": true
+      }
+    }
+  }
+}

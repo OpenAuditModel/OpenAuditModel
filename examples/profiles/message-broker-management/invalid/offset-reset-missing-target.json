@@ -1,0 +1,96 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c40-0041-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-17T16:44:26.180Z",
+  "observedTime": "2026-03-17T16:44:27.014Z",
+  "sequence": 4,
+  "event": {
+    "name": "broker.offset.reset",
+    "category": "data-infrastructure",
+    "type": "execute",
+    "outcome": "success",
+    "severity": "critical",
+    "summary": "Consumer group positions rewound so that blocked settlement messages could be reprocessed."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-6612",
+    "roles": ["streaming-operator"]
+  },
+  "resource": {
+    "type": "consumer-group",
+    "id": "consumer-group-payments-settlement",
+    "name": "payments-settlement",
+    "parentId": "cluster-streaming-production",
+    "classification": "internal",
+    "ownerId": "team-payments-platform"
+  },
+  "relatedResources": [
+    {
+      "type": "topic",
+      "id": "topic-payments-settlement-completed",
+      "parentId": "cluster-streaming-production",
+      "classification": "confidential"
+    },
+    { "type": "cluster", "id": "cluster-streaming-production" }
+  ],
+  "application": {
+    "name": "broker-control-service",
+    "environment": "production",
+    "version": "3.4.1",
+    "region": "region-1"
+  },
+  "authentication": {
+    "method": "oidc",
+    "provider": "corporate-idp",
+    "mfa": true
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "streaming-privileged-operation",
+    "permissions": ["consumer-group.offset.reset"]
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-incident-change",
+    "requiredApprovals": 1,
+    "receivedApprovals": 1,
+    "approvers": [{ "type": "user", "id": "user-1180", "roles": ["incident-commander"] }],
+    "approvedAt": "2026-03-17T16:39:12Z"
+  },
+  "request": {
+    "requestId": "request-6f0bc7",
+    "correlationId": "correlation-incident-2026-0431"
+  },
+  "change": {
+    "type": "execute",
+    "changedFields": ["offset"],
+    "before": { "offset": "918273645" },
+    "after": { "offset": "918200000" },
+    "ticketId": "change-8123",
+    "incidentId": "incident-2026-0431"
+  },
+  "reason": {
+    "code": "incident-recovery",
+    "text": "Reprocessing required after an unprocessable message blocked the settlement consumers.",
+    "reference": "incident-2026-0431"
+  },
+  "controlCategories": ["privileged-access", "change-approval", "incident-traceability"],
+  "tags": ["production", "incident-response"],
+  "metadata": {
+    "broker": {
+      "system": "kafka",
+      "clusterId": "cluster-streaming-production",
+      "approvalRequired": true,
+      "operation": {
+        "destructive": true
+      },
+      "offset": {
+        "previous": "918273645",
+        "strategy": "to-offset",
+        "partition": 7
+      }
+    }
+  }
+}

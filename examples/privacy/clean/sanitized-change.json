@@ -1,0 +1,40 @@
+{
+  "specVersion": "0.1",
+  "id": "018f3a04-4f53-7e73-8a84-5b6c7d8e9fa3",
+  "time": "2026-05-04T11:22:39.882Z",
+  "event": {
+    "name": "identity.credential.rotate",
+    "category": "identity",
+    "type": "update",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Service account credential rotated on schedule."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-account-rotation-worker"
+  },
+  "resource": {
+    "type": "api-key",
+    "id": "api-key-4471",
+    "classification": "restricted"
+  },
+  "application": {
+    "name": "identity-service",
+    "environment": "production"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["secret", "rotatedAt"],
+    "before": {
+      "rotatedAt": "2026-02-04T11:22:39Z",
+      "version": 7
+    },
+    "after": {
+      "rotatedAt": "2026-05-04T11:22:39Z",
+      "version": 8
+    },
+    "ticketId": "change-8812"
+  },
+  "controlCategories": ["authentication-logging", "privileged-access"]
+}

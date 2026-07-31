@@ -1,0 +1,78 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0003-7b3c-8d4e-5f6071829303",
+  "time": "2026-04-08T11:04:12.510Z",
+  "event": {
+    "name": "customer.merge",
+    "category": "data-modification",
+    "type": "update",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Duplicate business customer record merged into the surviving record."
+  },
+  "actor": {
+    "type": "user",
+    "id": "operator-3318",
+    "tenantId": "tenant-19",
+    "roles": ["customer-administrator"]
+  },
+  "resource": {
+    "type": "customer",
+    "id": "customer-42",
+    "classification": "restricted",
+    "tenantId": "tenant-19"
+  },
+  "relatedResources": [
+    {
+      "type": "customer",
+      "id": "customer-8420",
+      "classification": "restricted",
+      "tenantId": "tenant-19"
+    }
+  ],
+  "application": {
+    "name": "customer-platform",
+    "environment": "production",
+    "version": "5.2.0",
+    "service": "customer-records"
+  },
+  "organization": {
+    "tenantId": "tenant-19",
+    "businessUnitId": "unit-retail"
+  },
+  "request": {
+    "requestId": "request-9f31c4",
+    "correlationId": "duplicate-resolution-2290"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "customer-data-quality",
+    "policyVersion": "4"
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-customer-merge",
+    "requestId": "approval-request-6104",
+    "requiredApprovals": 2,
+    "receivedApprovals": 2,
+    "approvedAt": "2026-04-08T10:58:33Z"
+  },
+  "reason": {
+    "code": "duplicate-record",
+    "text": "Two records described the same business party after a bulk import.",
+    "reference": "case-3502"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["relatedAccounts", "primaryContactId"]
+  },
+  "controlCategories": ["customer-lifecycle", "data-quality"],
+  "metadata": {
+    "customer": {
+      "customerType": "business",
+      "status": "active",
+      "mergeStrategy": "retain-oldest"
+    }
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0010-7b3c-8d4e-5f6071829310",
+  "time": "2026-04-08T18:05:27.310Z",
+  "event": {
+    "name": "account.close",
+    "category": "resource-lifecycle",
+    "type": "update",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Settlement account closed after the balance was transferred and the contract ended."
+  },
+  "actor": {
+    "type": "user",
+    "id": "operator-3318",
+    "tenantId": "tenant-19",
+    "roles": ["customer-administrator"]
+  },
+  "resource": {
+    "type": "account",
+    "id": "account-ref-781",
+    "ownerId": "customer-42",
+    "classification": "restricted",
+    "tenantId": "tenant-19"
+  },
+  "application": {
+    "name": "customer-platform",
+    "environment": "production",
+    "version": "5.2.0",
+    "service": "account-records"
+  },
+  "organization": {
+    "tenantId": "tenant-19",
+    "businessUnitId": "unit-retail"
+  },
+  "request": {
+    "requestId": "request-9f3239",
+    "correlationId": "offboarding-6633"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "account-closure",
+    "policyVersion": "8"
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-account-closure",
+    "requestId": "approval-request-6288",
+    "requiredApprovals": 2,
+    "receivedApprovals": 2,
+    "approvedAt": "2026-04-08T18:01:44Z"
+  },
+  "reason": {
+    "code": "contract-ended",
+    "text": "Account closed as part of an agreed end of the customer relationship.",
+    "reference": "case-3688"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["status"],
+    "before": {
+      "status": "active"
+    },
+    "after": {
+      "status": "closed"
+    }
+  },
+  "controlCategories": ["account-lifecycle", "change-approval"],
+  "metadata": {
+    "customer": {
+      "customerType": "business",
+      "accountType": "settlement",
+      "status": "closed",
+      "approvalRequired": true
+    }
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c40-0004-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-17T11:40:55.090Z",
+  "event": {
+    "name": "broker.topic.delete",
+    "category": "data-infrastructure",
+    "type": "delete",
+    "outcome": "failure",
+    "severity": "high",
+    "summary": "Topic deletion refused by policy on a production cluster.",
+    "error": {
+      "code": "permission-denied",
+      "type": "authorization",
+      "message": "Deleting a production topic requires the streaming administrator role.",
+      "retryable": false
+    }
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-7731",
+    "roles": ["streaming-operator"]
+  },
+  "resource": {
+    "type": "topic",
+    "id": "topic-payments-settlement-completed",
+    "name": "payments-settlement-completed",
+    "parentId": "cluster-streaming-production",
+    "classification": "confidential",
+    "ownerId": "team-payments-platform"
+  },
+  "application": {
+    "name": "broker-control-service",
+    "environment": "production",
+    "version": "3.4.1",
+    "region": "region-1"
+  },
+  "authentication": {
+    "method": "oidc",
+    "provider": "corporate-idp",
+    "mfa": true
+  },
+  "authorization": {
+    "decision": "deny",
+    "engine": "policy-service",
+    "policy": "broker-administration",
+    "reason": "Actor lacks the required administrative role.",
+    "permissions": ["topic.delete"]
+  },
+  "request": {
+    "requestId": "request-6f0b71",
+    "correlationId": "correlation-broker-change-4491"
+  },
+  "reason": {
+    "code": "cleanup-attempt",
+    "text": "Operator attempted to remove a topic believed to be unused."
+  },
+  "controlCategories": ["privileged-access", "access-denial"],
+  "tags": ["production", "control-plane"],
+  "metadata": {
+    "broker": {
+      "system": "kafka",
+      "clusterId": "cluster-streaming-production",
+      "operation": {
+        "destructive": true
+      }
+    }
+  }
+}

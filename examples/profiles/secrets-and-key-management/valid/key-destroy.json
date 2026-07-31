@@ -1,0 +1,64 @@
+{
+  "specVersion": "0.1",
+  "id": "018f6d10-0010-7a2b-9c3d-4e5f60710010",
+  "time": "2026-06-02T09:00:44.918Z",
+  "event": {
+    "name": "key.destroy",
+    "category": "security",
+    "type": "delete",
+    "outcome": "success",
+    "severity": "critical",
+    "summary": "A retired encryption key was destroyed after its data had been re-encrypted."
+  },
+  "actor": {
+    "type": "admin",
+    "id": "user-6033",
+    "tenantId": "tenant-4"
+  },
+  "resource": {
+    "type": "key",
+    "id": "key-1907",
+    "name": "customer-archive-encryption",
+    "classification": "secret",
+    "ownerId": "team-data-platform",
+    "tenantId": "tenant-4"
+  },
+  "application": {
+    "name": "key-custody-service",
+    "environment": "production",
+    "version": "6.0.1"
+  },
+  "request": {
+    "requestId": "request-f31",
+    "correlationId": "key-decommission-5580"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "key-custody",
+    "policyVersion": "4"
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "key-destruction-review",
+    "requestId": "approval-9001",
+    "requiredApprovals": 2,
+    "receivedApprovals": 2,
+    "approvedAt": "2026-06-01T12:00:00Z"
+  },
+  "reason": {
+    "code": "decommissioning",
+    "text": "Every record protected by this key was re-encrypted under its successor and verified.",
+    "reference": "change-9780"
+  },
+  "controlCategories": ["key-management", "change-approval"],
+  "metadata": {
+    "secret": {
+      "type": "encryption-key",
+      "provider": "managed-key-service",
+      "algorithm": "aes-256-gcm",
+      "approvalRequired": true,
+      "emergencyAccess": false
+    }
+  }
+}

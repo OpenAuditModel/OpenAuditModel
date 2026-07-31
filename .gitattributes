@@ -1,0 +1,9 @@
+# Normalize line endings so specification text, schemas and examples are
+# byte-identical on every platform. Hash-based conformance fixtures depend on it.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.pdf binary

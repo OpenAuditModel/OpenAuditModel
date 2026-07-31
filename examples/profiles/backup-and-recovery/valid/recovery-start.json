@@ -1,0 +1,61 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2a10-000a-7c4d-8b1e-2f3a4051620a",
+  "time": "2026-04-02T03:11:18.140Z",
+  "event": {
+    "name": "recovery.start",
+    "category": "privileged-operation",
+    "type": "execute",
+    "outcome": "success",
+    "severity": "critical",
+    "summary": "Disaster recovery declared for the payments platform."
+  },
+  "actor": {
+    "type": "admin",
+    "id": "user-1180",
+    "tenantId": "tenant-7",
+    "roles": ["recovery-coordinator"]
+  },
+  "resource": {
+    "type": "service",
+    "id": "service-payments",
+    "name": "payments-platform",
+    "classification": "restricted",
+    "ownerId": "team-payments",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "recovery-orchestrator",
+    "environment": "production",
+    "version": "1.8.3",
+    "region": "region-north"
+  },
+  "organization": {
+    "tenantId": "tenant-7"
+  },
+  "request": {
+    "correlationId": "recovery-2026-0402"
+  },
+  "authentication": {
+    "method": "mfa",
+    "mfa": true,
+    "assuranceLevel": "high"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "disaster-recovery-runbook",
+    "policyVersion": "9"
+  },
+  "reason": {
+    "code": "regional-outage",
+    "text": "The primary region lost storage availability; the recovery runbook was invoked.",
+    "reference": "incident-record-2214"
+  },
+  "controlCategories": ["recoverability", "privileged-access"],
+  "metadata": {
+    "backup": {
+      "recoveryId": "recovery-2026-0402-0311",
+      "recoveryPoint": "2026-04-02T03:05:00Z"
+    }
+  }
+}

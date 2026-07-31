@@ -1,0 +1,77 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c40-0011-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-17T18:05:33.210Z",
+  "event": {
+    "name": "broker.cluster.upgrade",
+    "category": "data-infrastructure",
+    "type": "update",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Streaming cluster upgraded to the approved broker release."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-4188",
+    "roles": ["streaming-administrator"]
+  },
+  "resource": {
+    "type": "cluster",
+    "id": "cluster-streaming-production",
+    "name": "streaming-production",
+    "classification": "internal",
+    "ownerId": "team-streaming-platform"
+  },
+  "application": {
+    "name": "broker-control-service",
+    "environment": "production",
+    "version": "3.4.1",
+    "region": "region-1"
+  },
+  "authentication": {
+    "method": "oidc",
+    "provider": "corporate-idp",
+    "mfa": true
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "broker-administration",
+    "permissions": ["cluster.upgrade"]
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-broker-change",
+    "requiredApprovals": 2,
+    "receivedApprovals": 2,
+    "approvedAt": "2026-03-17T17:52:40Z"
+  },
+  "request": {
+    "requestId": "request-6f0be4",
+    "correlationId": "correlation-broker-upgrade-0912"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["brokerVersion"],
+    "before": { "brokerVersion": "3.6.1" },
+    "after": { "brokerVersion": "3.7.0" },
+    "ticketId": "change-8290"
+  },
+  "reason": {
+    "code": "scheduled-maintenance",
+    "text": "Planned upgrade to the release approved by the platform review.",
+    "reference": "change-8290"
+  },
+  "controlCategories": ["privileged-access", "change-approval"],
+  "tags": ["production", "control-plane"],
+  "metadata": {
+    "broker": {
+      "system": "kafka",
+      "clusterId": "cluster-streaming-production",
+      "approvalRequired": true,
+      "operation": {
+        "destructive": false
+      }
+    }
+  }
+}

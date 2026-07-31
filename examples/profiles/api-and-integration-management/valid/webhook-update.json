@@ -1,0 +1,76 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0005-7a2b-9c3d-4e5f60718293",
+  "time": "2026-04-13T10:27:56.311Z",
+  "event": {
+    "name": "webhook.update",
+    "category": "configuration",
+    "type": "update",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Webhook retry policy and event selection changed."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-5120",
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "webhook",
+    "id": "webhook-2207",
+    "name": "order-events-partner-feed",
+    "classification": "internal",
+    "ownerId": "team-commerce",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "integration-service",
+    "environment": "production",
+    "version": "4.2.0"
+  },
+  "organization": {
+    "tenantId": "tenant-7"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "outbound-integration-policy",
+    "policyVersion": "3"
+  },
+  "request": {
+    "requestId": "request-b31e551",
+    "correlationId": "integration-tuning-908"
+  },
+  "approval": {
+    "status": "not-required",
+    "workflowId": "integration-change-workflow"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["retryPolicy", "eventSelection"],
+    "before": {
+      "retryPolicy": "fixed-interval",
+      "eventSelection": ["order-created"]
+    },
+    "after": {
+      "retryPolicy": "exponential-backoff",
+      "eventSelection": ["order-created", "order-cancelled"]
+    },
+    "ticketId": "change-10488"
+  },
+  "reason": {
+    "code": "reliability-tuning",
+    "text": "Partner endpoint throttled bursts, so retries were spread out.",
+    "reference": "change-10488"
+  },
+  "controlCategories": ["outbound-data-flow", "change-approval"],
+  "metadata": {
+    "integration": {
+      "type": "outbound-webhook",
+      "provider": "partner-logistics-platform",
+      "webhookId": "webhook-2207",
+      "endpointClass": "partner-network",
+      "approvalRequired": false
+    }
+  }
+}

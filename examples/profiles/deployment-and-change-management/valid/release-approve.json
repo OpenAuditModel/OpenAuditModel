@@ -1,0 +1,77 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-1004-7a3b-8c4d-5e6f70819204",
+  "time": "2026-03-16T14:22:10.642Z",
+  "event": {
+    "name": "deployment.release.approve",
+    "category": "deployment",
+    "type": "approve",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Release approved for deployment into the production environment."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-7702",
+    "roles": ["service-owner"]
+  },
+  "resource": {
+    "type": "release",
+    "id": "release-checkout-9-1-0",
+    "name": "checkout-service-release"
+  },
+  "relatedResources": [{ "type": "service", "id": "service-checkout" }],
+  "application": {
+    "name": "delivery-platform",
+    "environment": "production",
+    "version": "4.2.0",
+    "component": "approval-gate"
+  },
+  "authentication": {
+    "method": "mfa",
+    "mfa": true,
+    "assuranceLevel": "high"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "production-release",
+    "policyVersion": "7"
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-production-release",
+    "requestId": "approval-request-4471",
+    "requiredApprovals": 2,
+    "receivedApprovals": 2,
+    "approvers": [
+      { "type": "user", "id": "user-1180", "roles": ["change-manager"] },
+      { "type": "user", "id": "user-7702", "roles": ["service-owner"] }
+    ],
+    "approvedAt": "2026-03-16T14:22:10Z"
+  },
+  "request": {
+    "requestId": "request-77b0d2",
+    "correlationId": "deployment-2026-0316-9"
+  },
+  "change": {
+    "type": "none",
+    "ticketId": "change-2026-0316-9",
+    "deploymentId": "deployment-2026-0316-9"
+  },
+  "reason": {
+    "code": "planned-release",
+    "text": "Second approval recorded for the scheduled checkout release.",
+    "reference": "change-2026-0316-9"
+  },
+  "controlCategories": ["change-approval"],
+  "tags": ["production"],
+  "metadata": {
+    "deployment": {
+      "id": "deployment-2026-0316-9",
+      "environment": "production",
+      "version": "9.1.0",
+      "approvalRequired": true,
+      "pipelineId": "pipeline-checkout-delivery"
+    }
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2a10-0007-7c4d-8b1e-2f3a40516207",
+  "time": "2026-03-18T11:05:44.310Z",
+  "event": {
+    "name": "snapshot.create",
+    "category": "data-infrastructure",
+    "type": "create",
+    "outcome": "success",
+    "severity": "info",
+    "summary": "Volume snapshot taken immediately before a schema migration."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-2201",
+    "tenantId": "tenant-7",
+    "roles": ["database-operator"]
+  },
+  "resource": {
+    "type": "volume",
+    "id": "volume-4471",
+    "name": "orders-data-volume",
+    "parentId": "cluster-north-primary",
+    "classification": "confidential",
+    "ownerId": "team-payments",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "backup-service",
+    "environment": "production",
+    "version": "4.2.0",
+    "region": "region-north"
+  },
+  "organization": {
+    "tenantId": "tenant-7"
+  },
+  "request": {
+    "correlationId": "change-request-4471"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "storage-administration",
+    "policyVersion": "4"
+  },
+  "reason": {
+    "code": "pre-change-safeguard",
+    "text": "Snapshot taken so the migration can be reversed without a full restore.",
+    "reference": "change-request-4471"
+  },
+  "metadata": {
+    "backup": {
+      "recoveryPoint": "2026-03-18T11:05:00Z",
+      "retentionClass": "short-lived-7-day",
+      "targetScope": "storage-pool-north"
+    }
+  }
+}

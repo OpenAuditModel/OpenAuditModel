@@ -1,0 +1,68 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0010-7a2b-9c3d-4e5f60718293",
+  "time": "2026-04-17T15:36:09.402Z",
+  "event": {
+    "name": "integration.configuration.update",
+    "category": "configuration",
+    "type": "update",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Field mapping and sync direction changed on a connector."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-5120",
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "integration",
+    "id": "connection-3312",
+    "name": "customer-records-connector",
+    "classification": "confidential",
+    "ownerId": "team-revenue",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "integration-service",
+    "environment": "production",
+    "version": "4.2.0"
+  },
+  "organization": {
+    "tenantId": "tenant-7"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "third-party-connection-policy",
+    "policyVersion": "5"
+  },
+  "request": {
+    "requestId": "request-b31ed40",
+    "correlationId": "connection-tuning-3312"
+  },
+  "approval": {
+    "status": "not-required",
+    "workflowId": "integration-change-workflow"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["syncDirection", "fieldMapping"],
+    "ticketId": "change-10544"
+  },
+  "reason": {
+    "code": "scope-reduction",
+    "text": "Synchronization narrowed to one direction after a data review.",
+    "reference": "change-10544"
+  },
+  "controlCategories": ["third-party-access", "change-approval"],
+  "metadata": {
+    "integration": {
+      "type": "service-connector",
+      "provider": "partner-crm-platform",
+      "connectionId": "connection-3312",
+      "endpointClass": "partner-network",
+      "approvalRequired": false
+    }
+  }
+}

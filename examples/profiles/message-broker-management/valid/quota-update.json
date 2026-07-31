@@ -1,0 +1,73 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c40-0007-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-17T14:21:07.760Z",
+  "event": {
+    "name": "broker.quota.update",
+    "category": "data-infrastructure",
+    "type": "update",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Producer throughput quota raised for the orders publishing client."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-4188",
+    "roles": ["streaming-administrator"]
+  },
+  "resource": {
+    "type": "quota",
+    "id": "quota-orders-producer",
+    "name": "orders-producer",
+    "parentId": "cluster-streaming-production",
+    "classification": "internal"
+  },
+  "application": {
+    "name": "broker-control-service",
+    "environment": "production",
+    "version": "3.4.1",
+    "region": "region-1"
+  },
+  "authentication": {
+    "method": "oidc",
+    "provider": "corporate-idp",
+    "mfa": true
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "broker-administration",
+    "permissions": ["quota.alter"]
+  },
+  "request": {
+    "requestId": "request-6f0ba2",
+    "correlationId": "correlation-broker-capacity-2288"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["producerByteRate"],
+    "before": { "producerByteRate": 5242880 },
+    "after": { "producerByteRate": 10485760 },
+    "ticketId": "change-8277"
+  },
+  "reason": {
+    "code": "capacity-increase",
+    "text": "Seasonal order volume exceeded the previous publishing ceiling.",
+    "reference": "change-8277"
+  },
+  "controlCategories": ["privileged-access", "availability-control"],
+  "tags": ["production", "control-plane"],
+  "metadata": {
+    "broker": {
+      "system": "kafka",
+      "clusterId": "cluster-streaming-production",
+      "operation": {
+        "destructive": false
+      },
+      "quota": {
+        "dimension": "producer-byte-rate",
+        "appliesTo": "client-orders-publisher"
+      }
+    }
+  }
+}

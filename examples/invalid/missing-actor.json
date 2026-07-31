@@ -1,0 +1,18 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c01-1a2b-7c3d-8e4f-5a6b7c8d9e01",
+  "time": "2026-03-19T07:00:00Z",
+  "event": {
+    "name": "document.file.download",
+    "category": "data-access",
+    "outcome": "success"
+  },
+  "resource": {
+    "type": "document",
+    "id": "document-4410"
+  },
+  "application": {
+    "name": "document-service",
+    "environment": "production"
+  }
+}

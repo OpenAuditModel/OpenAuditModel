@@ -1,0 +1,37 @@
+# Everything the build does not need. Keeping the context small is partly about
+# build speed and mostly about making it obvious what can possibly end up in an
+# image.
+
+.git
+.github
+.gitignore
+.gitattributes
+
+node_modules
+dist
+coverage
+
+# Documentation and governance: useful in the repository, not in a container.
+*.md
+!LICENSE
+decisions
+mappings
+deploy
+# ...except the site's server configuration, which the site image copies in.
+!deploy/Caddyfile
+
+# Tests and everything that exists to support them. The privacy fixtures
+# contain synthetic secrets and must never be in a published image.
+**/tests
+conformance/tools
+examples/privacy
+examples/integrity
+examples/profiles
+
+# Editor and local tooling.
+.vscode
+.idea
+.editorconfig
+.prettierrc.json
+.prettierignore
+eslint.config.js

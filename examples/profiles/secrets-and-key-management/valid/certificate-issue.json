@@ -1,0 +1,55 @@
+{
+  "specVersion": "0.1",
+  "id": "018f6d10-0012-7a2b-9c3d-4e5f60710012",
+  "time": "2026-05-20T06:44:02.365Z",
+  "event": {
+    "name": "certificate.issue",
+    "category": "security",
+    "type": "create",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "A service certificate was issued by the internal certificate authority."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-certificate-manager"
+  },
+  "resource": {
+    "type": "certificate",
+    "id": "certificate-7715",
+    "name": "checkout-service",
+    "classification": "internal",
+    "ownerId": "team-checkout",
+    "tenantId": "tenant-4"
+  },
+  "application": {
+    "name": "certificate-authority",
+    "environment": "production",
+    "version": "2.8.4"
+  },
+  "request": {
+    "requestId": "request-b40",
+    "correlationId": "certificate-issue-6620"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "certificate-issuance",
+    "policyVersion": "3"
+  },
+  "reason": {
+    "code": "service-onboarding",
+    "text": "The checkout service was enrolled for mutual authentication.",
+    "reference": "change-9905"
+  },
+  "controlCategories": ["key-management"],
+  "metadata": {
+    "secret": {
+      "type": "certificate",
+      "provider": "internal-certificate-authority",
+      "algorithm": "rsa-4096",
+      "expiresAt": "2027-05-20T06:44:02Z",
+      "approvalRequired": false
+    }
+  }
+}

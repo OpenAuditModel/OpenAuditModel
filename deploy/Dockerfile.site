@@ -1,0 +1,51 @@
+# OpenAuditModel static site.
+#
+# The site is built from the repository inside the image, so there is no second
+# copy of a schema anywhere and nothing to synchronise to a server by hand. The
+# deployment unit is the image: `docker compose up -d --build` publishes new
+# content, exactly as it deploys new MCP behaviour.
+#
+# TLS is not terminated here. See deploy/Caddyfile.
+
+# ---------------------------------------------------------------- build stage
+FROM node:24-bookworm-slim AS build
+
+WORKDIR /build
+
+# The generator reads the canonical schema and every profile definition, so the
+# repository content it publishes must be present before it runs.
+COPY scripts/build-site.mjs ./scripts/
+COPY schemas ./schemas
+COPY profiles ./profiles
+COPY examples ./examples
+COPY assets ./assets
+
+RUN node scripts/build-site.mjs \
+ && node scripts/build-site.mjs --check
+
+# -------------------------------------------------------------- runtime stage
+FROM caddy:2-alpine AS runtime
+
+LABEL org.opencontainers.image.title="OpenAuditModel site" \
+      org.opencontainers.image.description="Static documentation and the canonical OpenAuditModel schema documents." \
+      org.opencontainers.image.source="https://github.com/OpenAuditModel/OpenAuditModel" \
+      org.opencontainers.image.url="https://openauditmodel.org" \
+      org.opencontainers.image.licenses="Apache-2.0"
+
+# The official image grants the binary cap_net_bind_service so it can bind :443
+# as a non-root user. This deployment binds an unprivileged port and runs with
+# every capability dropped and no-new-privileges, and the kernel refuses to exec
+# a file that carries capabilities under those conditions. Stripping the
+# capability is what lets the container keep the stronger security options
+# rather than relaxing them to accommodate a privilege it never uses.
+RUN apk add --no-cache libcap  && setcap -r /usr/bin/caddy  && apk del libcap
+
+COPY deploy/Caddyfile /etc/caddy/Caddyfile
+COPY --from=build /build/site /srv/site
+
+EXPOSE 8080
+
+# Fails the container if the canonical schema stops being served, which is the
+# one thing this site exists to do.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD wget -q -O /dev/null http://127.0.0.1:8080/schemas/audit-event/0.1/schema.json || exit 1

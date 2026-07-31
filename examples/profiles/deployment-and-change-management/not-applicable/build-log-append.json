@@ -1,0 +1,33 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-2002-7a3b-8c4d-5e6f70819302",
+  "time": "2026-03-16T08:02:11.744Z",
+  "event": {
+    "name": "deployment.build.log-append",
+    "category": "deployment",
+    "type": "create",
+    "outcome": "success",
+    "severity": "debug",
+    "summary": "Build step output appended to the build log."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-build-controller"
+  },
+  "resource": {
+    "type": "build",
+    "id": "build-checkout-4471"
+  },
+  "application": {
+    "name": "delivery-platform",
+    "environment": "production",
+    "version": "4.2.0",
+    "component": "build-controller"
+  },
+  "metadata": {
+    "build": {
+      "step": "unit-tests",
+      "lineCount": 214
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0006-7a2b-9c3d-4e5f60718293",
+  "time": "2026-04-14T21:03:12.664Z",
+  "event": {
+    "name": "webhook.disable",
+    "category": "configuration",
+    "type": "update",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Webhook subscription disabled while the destination is unreachable."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-3390",
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "webhook",
+    "id": "webhook-2207",
+    "name": "order-events-partner-feed",
+    "classification": "internal",
+    "ownerId": "team-commerce",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "integration-service",
+    "environment": "production",
+    "version": "4.2.0"
+  },
+  "organization": {
+    "tenantId": "tenant-7"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "outbound-integration-policy",
+    "policyVersion": "3"
+  },
+  "request": {
+    "requestId": "request-b31e770",
+    "correlationId": "integration-outage-response-55"
+  },
+  "approval": {
+    "status": "not-required",
+    "workflowId": "integration-change-workflow"
+  },
+  "controlCategories": ["outbound-data-flow", "incident-response"],
+  "metadata": {
+    "integration": {
+      "type": "outbound-webhook",
+      "provider": "partner-logistics-platform",
+      "webhookId": "webhook-2207",
+      "endpointClass": "partner-network",
+      "approvalRequired": false
+    }
+  }
+}

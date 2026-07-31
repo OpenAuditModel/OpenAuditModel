@@ -1,0 +1,55 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2a10-0002-7c4d-8b1e-2f3a40516202",
+  "time": "2026-03-14T02:41:37.880Z",
+  "event": {
+    "name": "backup.complete",
+    "category": "data-infrastructure",
+    "type": "create",
+    "outcome": "success",
+    "severity": "info",
+    "summary": "Nightly full backup of the orders database completed."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-backup-engine",
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "database",
+    "id": "database-orders",
+    "name": "orders-primary",
+    "parentId": "cluster-north-primary",
+    "classification": "confidential",
+    "ownerId": "team-payments",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "backup-service",
+    "environment": "production",
+    "version": "4.2.0",
+    "region": "region-north"
+  },
+  "organization": {
+    "tenantId": "tenant-7"
+  },
+  "request": {
+    "correlationId": "backup-run-2026-0314-0200"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "backup-schedule-tier-1",
+    "policyVersion": "6"
+  },
+  "controlCategories": ["data-protection", "recoverability"],
+  "metadata": {
+    "backup": {
+      "backupId": "backup-2026-0314-0200",
+      "backupType": "full",
+      "retentionClass": "operational-35-day",
+      "targetScope": "object-store-region-north",
+      "sizeBytes": 48213770,
+      "encryptedAtRest": true
+    }
+  }
+}

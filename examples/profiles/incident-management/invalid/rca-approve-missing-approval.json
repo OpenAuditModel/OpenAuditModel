@@ -1,0 +1,66 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c1a-000a-7a2b-9c3d-4e5f60718310",
+  "time": "2026-03-17T09:30:18.240Z",
+  "event": {
+    "name": "incident.rca.approve",
+    "category": "workflow",
+    "type": "approve",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Root cause analysis approved by the service owner and the problem manager."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-1180",
+    "roles": ["service-owner"],
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "root-cause-analysis",
+    "id": "rca-2026-0418",
+    "name": "checkout-connection-pool-exhaustion",
+    "classification": "internal",
+    "tenantId": "tenant-7"
+  },
+  "relatedResources": [
+    {
+      "type": "incident",
+      "id": "incident-2026-0418"
+    }
+  ],
+  "application": {
+    "name": "incident-service",
+    "environment": "production",
+    "version": "5.2.0"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "root-cause-review",
+    "permissions": ["incident.rca.approve"]
+  },
+  "request": {
+    "requestId": "request-4731",
+    "correlationId": "correlation-incident-2026-0418"
+  },
+  "evidence": [
+    {
+      "type": "document",
+      "reference": "records/root-cause-analysis/rca-2026-0418"
+    },
+    {
+      "type": "approval",
+      "reference": "workflow-root-cause-review/approval-request-9974"
+    }
+  ],
+  "controlCategories": ["incident-traceability", "change-approval"],
+  "metadata": {
+    "incident": {
+      "status": "approved",
+      "rca": {
+        "method": "five-whys",
+        "completedAt": "2026-03-16T10:00:00Z"
+      }
+    }
+  }
+}

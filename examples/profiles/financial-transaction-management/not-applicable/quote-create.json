@@ -1,0 +1,33 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c90-0022-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-14T09:04:48.117Z",
+  "event": {
+    "name": "financial.quote.create",
+    "category": "data-access",
+    "outcome": "success",
+    "summary": "Indicative price quote produced for a prospective order. No value moved."
+  },
+  "actor": {
+    "type": "service",
+    "id": "pricing-engine",
+    "tenantId": "tenant-44"
+  },
+  "resource": {
+    "type": "quote",
+    "id": "quote-ref-31908",
+    "tenantId": "tenant-44"
+  },
+  "application": {
+    "name": "brokerage-pricing",
+    "environment": "production",
+    "version": "9.1.4"
+  },
+  "organization": {
+    "tenantId": "tenant-44"
+  },
+  "request": {
+    "requestId": "request-7a10d55",
+    "correlationId": "portal-session-4471"
+  }
+}

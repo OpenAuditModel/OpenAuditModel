@@ -1,0 +1,39 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0022-7b3c-8d4e-5f6071829322",
+  "time": "2026-04-08T09:57:58.640Z",
+  "event": {
+    "name": "account.balance.view",
+    "category": "data-access",
+    "type": "read",
+    "outcome": "success",
+    "summary": "Account balance retrieved for a routine service desk enquiry."
+  },
+  "actor": {
+    "type": "user",
+    "id": "operator-3318",
+    "tenantId": "tenant-19",
+    "roles": ["customer-support-operator"]
+  },
+  "resource": {
+    "type": "account",
+    "id": "account-ref-781",
+    "ownerId": "customer-42",
+    "classification": "restricted",
+    "tenantId": "tenant-19"
+  },
+  "application": {
+    "name": "customer-platform",
+    "environment": "production",
+    "version": "5.2.0",
+    "service": "account-records"
+  },
+  "organization": {
+    "tenantId": "tenant-19",
+    "businessUnitId": "unit-retail"
+  },
+  "request": {
+    "requestId": "request-9f3294",
+    "correlationId": "support-contact-9014"
+  }
+}

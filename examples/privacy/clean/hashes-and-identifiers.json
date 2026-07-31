@@ -1,0 +1,42 @@
+{
+  "specVersion": "0.1",
+  "id": "018f3a02-2d31-7c51-8e62-3f4a5b6c7d81",
+  "time": "2026-05-04T09:03:18.220Z",
+  "event": {
+    "name": "data.export.create",
+    "category": "data-access",
+    "outcome": "success",
+    "summary": "Export produced for a scheduled report."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-account-reporting-worker"
+  },
+  "resource": {
+    "type": "report",
+    "id": "export-4471"
+  },
+  "application": {
+    "name": "reporting-service",
+    "environment": "production"
+  },
+  "request": {
+    "requestId": "request-e41b70",
+    "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+    "spanId": "00f067aa0ba902b7",
+    "route": "/reports/{reportId}/exports"
+  },
+  "metadata": {
+    "correlationUuid": "018f1b5c-6d2a-7c3e-9a1b-4f5e6d7c8b9a",
+    "batchUlid": "01JAV3M5S4K9QF7N2W8XG6ZTQD",
+    "upstreamTraceId": "0af7651916cd43dd8448eb211c80319c",
+    "upstreamSpanId": "b7ad6b7169203331",
+    "contentSha256": "9f2a4c1d5e6b7a8c9d0e1f2a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e",
+    "contentSha384": "fdbf4fdf2beca570d4ceb1a4bc6325c11ccb559e1f86c2e2d9506b8cbb1d029e1993ce4d6e857f61ae37d948170c19b5",
+    "contentSha512": "5cb695f7f51c858e8199175dbc8e7666929c7f8a1d5a0b42421eefe6131e3df639c6c0dd3f1e28656f8e147d051013937a69d727d5ca7b1ddf4330f8df2b458c",
+    "generatedAt": "2026-05-04T09:03:17.004Z",
+    "recordCount": 918273645,
+    "shortReference": "req-8841",
+    "sourceTopic": "payments.settlement.completed"
+  }
+}

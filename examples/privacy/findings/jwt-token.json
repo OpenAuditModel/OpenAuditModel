@@ -1,0 +1,26 @@
+{
+  "specVersion": "0.1",
+  "id": "018f3b04-1111-7222-8333-000000000004",
+  "time": "2026-05-05T09:00:00.000Z",
+  "event": {
+    "name": "data.record.update",
+    "category": "data-modification",
+    "outcome": "success",
+    "summary": "Synthetic fixture for privacy linting."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-integration-worker"
+  },
+  "resource": {
+    "type": "record",
+    "id": "record-4471"
+  },
+  "application": {
+    "name": "integration-service",
+    "environment": "production"
+  },
+  "metadata": {
+    "upstreamAssertion": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzeW50aGV0aWMtZml4dHVyZSIsIm5vdGUiOiJub24tZnVuY3Rpb25hbCBleGFtcGxlIiwiaWF0IjoxNzgwMDAwMDAwfQ.c3ludGhldGljLXNpZ25hdHVyZS1ub3QtdmFsaWQ"
+  }
+}

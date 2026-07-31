@@ -1,0 +1,40 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c1a-0101-7a2b-9c3d-4e5f60718401",
+  "time": "2026-03-14T02:41:07.480Z",
+  "event": {
+    "name": "monitoring.alert.raise",
+    "category": "monitoring",
+    "type": "create",
+    "outcome": "success",
+    "severity": "info",
+    "summary": "Latency alert raised and cleared automatically; no case was opened."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-monitoring"
+  },
+  "resource": {
+    "type": "alert",
+    "id": "alert-2026-0314-11842"
+  },
+  "relatedResources": [
+    {
+      "type": "service",
+      "id": "service-checkout"
+    }
+  ],
+  "application": {
+    "name": "monitoring-service",
+    "environment": "production",
+    "version": "3.8.1"
+  },
+  "metadata": {
+    "alert": {
+      "rule": "checkout-latency-threshold",
+      "state": "cleared",
+      "durationSeconds": 45,
+      "escalated": false
+    }
+  }
+}

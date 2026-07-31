@@ -1,0 +1,74 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c1a-0005-7a2b-9c3d-4e5f60718305",
+  "time": "2026-03-14T13:46:58.740Z",
+  "event": {
+    "name": "incident.case.resolve",
+    "category": "workflow",
+    "type": "update",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Checkout service restored by raising the connection pool ceiling."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-5140",
+    "roles": ["platform-engineer"],
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "incident",
+    "id": "incident-2026-0418",
+    "name": "checkout-latency-degradation",
+    "classification": "internal",
+    "tenantId": "tenant-7"
+  },
+  "relatedResources": [
+    {
+      "type": "service",
+      "id": "service-checkout"
+    }
+  ],
+  "application": {
+    "name": "incident-service",
+    "environment": "production",
+    "version": "5.2.0"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "incident-handling",
+    "permissions": ["incident.case.resolve"]
+  },
+  "request": {
+    "requestId": "request-4560",
+    "correlationId": "correlation-incident-2026-0418"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["status"],
+    "before": {
+      "status": "major"
+    },
+    "after": {
+      "status": "resolved"
+    },
+    "incidentId": "incident-2026-0418",
+    "ticketId": "change-7742"
+  },
+  "reason": {
+    "code": "service-restored",
+    "text": "Checkout response times returned to the agreed range and stayed there for an hour."
+  },
+  "controlCategories": ["incident-traceability"],
+  "metadata": {
+    "incident": {
+      "status": "resolved",
+      "priority": "p1",
+      "resolvedAt": "2026-03-14T13:46:00Z",
+      "timeToRestoreMinutes": 284,
+      "correctiveAction": {
+        "id": "corrective-action-2026-0418"
+      }
+    }
+  }
+}

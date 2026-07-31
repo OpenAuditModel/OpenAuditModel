@@ -1,0 +1,76 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0005-7b3c-8d4e-5f6071829305",
+  "time": "2026-04-08T13:47:22.660Z",
+  "event": {
+    "name": "customer.restrict",
+    "category": "security",
+    "type": "update",
+    "outcome": "success",
+    "severity": "critical",
+    "summary": "Customer relationship restricted to inbound settlement only after a periodic review."
+  },
+  "actor": {
+    "type": "user",
+    "id": "operator-4102",
+    "tenantId": "tenant-19",
+    "roles": ["customer-risk-officer"]
+  },
+  "resource": {
+    "type": "customer",
+    "id": "customer-42",
+    "classification": "restricted",
+    "tenantId": "tenant-19"
+  },
+  "application": {
+    "name": "customer-platform",
+    "environment": "production",
+    "version": "5.2.0",
+    "service": "customer-risk"
+  },
+  "organization": {
+    "tenantId": "tenant-19",
+    "businessUnitId": "unit-retail"
+  },
+  "request": {
+    "requestId": "request-9f31e6",
+    "correlationId": "periodic-review-4471"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "customer-risk-controls",
+    "policyVersion": "11"
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-customer-restriction",
+    "requiredApprovals": 2,
+    "receivedApprovals": 2,
+    "approvedAt": "2026-04-08T13:44:51Z"
+  },
+  "reason": {
+    "code": "periodic-review-finding",
+    "text": "Periodic review could not confirm the declared ownership structure.",
+    "reference": "review-2026-044"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["status", "permittedOperations"],
+    "before": {
+      "status": "active"
+    },
+    "after": {
+      "status": "restricted"
+    }
+  },
+  "controlCategories": ["customer-lifecycle", "customer-restriction"],
+  "metadata": {
+    "customer": {
+      "customerType": "business",
+      "status": "restricted",
+      "restrictionScope": "outbound-payments",
+      "reviewId": "review-2026-044"
+    }
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0001-7a2b-9c3d-4e5f60718293",
+  "time": "2026-04-08T09:12:44.180Z",
+  "event": {
+    "name": "api-key.create",
+    "category": "security",
+    "type": "create",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Scoped API key issued to a partner billing integration."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-5120",
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "api-key",
+    "id": "api-key-4471",
+    "name": "partner-billing-reader",
+    "classification": "restricted",
+    "ownerId": "team-payments",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "integration-service",
+    "environment": "production",
+    "version": "4.2.0"
+  },
+  "organization": {
+    "tenantId": "tenant-7"
+  },
+  "authentication": {
+    "method": "oidc",
+    "provider": "workforce-directory",
+    "mfa": true,
+    "sessionId": "session-6641"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "integration-credential-issuance",
+    "policyVersion": "9"
+  },
+  "request": {
+    "requestId": "request-b31d704",
+    "correlationId": "integration-onboarding-4102"
+  },
+  "approval": {
+    "status": "not-required",
+    "workflowId": "integration-change-workflow"
+  },
+  "reason": {
+    "code": "partner-onboarding",
+    "text": "Partner billing reconciliation requires read access to settlement records.",
+    "reference": "change-10412"
+  },
+  "controlCategories": ["credential-lifecycle", "third-party-access"],
+  "metadata": {
+    "integration": {
+      "type": "api-credential",
+      "provider": "partner-billing-platform",
+      "credentialReference": "credential-ref-8814",
+      "scope": "settlements-read",
+      "expiresAt": "2026-10-08T09:12:44Z",
+      "approvalRequired": false
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2a10-0011-7c4d-8b1e-2f3a40516211",
+  "time": "2026-03-19T09:04:12.500Z",
+  "event": {
+    "name": "restore.progress",
+    "category": "data-infrastructure",
+    "type": "execute",
+    "outcome": "success",
+    "severity": "debug",
+    "summary": "Periodic progress report emitted while a restore is running."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-restore-engine",
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "database",
+    "id": "database-orders",
+    "name": "orders-primary",
+    "parentId": "cluster-north-primary",
+    "classification": "confidential",
+    "ownerId": "team-payments",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "backup-service",
+    "environment": "production",
+    "version": "4.2.0",
+    "region": "region-north"
+  },
+  "request": {
+    "correlationId": "restore-run-2026-0319"
+  },
+  "metadata": {
+    "backup": {
+      "restoreId": "restore-2026-0319-0850",
+      "completedFraction": 0.62
+    }
+  }
+}

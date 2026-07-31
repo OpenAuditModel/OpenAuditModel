@@ -1,0 +1,75 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c90-0006-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-14T12:02:11.556Z",
+  "event": {
+    "name": "financial.refund.create",
+    "category": "data-modification",
+    "type": "create",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Refund issued to the buyer after the seller accepted a return."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-6605",
+    "tenantId": "tenant-31",
+    "roles": ["support-agent"]
+  },
+  "resource": {
+    "type": "refund",
+    "id": "refund-ref-1180",
+    "ownerId": "account-ref-3390",
+    "tenantId": "tenant-31"
+  },
+  "relatedResources": [
+    {
+      "type": "payment",
+      "id": "payment-ref-4412"
+    },
+    {
+      "type": "account",
+      "id": "account-ref-3390"
+    }
+  ],
+  "application": {
+    "name": "marketplace-payments",
+    "environment": "production",
+    "version": "2.6.3"
+  },
+  "organization": {
+    "tenantId": "tenant-31"
+  },
+  "request": {
+    "requestId": "request-7a03a55",
+    "correlationId": "payment-lifecycle-4412"
+  },
+  "authentication": {
+    "method": "oidc",
+    "mfa": true,
+    "provider": "workforce-idp"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "refund-policy",
+    "policyVersion": "3",
+    "permissions": ["marketplace.refund.create"]
+  },
+  "reason": {
+    "code": "goods-returned",
+    "text": "Buyer returned the item and the seller accepted the return.",
+    "reference": "case-77204"
+  },
+  "controlCategories": ["financial-transaction-integrity"],
+  "metadata": {
+    "financial": {
+      "transactionId": "txn-2026-0314-0155",
+      "amount": 148.5,
+      "currency": "EUR",
+      "direction": "outbound",
+      "status": "pending-settlement",
+      "approvalRequired": false,
+      "manual": false
+    }
+  }
+}

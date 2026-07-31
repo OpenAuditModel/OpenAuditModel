@@ -1,0 +1,78 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2a10-000c-7c4d-8b1e-2f3a4051620c",
+  "time": "2026-04-10T14:06:41.020Z",
+  "event": {
+    "name": "backup.policy.update",
+    "category": "configuration",
+    "type": "update",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Backup frequency for the orders database reduced from hourly to daily."
+  },
+  "actor": {
+    "type": "admin",
+    "id": "user-3312",
+    "tenantId": "tenant-7",
+    "roles": ["backup-operator"]
+  },
+  "resource": {
+    "type": "backup-policy",
+    "id": "backup-policy-orders",
+    "name": "orders-protection",
+    "classification": "internal",
+    "ownerId": "team-payments",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "backup-service",
+    "environment": "production",
+    "version": "4.2.0",
+    "region": "region-north"
+  },
+  "organization": {
+    "tenantId": "tenant-7"
+  },
+  "request": {
+    "correlationId": "change-request-4610"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "backup-administration",
+    "policyVersion": "3"
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-change-advisory",
+    "requestId": "request-9411",
+    "requiredApprovals": 1,
+    "receivedApprovals": 1,
+    "approvedAt": "2026-04-10T14:02:00Z"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["frequency", "recoveryPointObjective"],
+    "before": {
+      "frequency": "hourly",
+      "recoveryPointObjective": "one-hour"
+    },
+    "after": {
+      "frequency": "daily",
+      "recoveryPointObjective": "twenty-four-hour"
+    },
+    "ticketId": "change-request-4610"
+  },
+  "reason": {
+    "code": "objective-renegotiated",
+    "text": "Backup frequency reduced after the recovery point objective was renegotiated with the service owner.",
+    "reference": "change-request-4610"
+  },
+  "controlCategories": ["data-protection", "change-approval"],
+  "metadata": {
+    "backup": {
+      "policyId": "backup-policy-orders",
+      "retentionClass": "operational-35-day",
+      "protectedScope": "database-orders"
+    }
+  }
+}

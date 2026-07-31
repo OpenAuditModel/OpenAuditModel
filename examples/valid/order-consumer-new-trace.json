@@ -1,0 +1,36 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1b5c-8f4c-7e50-9c3d-6b7a8f9e0d1c",
+  "time": "2026-03-14T09:24:33.907Z",
+  "event": {
+    "name": "order.fulfilment.start",
+    "category": "data-modification",
+    "type": "execute",
+    "outcome": "success",
+    "summary": "Fulfilment worker began processing an order consumed from the queue."
+  },
+  "actor": {
+    "type": "service",
+    "id": "fulfilment-worker"
+  },
+  "resource": {
+    "type": "order",
+    "id": "order-2026-004418"
+  },
+  "application": {
+    "name": "fulfilment-worker",
+    "service": "fulfilment-worker",
+    "environment": "production"
+  },
+  "request": {
+    "correlationId": "order-process-9d41c7a2",
+    "traceId": "9f8e7d6c5b4a39281706f5e4d3c2b1a0",
+    "spanId": "3c4d5e6f708192a3",
+    "protocol": "amqp"
+  },
+  "extensions": {
+    "org.openauditmodel.correlation": {
+      "causes": [{ "type": "audit-event", "id": "018f1b5c-7e3b-7d4f-8b2c-5a6f7e8d9c0b" }]
+    }
+  }
+}

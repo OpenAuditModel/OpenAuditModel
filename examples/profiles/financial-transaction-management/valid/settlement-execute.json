@@ -1,0 +1,70 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c90-0010-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-14T16:45:29.663Z",
+  "event": {
+    "name": "financial.settlement.execute",
+    "category": "data-modification",
+    "type": "execute",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Daily net settlement released to the counterparty account."
+  },
+  "actor": {
+    "type": "service",
+    "id": "settlement-runner",
+    "tenantId": "tenant-12"
+  },
+  "resource": {
+    "type": "settlement-batch",
+    "id": "settlement-2026-0314-eu",
+    "tenantId": "tenant-12"
+  },
+  "relatedResources": [
+    {
+      "type": "account",
+      "id": "account-ref-781",
+      "name": "operating-account"
+    },
+    {
+      "type": "external-account",
+      "id": "counterparty-ref-44"
+    }
+  ],
+  "application": {
+    "name": "treasury-settlement",
+    "environment": "production",
+    "version": "6.0.2",
+    "region": "eu-central"
+  },
+  "organization": {
+    "tenantId": "tenant-12",
+    "businessUnitId": "treasury"
+  },
+  "request": {
+    "requestId": "request-7a07e29",
+    "correlationId": "settlement-cycle-2026-0314"
+  },
+  "authentication": {
+    "method": "service-account",
+    "provider": "workload-identity"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "settlement-policy",
+    "policyVersion": "10"
+  },
+  "controlCategories": ["financial-transaction-integrity"],
+  "metadata": {
+    "financial": {
+      "transactionId": "settlement-txn-2026-0314-01",
+      "amount": 482310.4,
+      "currency": "EUR",
+      "direction": "outbound",
+      "status": "settled",
+      "reconciliationId": "recon-2026-0314-eu-01",
+      "approvalRequired": false,
+      "manual": false
+    }
+  }
+}

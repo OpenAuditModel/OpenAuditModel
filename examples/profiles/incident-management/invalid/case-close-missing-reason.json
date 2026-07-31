@@ -1,0 +1,109 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c1a-0006-7a2b-9c3d-4e5f60718306",
+  "time": "2026-03-24T08:15:03.000Z",
+  "observedTime": "2026-03-24T08:15:04.221Z",
+  "event": {
+    "name": "incident.case.close",
+    "category": "workflow",
+    "type": "update",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Major incident closed after the root cause analysis was approved."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-3301",
+    "roles": ["incident-manager"],
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "incident",
+    "id": "incident-2026-0418",
+    "name": "checkout-latency-degradation",
+    "classification": "internal",
+    "tenantId": "tenant-7"
+  },
+  "relatedResources": [
+    {
+      "type": "service",
+      "id": "service-checkout"
+    },
+    {
+      "type": "root-cause-analysis",
+      "id": "rca-2026-0418"
+    }
+  ],
+  "application": {
+    "name": "incident-service",
+    "environment": "production",
+    "version": "5.2.0"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "incident-closure",
+    "policyVersion": "4",
+    "permissions": ["incident.case.close"]
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-incident-closure",
+    "requestId": "approval-request-9921",
+    "requiredApprovals": 2,
+    "receivedApprovals": 2,
+    "approvers": [
+      {
+        "type": "user",
+        "id": "user-1180",
+        "roles": ["service-owner"]
+      },
+      {
+        "type": "user",
+        "id": "user-2245",
+        "roles": ["problem-manager"]
+      }
+    ],
+    "approvedAt": "2026-03-24T08:12:40Z"
+  },
+  "request": {
+    "requestId": "request-4790",
+    "correlationId": "correlation-incident-2026-0418",
+    "traceId": "0af7651916cd43dd8448eb211c80319c",
+    "spanId": "b7ad6b7169203331"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["status", "closedAt"],
+    "before": {
+      "status": "resolved"
+    },
+    "after": {
+      "status": "closed"
+    },
+    "incidentId": "incident-2026-0418"
+  },
+  "evidence": [
+    {
+      "type": "document",
+      "reference": "records/root-cause-analysis/rca-2026-0418",
+      "contentType": "application/pdf",
+      "createdAt": "2026-03-17T09:30:00Z"
+    },
+    {
+      "type": "approval",
+      "reference": "workflow-incident-closure/approval-request-9921"
+    }
+  ],
+  "controlCategories": ["incident-traceability", "change-approval"],
+  "metadata": {
+    "incident": {
+      "status": "closed",
+      "priority": "p1",
+      "approvalRequired": true,
+      "resolutionType": "permanent-fix",
+      "correctiveAction": {
+        "id": "corrective-action-2026-0418"
+      }
+    }
+  }
+}

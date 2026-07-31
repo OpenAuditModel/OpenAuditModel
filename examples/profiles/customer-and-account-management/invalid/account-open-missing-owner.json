@@ -1,0 +1,58 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0007-7b3c-8d4e-5f6071829307",
+  "time": "2026-04-08T09:41:16.030Z",
+  "event": {
+    "name": "account.open",
+    "category": "resource-lifecycle",
+    "type": "create",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Settlement account opened for an onboarded business customer."
+  },
+  "actor": {
+    "type": "user",
+    "id": "operator-3318",
+    "tenantId": "tenant-19",
+    "roles": ["customer-administrator"]
+  },
+  "resource": {
+    "type": "account",
+    "id": "account-ref-781",
+    "classification": "restricted",
+    "tenantId": "tenant-19"
+  },
+  "application": {
+    "name": "customer-platform",
+    "environment": "production",
+    "version": "5.2.0",
+    "service": "account-records"
+  },
+  "organization": {
+    "tenantId": "tenant-19",
+    "businessUnitId": "unit-retail"
+  },
+  "request": {
+    "requestId": "request-9f3201",
+    "correlationId": "onboarding-4471"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "account-opening",
+    "policyVersion": "8"
+  },
+  "reason": {
+    "code": "customer-onboarding",
+    "text": "First account for a newly onboarded business relationship.",
+    "reference": "case-3391"
+  },
+  "controlCategories": ["account-lifecycle"],
+  "metadata": {
+    "customer": {
+      "customerType": "business",
+      "accountType": "settlement",
+      "status": "active"
+    }
+  }
+}

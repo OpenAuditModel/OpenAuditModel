@@ -1,0 +1,63 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2a10-0009-7c4d-8b1e-2f3a40516209",
+  "time": "2026-03-19T09:37:26.900Z",
+  "event": {
+    "name": "restore.complete",
+    "category": "data-infrastructure",
+    "type": "restore",
+    "outcome": "partial",
+    "severity": "critical",
+    "summary": "Restore finished for the order tables; two reporting views were rebuilt separately."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-restore-engine",
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "database",
+    "id": "database-orders",
+    "name": "orders-primary",
+    "parentId": "cluster-north-primary",
+    "classification": "confidential",
+    "ownerId": "team-payments",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "backup-service",
+    "environment": "production",
+    "version": "4.2.0",
+    "region": "region-north"
+  },
+  "organization": {
+    "tenantId": "tenant-7"
+  },
+  "request": {
+    "correlationId": "restore-run-2026-0319"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "restore-authorization",
+    "policyVersion": "2"
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-production-restore",
+    "requestId": "request-9014",
+    "approvedAt": "2026-03-19T08:40:00Z"
+  },
+  "reason": {
+    "code": "data-corruption",
+    "text": "Completion of the restore authorized under the same request.",
+    "reference": "incident-record-2211"
+  },
+  "metadata": {
+    "backup": {
+      "restoreId": "restore-2026-0319-0850",
+      "sourceId": "backup-2026-0318-0200",
+      "recoveryPoint": "2026-03-18T02:00:00Z",
+      "targetScope": "cluster-north-primary"
+    }
+  }
+}

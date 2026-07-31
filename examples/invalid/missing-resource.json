@@ -1,0 +1,18 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c02-2b3c-7d4e-9f50-6b7c8d9e0f12",
+  "time": "2026-03-19T07:05:12Z",
+  "event": {
+    "name": "identity.role.revoke",
+    "category": "identity",
+    "outcome": "success"
+  },
+  "actor": {
+    "type": "admin",
+    "id": "admin-4821"
+  },
+  "application": {
+    "name": "identity-service",
+    "environment": "production"
+  }
+}

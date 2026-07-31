@@ -1,0 +1,67 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2a10-0004-7c4d-8b1e-2f3a40516204",
+  "time": "2026-03-16T04:22:11.005Z",
+  "event": {
+    "name": "backup.verify",
+    "category": "data-infrastructure",
+    "type": "execute",
+    "outcome": "success",
+    "severity": "info",
+    "summary": "Monthly restore rehearsal completed against an isolated environment."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-backup-verifier",
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "database",
+    "id": "database-orders",
+    "name": "orders-primary",
+    "parentId": "cluster-north-primary",
+    "classification": "confidential",
+    "ownerId": "team-payments",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "backup-service",
+    "environment": "production",
+    "version": "4.2.0",
+    "region": "region-north"
+  },
+  "organization": {
+    "tenantId": "tenant-7"
+  },
+  "request": {
+    "correlationId": "verification-run-2026-0316"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "backup-verification",
+    "policyVersion": "2"
+  },
+  "reason": {
+    "code": "scheduled-verification",
+    "text": "Monthly rehearsal required by the recovery testing schedule.",
+    "reference": "records/restore-rehearsal/rehearsal-2026-0316"
+  },
+  "evidence": [
+    {
+      "type": "document",
+      "reference": "records/restore-rehearsal/rehearsal-2026-0316",
+      "contentType": "application/pdf",
+      "createdAt": "2026-03-16T04:22:00Z"
+    }
+  ],
+  "controlCategories": ["recoverability"],
+  "metadata": {
+    "backup": {
+      "backupId": "backup-2026-0314-0200",
+      "backupType": "full",
+      "recoveryPoint": "2026-03-14T02:00:00Z",
+      "verificationStatus": "restore-tested",
+      "retentionClass": "operational-35-day"
+    }
+  }
+}

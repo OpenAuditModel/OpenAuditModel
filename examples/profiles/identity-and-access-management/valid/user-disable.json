@@ -1,0 +1,79 @@
+{
+  "specVersion": "0.1",
+  "id": "018f4a02-1111-7222-8333-000000000002",
+  "time": "2026-06-01T08:15:00.000Z",
+  "event": {
+    "name": "identity.user.disable",
+    "category": "identity",
+    "type": "update",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Account disabled on the last working day."
+  },
+  "actor": {
+    "type": "admin",
+    "id": "admin-4821",
+    "roles": ["identity-administrator"]
+  },
+  "application": {
+    "name": "identity-service",
+    "environment": "production",
+    "version": "3.4.1"
+  },
+  "resource": {
+    "type": "user",
+    "id": "user-7391",
+    "tenantId": "tenant-42"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "identity-user-lifecycle",
+    "policyVersion": "7"
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-access-change",
+    "requestId": "approval-request-5512",
+    "requiredApprovals": 1,
+    "receivedApprovals": 1,
+    "approvers": [
+      {
+        "type": "user",
+        "id": "user-2210",
+        "roles": ["access-approver"]
+      }
+    ],
+    "approvedAt": "2026-06-01T09:59:47Z"
+  },
+  "reason": {
+    "code": "offboarding",
+    "text": "Employment ended and access was withdrawn on the agreed date.",
+    "reference": "offboarding-3312"
+  },
+  "request": {
+    "requestId": "request-a2",
+    "correlationId": "correlation-a2",
+    "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+    "spanId": "00f067aa0ba902b7",
+    "protocol": "https",
+    "method": "POST",
+    "route": "/identity/{principalId}/access"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["status"],
+    "before": {
+      "status": "active"
+    },
+    "after": {
+      "status": "disabled"
+    }
+  },
+  "controlCategories": ["privileged-access"],
+  "metadata": {
+    "user": {
+      "type": "employee"
+    }
+  }
+}

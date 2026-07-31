@@ -1,0 +1,40 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c40-0023-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-17T20:03:52.740Z",
+  "event": {
+    "name": "broker.consumer-group.rebalance",
+    "category": "data-infrastructure",
+    "type": "execute",
+    "outcome": "success",
+    "severity": "info",
+    "summary": "Consumer group partitions reassigned after a worker instance restarted."
+  },
+  "actor": {
+    "type": "system",
+    "id": "broker-coordinator"
+  },
+  "resource": {
+    "type": "consumer-group",
+    "id": "consumer-group-payments-settlement",
+    "name": "payments-settlement",
+    "parentId": "cluster-streaming-production",
+    "classification": "internal"
+  },
+  "application": {
+    "name": "streaming-platform",
+    "environment": "production",
+    "version": "3.7.0",
+    "region": "region-1"
+  },
+  "tags": ["production", "data-plane"],
+  "metadata": {
+    "broker": {
+      "system": "kafka",
+      "clusterId": "cluster-streaming-production",
+      "rebalance": {
+        "memberCount": 6
+      }
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2a10-0010-7c4d-8b1e-2f3a40516210",
+  "time": "2026-03-14T02:12:41.330Z",
+  "event": {
+    "name": "backup.chunk.write",
+    "category": "data-infrastructure",
+    "type": "create",
+    "outcome": "success",
+    "severity": "debug",
+    "summary": "A backup data chunk was written to the storage target."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-backup-engine",
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "database",
+    "id": "database-orders",
+    "name": "orders-primary",
+    "parentId": "cluster-north-primary",
+    "classification": "confidential",
+    "ownerId": "team-payments",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "backup-service",
+    "environment": "production",
+    "version": "4.2.0",
+    "region": "region-north"
+  },
+  "request": {
+    "correlationId": "backup-run-2026-0314-0200"
+  },
+  "metadata": {
+    "backup": {
+      "backupId": "backup-2026-0314-0200",
+      "chunkIndex": 4172,
+      "chunkBytes": 4194304
+    }
+  }
+}

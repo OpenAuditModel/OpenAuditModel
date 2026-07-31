@@ -1,0 +1,76 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c90-0002-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-14T09:41:02.885Z",
+  "event": {
+    "name": "financial.payment.reject",
+    "category": "data-modification",
+    "type": "execute",
+    "outcome": "failure",
+    "severity": "high",
+    "summary": "Payment refused by the risk control before any value moved.",
+    "error": {
+      "code": "velocity-limit-exceeded",
+      "type": "validation",
+      "message": "The payer exceeded the configured transaction velocity threshold.",
+      "retryable": false
+    }
+  },
+  "actor": {
+    "type": "service",
+    "id": "payment-risk-engine",
+    "tenantId": "tenant-12"
+  },
+  "resource": {
+    "type": "payment",
+    "id": "payment-ref-4498",
+    "ownerId": "account-ref-781",
+    "tenantId": "tenant-12"
+  },
+  "application": {
+    "name": "payment-service",
+    "environment": "production",
+    "version": "4.2.1",
+    "region": "eu-central"
+  },
+  "organization": {
+    "tenantId": "tenant-12"
+  },
+  "request": {
+    "requestId": "request-6f21b34",
+    "correlationId": "payment-lifecycle-4498"
+  },
+  "authentication": {
+    "method": "service-account",
+    "provider": "workload-identity"
+  },
+  "authorization": {
+    "decision": "deny",
+    "policy": "payment-risk-policy",
+    "policyVersion": "19",
+    "reason": "Velocity threshold for the payer was already reached."
+  },
+  "relatedResources": [
+    {
+      "type": "account",
+      "id": "account-ref-781"
+    }
+  ],
+  "reason": {
+    "code": "risk-threshold-reached",
+    "text": "Refused under the standing velocity control rather than by an operator decision.",
+    "reference": "risk-case-3391"
+  },
+  "controlCategories": ["financial-transaction-integrity", "fraud-prevention"],
+  "metadata": {
+    "financial": {
+      "transactionId": "txn-2026-0314-0104",
+      "amount": 2400,
+      "currency": "EUR",
+      "direction": "inbound",
+      "status": "rejected",
+      "approvalRequired": false,
+      "manual": false
+    }
+  }
+}

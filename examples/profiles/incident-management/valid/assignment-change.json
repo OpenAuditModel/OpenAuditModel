@@ -1,0 +1,70 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c1a-0003-7a2b-9c3d-4e5f60718303",
+  "time": "2026-03-14T09:48:19.220Z",
+  "event": {
+    "name": "incident.assignment.change",
+    "category": "workflow",
+    "type": "update",
+    "outcome": "success",
+    "severity": "low",
+    "summary": "Incident reassigned from the service desk to the platform team."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-3301",
+    "roles": ["incident-manager"],
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "incident",
+    "id": "incident-2026-0418",
+    "name": "checkout-latency-degradation",
+    "classification": "internal",
+    "tenantId": "tenant-7"
+  },
+  "relatedResources": [
+    {
+      "type": "service",
+      "id": "service-checkout"
+    }
+  ],
+  "application": {
+    "name": "incident-service",
+    "environment": "production",
+    "version": "5.2.0"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "incident-handling",
+    "permissions": ["incident.assignment.change"]
+  },
+  "request": {
+    "requestId": "request-4493",
+    "correlationId": "correlation-incident-2026-0418"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["assignedTeam", "assignedTo"],
+    "before": {
+      "assignedTeam": "team-service-desk"
+    },
+    "after": {
+      "assignedTeam": "team-platform"
+    },
+    "incidentId": "incident-2026-0418"
+  },
+  "reason": {
+    "code": "specialist-required",
+    "text": "Diagnosis moved to the team that owns the checkout connection pool."
+  },
+  "controlCategories": ["incident-traceability"],
+  "metadata": {
+    "incident": {
+      "status": "in-progress",
+      "priority": "p1",
+      "assignedTeam": "team-platform",
+      "assigneeId": "user-5140"
+    }
+  }
+}

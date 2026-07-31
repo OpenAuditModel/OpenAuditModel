@@ -1,0 +1,36 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c90-0023-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-14T20:00:03.442Z",
+  "event": {
+    "name": "financial.report.generate",
+    "category": "data-access",
+    "type": "export",
+    "outcome": "success",
+    "summary": "Scheduled end-of-day position report produced for the treasury team."
+  },
+  "actor": {
+    "type": "service",
+    "id": "reporting-scheduler",
+    "tenantId": "tenant-12"
+  },
+  "resource": {
+    "type": "report",
+    "id": "report-end-of-day-2026-0314",
+    "classification": "internal",
+    "tenantId": "tenant-12"
+  },
+  "application": {
+    "name": "treasury-reporting",
+    "environment": "production",
+    "version": "6.0.2"
+  },
+  "organization": {
+    "tenantId": "tenant-12",
+    "businessUnitId": "treasury"
+  },
+  "request": {
+    "requestId": "request-7a11e63",
+    "correlationId": "reporting-cycle-2026-0314"
+  }
+}

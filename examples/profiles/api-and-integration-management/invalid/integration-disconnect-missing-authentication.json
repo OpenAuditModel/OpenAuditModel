@@ -1,0 +1,63 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0009-7a2b-9c3d-4e5f60718293",
+  "time": "2026-04-19T13:58:20.877Z",
+  "event": {
+    "name": "integration.disconnect",
+    "category": "configuration",
+    "type": "delete",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Connector to the external customer relationship system removed."
+  },
+  "actor": {
+    "type": "admin",
+    "id": "user-3390",
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "integration",
+    "id": "connection-3312",
+    "name": "customer-records-connector",
+    "classification": "confidential",
+    "ownerId": "team-revenue",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "integration-service",
+    "environment": "production",
+    "version": "4.2.0"
+  },
+  "organization": {
+    "tenantId": "tenant-7"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "third-party-connection-policy",
+    "policyVersion": "5"
+  },
+  "request": {
+    "requestId": "request-b31ec33",
+    "correlationId": "connection-decommission-3312"
+  },
+  "approval": {
+    "status": "not-required",
+    "workflowId": "integration-change-workflow"
+  },
+  "reason": {
+    "code": "contract-ended",
+    "text": "The agreement with the provider ended, so the connector was removed.",
+    "reference": "change-10620"
+  },
+  "controlCategories": ["third-party-access"],
+  "metadata": {
+    "integration": {
+      "type": "service-connector",
+      "provider": "partner-crm-platform",
+      "connectionId": "connection-3312",
+      "endpointClass": "partner-network",
+      "approvalRequired": false
+    }
+  }
+}

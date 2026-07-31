@@ -1,0 +1,27 @@
+{
+  "specVersion": "0.1",
+  "id": "018f6d10-0103-7a2b-9c3d-4e5f60710103",
+  "time": "2026-05-11T02:34:19.004Z",
+  "event": {
+    "name": "key.decrypt",
+    "category": "data-access",
+    "type": "execute",
+    "outcome": "success",
+    "severity": "debug",
+    "summary": "A workload decrypted a stored record using a key it is permitted to use."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-archive-reader"
+  },
+  "resource": {
+    "type": "key",
+    "id": "key-1907",
+    "tenantId": "tenant-4"
+  },
+  "application": {
+    "name": "key-custody-service",
+    "environment": "production",
+    "version": "6.0.1"
+  }
+}

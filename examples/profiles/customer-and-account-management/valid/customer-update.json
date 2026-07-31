@@ -1,0 +1,65 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0002-7b3c-8d4e-5f6071829302",
+  "time": "2026-04-08T10:31:47.880Z",
+  "event": {
+    "name": "customer.update",
+    "category": "data-modification",
+    "type": "update",
+    "outcome": "success",
+    "summary": "Registered trading address and billing contact reference updated."
+  },
+  "actor": {
+    "type": "user",
+    "id": "operator-3318",
+    "tenantId": "tenant-19",
+    "roles": ["customer-administrator"]
+  },
+  "resource": {
+    "type": "customer",
+    "id": "customer-42",
+    "classification": "restricted",
+    "tenantId": "tenant-19"
+  },
+  "application": {
+    "name": "customer-platform",
+    "environment": "production",
+    "version": "5.2.0",
+    "service": "customer-records"
+  },
+  "organization": {
+    "tenantId": "tenant-19",
+    "businessUnitId": "unit-retail"
+  },
+  "request": {
+    "requestId": "request-9f31b7",
+    "correlationId": "customer-maintenance-5108"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "customer-maintenance",
+    "policyVersion": "9"
+  },
+  "reason": {
+    "code": "customer-request",
+    "text": "Customer notified a change of registered trading address.",
+    "reference": "case-3417"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["registeredAddress", "billingContactId"]
+  },
+  "privacy": {
+    "containsPersonalData": false,
+    "minimized": true,
+    "processing": "reference",
+    "purpose": "operational-audit"
+  },
+  "metadata": {
+    "customer": {
+      "customerType": "business",
+      "status": "active"
+    }
+  }
+}

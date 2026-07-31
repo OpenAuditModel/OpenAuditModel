@@ -1,0 +1,73 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c1a-0008-7a2b-9c3d-4e5f60718308",
+  "time": "2026-05-06T11:04:27.310Z",
+  "event": {
+    "name": "problem.case.close",
+    "category": "workflow",
+    "type": "update",
+    "outcome": "success",
+    "severity": "low",
+    "summary": "Problem record closed after the connection pool defect was fixed and observed."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-2245",
+    "roles": ["problem-manager"],
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "problem",
+    "id": "problem-2026-0044",
+    "name": "checkout-connection-pool-exhaustion",
+    "classification": "internal",
+    "tenantId": "tenant-7"
+  },
+  "relatedResources": [
+    {
+      "type": "service",
+      "id": "service-checkout"
+    },
+    {
+      "type": "incident",
+      "id": "incident-2026-0418"
+    }
+  ],
+  "application": {
+    "name": "incident-service",
+    "environment": "production",
+    "version": "5.2.0"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "problem-closure",
+    "permissions": ["problem.case.close"]
+  },
+  "request": {
+    "requestId": "request-5580",
+    "correlationId": "correlation-problem-2026-0044"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["status"],
+    "before": {
+      "status": "under-investigation"
+    },
+    "after": {
+      "status": "closed"
+    }
+  },
+  "reason": {
+    "code": "root-cause-remediated",
+    "text": "The connection pool defect was fixed and no recurrence was observed for four weeks."
+  },
+  "controlCategories": ["incident-traceability"],
+  "metadata": {
+    "incident": {
+      "status": "closed",
+      "priority": "p3",
+      "approvalRequired": false,
+      "recurrenceCount": 0
+    }
+  }
+}

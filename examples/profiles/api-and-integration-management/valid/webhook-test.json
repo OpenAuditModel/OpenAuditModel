@@ -1,0 +1,59 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0007-7a2b-9c3d-4e5f60718293",
+  "time": "2026-04-15T07:44:02.118Z",
+  "event": {
+    "name": "webhook.test",
+    "category": "configuration",
+    "type": "execute",
+    "outcome": "success",
+    "severity": "low",
+    "summary": "Administrator sent a test callback to verify the destination."
+  },
+  "actor": {
+    "type": "admin",
+    "id": "user-3390",
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "webhook",
+    "id": "webhook-2207",
+    "name": "order-events-partner-feed",
+    "classification": "internal",
+    "ownerId": "team-commerce",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "integration-service",
+    "environment": "production",
+    "version": "4.2.0"
+  },
+  "organization": {
+    "tenantId": "tenant-7"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "outbound-integration-policy",
+    "policyVersion": "3"
+  },
+  "request": {
+    "requestId": "request-b31e881",
+    "correlationId": "integration-outage-response-55"
+  },
+  "reason": {
+    "code": "connectivity-verification",
+    "text": "Checked the destination before re-enabling the subscription.",
+    "reference": "incident-5520"
+  },
+  "controlCategories": ["outbound-data-flow"],
+  "metadata": {
+    "integration": {
+      "type": "outbound-webhook",
+      "provider": "partner-logistics-platform",
+      "webhookId": "webhook-2207",
+      "endpointClass": "partner-network",
+      "approvalRequired": false
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "@openauditmodel/mcp-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Stateless OpenAuditModel MCP server over Streamable HTTP. Run as a locally built Docker container; not published to npm and not a stdio server.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "generate": "node scripts/generate-schema-validator.mjs && node scripts/generate-resource-manifest.mjs",
+    "generate:check": "node scripts/generate-schema-validator.mjs --check && node scripts/generate-resource-manifest.mjs --check"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/node": "2.0.0",
+    "@modelcontextprotocol/server": "2.0.0",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "zod": "^4.0.0"
+  }
+}

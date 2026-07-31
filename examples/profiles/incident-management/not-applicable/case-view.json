@@ -1,0 +1,40 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c1a-0103-7a2b-9c3d-4e5f60718403",
+  "time": "2026-03-25T14:07:39.020Z",
+  "event": {
+    "name": "incident.case.view",
+    "category": "data-access",
+    "type": "read",
+    "outcome": "success",
+    "severity": "debug",
+    "summary": "Closed incident record opened in the service management console."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-2245",
+    "roles": ["problem-manager"],
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "incident",
+    "id": "incident-2026-0418",
+    "name": "checkout-latency-degradation",
+    "classification": "internal",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "incident-service",
+    "environment": "production",
+    "version": "5.2.0"
+  },
+  "request": {
+    "requestId": "request-4855"
+  },
+  "metadata": {
+    "incident": {
+      "status": "closed",
+      "priority": "p1"
+    }
+  }
+}

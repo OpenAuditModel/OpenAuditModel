@@ -1,0 +1,76 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c40-0042-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-17T17:31:14.900Z",
+  "event": {
+    "name": "broker.message.replay",
+    "category": "data-infrastructure",
+    "type": "execute",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Dead-letter messages redelivered to the fulfilment queue after the consumer defect was fixed."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-6612",
+    "roles": ["messaging-operator"]
+  },
+  "resource": {
+    "type": "queue",
+    "id": "queue-fulfilment-dead-letter",
+    "name": "fulfilment-dead-letter",
+    "parentId": "vhost-order-processing",
+    "classification": "internal",
+    "ownerId": "team-fulfilment"
+  },
+  "relatedResources": [
+    {
+      "type": "queue",
+      "id": "queue-fulfilment-orders",
+      "parentId": "vhost-order-processing",
+      "classification": "internal"
+    },
+    { "type": "cluster", "id": "cluster-messaging-production" }
+  ],
+  "application": {
+    "name": "broker-control-service",
+    "environment": "production",
+    "version": "3.4.1",
+    "region": "region-1"
+  },
+  "authentication": {
+    "method": "oidc",
+    "provider": "corporate-idp",
+    "mfa": true
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "broker-administration",
+    "permissions": ["queue.replay"]
+  },
+  "request": {
+    "requestId": "request-6f0bd9",
+    "correlationId": "correlation-incident-2026-0431"
+  },
+  "reason": {
+    "code": "incident-recovery",
+    "text": "Messages redelivered after the consumer deserialization defect was corrected.",
+    "reference": "incident-2026-0431"
+  },
+  "controlCategories": ["privileged-access", "incident-traceability"],
+  "tags": ["production", "incident-response"],
+  "metadata": {
+    "broker": {
+      "system": "rabbitmq",
+      "clusterId": "cluster-messaging-production",
+      "operation": {
+        "destructive": false
+      },
+      "replay": {
+        "messageCount": 1842,
+        "targetResourceId": "queue-fulfilment-orders"
+      }
+    }
+  }
+}

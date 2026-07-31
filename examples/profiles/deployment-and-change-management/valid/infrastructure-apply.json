@@ -1,0 +1,78 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-1009-7a3b-8c4d-5e6f70819209",
+  "time": "2026-03-17T04:05:36.229Z",
+  "event": {
+    "name": "deployment.infrastructure.apply",
+    "category": "deployment",
+    "type": "execute",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Declared infrastructure state applied to the production cluster."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-infrastructure-reconciler"
+  },
+  "subject": {
+    "type": "user",
+    "id": "user-5061"
+  },
+  "delegation": {
+    "type": "on-behalf-of",
+    "reason": "The reconciler applied the declared state authored by the subject.",
+    "reference": "change-2026-0317-1"
+  },
+  "resource": {
+    "type": "infrastructure-plan",
+    "id": "infrastructure-plan-2026-0317-1",
+    "name": "checkout-platform-topology",
+    "parentId": "cluster-production-1"
+  },
+  "relatedResources": [
+    { "type": "cluster", "id": "cluster-production-1" },
+    { "type": "load-balancer", "id": "load-balancer-edge-2" }
+  ],
+  "application": {
+    "name": "infrastructure-controller",
+    "environment": "production",
+    "version": "3.8.1",
+    "region": "region-1",
+    "zone": "zone-a"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "infrastructure-apply",
+    "policyVersion": "5"
+  },
+  "request": {
+    "requestId": "request-a70cd3",
+    "correlationId": "infrastructure-2026-0317-1"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["replicaCount", "loadBalancerIdleTimeoutSeconds"],
+    "before": { "replicaCount": 8, "loadBalancerIdleTimeoutSeconds": 60 },
+    "after": { "replicaCount": 12, "loadBalancerIdleTimeoutSeconds": 120 },
+    "ticketId": "change-2026-0317-1",
+    "deploymentId": "infrastructure-2026-0317-1"
+  },
+  "reason": {
+    "code": "capacity-increase",
+    "text": "Capacity raised ahead of the forecast seasonal peak.",
+    "reference": "change-2026-0317-1"
+  },
+  "controlCategories": ["change-management", "configuration-integrity"],
+  "tags": ["production"],
+  "metadata": {
+    "deployment": {
+      "id": "infrastructure-2026-0317-1",
+      "environment": "production",
+      "version": "topology-2026-0317-1",
+      "previousVersion": "topology-2026-0219-3",
+      "approvalRequired": false,
+      "pipelineId": "pipeline-infrastructure-reconcile"
+    }
+  }
+}

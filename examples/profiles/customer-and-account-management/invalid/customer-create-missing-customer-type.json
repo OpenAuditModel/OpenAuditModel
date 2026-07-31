@@ -1,0 +1,62 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0001-7b3c-8d4e-5f6071829301",
+  "time": "2026-04-08T09:12:04.220Z",
+  "event": {
+    "name": "customer.create",
+    "category": "data-modification",
+    "type": "create",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Business customer record created at the end of onboarding."
+  },
+  "actor": {
+    "type": "user",
+    "id": "operator-3318",
+    "tenantId": "tenant-19",
+    "roles": ["customer-administrator"]
+  },
+  "resource": {
+    "type": "customer",
+    "id": "customer-42",
+    "classification": "restricted",
+    "tenantId": "tenant-19"
+  },
+  "application": {
+    "name": "customer-platform",
+    "environment": "production",
+    "version": "5.2.0",
+    "service": "customer-records"
+  },
+  "organization": {
+    "tenantId": "tenant-19",
+    "businessUnitId": "unit-retail"
+  },
+  "request": {
+    "requestId": "request-9f31a2",
+    "correlationId": "onboarding-4471"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "customer-onboarding",
+    "policyVersion": "9"
+  },
+  "reason": {
+    "code": "customer-onboarding",
+    "text": "Onboarding completed for a new business relationship.",
+    "reference": "case-3391"
+  },
+  "privacy": {
+    "containsPersonalData": false,
+    "minimized": true,
+    "purpose": "operational-audit"
+  },
+  "controlCategories": ["customer-lifecycle"],
+  "metadata": {
+    "customer": {
+      "status": "active",
+      "segment": "small-business"
+    }
+  }
+}

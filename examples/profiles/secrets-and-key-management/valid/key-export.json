@@ -1,0 +1,73 @@
+{
+  "specVersion": "0.1",
+  "id": "018f6d10-0011-7a2b-9c3d-4e5f60710011",
+  "time": "2026-06-05T13:22:41.208Z",
+  "event": {
+    "name": "key.export",
+    "category": "privileged-operation",
+    "type": "export",
+    "outcome": "success",
+    "severity": "critical",
+    "summary": "Wrapped key material was exported to a second custody module for disaster recovery."
+  },
+  "actor": {
+    "type": "admin",
+    "id": "user-6033",
+    "tenantId": "tenant-4"
+  },
+  "resource": {
+    "type": "key",
+    "id": "key-2208",
+    "classification": "secret",
+    "ownerId": "team-payments",
+    "tenantId": "tenant-4"
+  },
+  "application": {
+    "name": "key-custody-service",
+    "environment": "production",
+    "version": "6.0.1",
+    "region": "eu-west"
+  },
+  "request": {
+    "requestId": "request-a09",
+    "correlationId": "recovery-drill-2140"
+  },
+  "authentication": {
+    "method": "mfa",
+    "provider": "workforce-directory",
+    "mfa": true,
+    "assuranceLevel": "high",
+    "sessionId": "session-c118",
+    "authenticatedAt": "2026-06-05T13:18:00Z"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "key-export",
+    "policyVersion": "4"
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "key-export-review",
+    "requestId": "approval-9330",
+    "requiredApprovals": 2,
+    "receivedApprovals": 2,
+    "approvedAt": "2026-06-04T09:15:00Z"
+  },
+  "reason": {
+    "code": "disaster-recovery",
+    "text": "A second custody copy is required so the signing service can be restored in the standby region.",
+    "reference": "change-9840"
+  },
+  "controlCategories": ["key-management", "privileged-access"],
+  "metadata": {
+    "secret": {
+      "type": "signing-key",
+      "provider": "hardware-security-module",
+      "algorithm": "ecdsa-p256",
+      "destinationType": "hardware-security-module",
+      "approvalRequired": false,
+      "emergencyAccess": false
+    }
+  }
+}

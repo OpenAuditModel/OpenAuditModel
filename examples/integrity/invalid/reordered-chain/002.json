@@ -1,0 +1,52 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2a30-1111-7222-8333-444455556602",
+  "time": "2026-04-03T08:14:31.882Z",
+  "sequence": 3,
+  "event": {
+    "name": "configuration.setting.update",
+    "category": "configuration",
+    "type": "update",
+    "outcome": "success",
+    "severity": "critical",
+    "summary": "Session lifetime reduced under the approved change window."
+  },
+  "actor": {
+    "type": "admin",
+    "id": "admin-0091",
+    "roles": ["platform-administrator"]
+  },
+  "resource": {
+    "type": "configuration",
+    "id": "configuration-authentication-session",
+    "classification": "restricted"
+  },
+  "application": {
+    "name": "platform-control-service",
+    "environment": "production",
+    "instance": "instance-7c1a"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "privileged-configuration-change"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["sessionLifetimeMinutes"],
+    "before": {
+      "sessionLifetimeMinutes": 720
+    },
+    "after": {
+      "sessionLifetimeMinutes": 60
+    },
+    "ticketId": "change-10241"
+  },
+  "controlCategories": ["configuration-integrity", "privileged-access"],
+  "integrity": {
+    "canonicalization": "RFC8785",
+    "hashAlgorithm": "SHA-256",
+    "hash": "f7fbea247bdde9c24f07d81cb6ba82b60372f293b2d618066b065bac880dcbf1",
+    "previousHash": "3e9462f941036e9b676694cf80fcf17bb438ddff9fb4fb6f67220eca3399ba1b",
+    "chainId": "chain-platform-control-service-instance-7c1a"
+  }
+}

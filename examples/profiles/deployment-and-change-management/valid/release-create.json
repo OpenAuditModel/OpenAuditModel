@@ -1,0 +1,53 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-1003-7a3b-8c4d-5e6f70819203",
+  "time": "2026-03-16T08:02:44.117Z",
+  "event": {
+    "name": "deployment.release.create",
+    "category": "deployment",
+    "type": "create",
+    "outcome": "success",
+    "severity": "low",
+    "summary": "Release candidate prepared from the merged change set."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-build-controller"
+  },
+  "resource": {
+    "type": "release",
+    "id": "release-checkout-9-1-0",
+    "name": "checkout-service-release"
+  },
+  "relatedResources": [{ "type": "service", "id": "service-checkout" }],
+  "application": {
+    "name": "delivery-platform",
+    "environment": "production",
+    "version": "4.2.0",
+    "component": "build-controller"
+  },
+  "request": {
+    "requestId": "request-51ac0e",
+    "correlationId": "deployment-2026-0316-4"
+  },
+  "change": {
+    "type": "create",
+    "changedFields": ["releaseVersion"],
+    "deploymentId": "deployment-2026-0316-4"
+  },
+  "reason": {
+    "code": "scheduled-release",
+    "text": "Release candidate built from the change set merged for this cycle."
+  },
+  "controlCategories": ["change-management"],
+  "metadata": {
+    "deployment": {
+      "id": "deployment-2026-0316-4",
+      "environment": "staging",
+      "version": "9.1.0",
+      "approvalRequired": false,
+      "pipelineId": "pipeline-checkout-delivery",
+      "artifactCount": 3
+    }
+  }
+}

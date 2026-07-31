@@ -1,0 +1,85 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c90-0038-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-14T11:14:26.744Z",
+  "event": {
+    "name": "financial.deposit.record",
+    "category": "data-modification",
+    "type": "update",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Operator corrected an under-posted deposit after a partner file was reprocessed."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-5120",
+    "tenantId": "tenant-12",
+    "roles": ["ledger-operator"]
+  },
+  "resource": {
+    "type": "account",
+    "id": "account-ref-781",
+    "name": "operating-account",
+    "classification": "confidential",
+    "tenantId": "tenant-12"
+  },
+  "relatedResources": [
+    {
+      "type": "reconciliation-run",
+      "id": "recon-2026-0313-eu-02"
+    }
+  ],
+  "application": {
+    "name": "ledger-service",
+    "environment": "production",
+    "version": "3.8.0"
+  },
+  "organization": {
+    "tenantId": "tenant-12",
+    "businessUnitId": "finance-operations"
+  },
+  "request": {
+    "requestId": "request-7a02f61",
+    "correlationId": "deposit-lifecycle-0140"
+  },
+  "authentication": {
+    "method": "mfa",
+    "mfa": true,
+    "provider": "corporate-idp"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "ledger-correction-policy",
+    "policyVersion": "4"
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "ledger-correction-review",
+    "requiredApprovals": 1,
+    "receivedApprovals": 1,
+    "approvers": [
+      {
+        "type": "user",
+        "id": "user-4477"
+      }
+    ],
+    "approvedAt": "2026-03-14T11:12:03Z"
+  },
+  "reason": {
+    "code": "partner-file-restatement",
+    "text": "Partner restated the settlement file, so the posted deposit was corrected by hand.",
+    "reference": "case-88112"
+  },
+  "controlCategories": ["financial-transaction-integrity", "manual-intervention"],
+  "metadata": {
+    "financial": {
+      "transactionId": "txn-2026-0314-0140",
+      "amount": 100,
+      "currency": "EUR",
+      "direction": "credit",
+      "status": "posted",
+      "approvalRequired": true,
+      "manual": true
+    }
+  }
+}

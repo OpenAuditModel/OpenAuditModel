@@ -1,0 +1,37 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2a10-0012-7c4d-8b1e-2f3a40516212",
+  "time": "2026-04-02T03:09:00.000Z",
+  "event": {
+    "name": "storage.replica.heartbeat",
+    "category": "data-infrastructure",
+    "type": "read",
+    "outcome": "success",
+    "severity": "debug",
+    "summary": "Replication lag reported by the standby replica."
+  },
+  "actor": {
+    "type": "system",
+    "id": "system-storage-replicator",
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "volume",
+    "id": "volume-4471",
+    "name": "orders-data-volume",
+    "classification": "confidential",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "backup-service",
+    "environment": "production",
+    "version": "4.2.0",
+    "region": "region-north"
+  },
+  "metadata": {
+    "replication": {
+      "lagSeconds": 3,
+      "replicaScope": "region-south-secondary"
+    }
+  }
+}

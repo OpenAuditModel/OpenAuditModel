@@ -1,0 +1,96 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c90-0037-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-14T10:31:57.019Z",
+  "event": {
+    "name": "financial.withdrawal.execute",
+    "category": "data-modification",
+    "type": "execute",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Client cash withdrawal released under dual control."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-3391",
+    "tenantId": "tenant-44",
+    "roles": ["treasury-operator"]
+  },
+  "subject": {
+    "type": "user",
+    "id": "user-7712",
+    "tenantId": "tenant-44"
+  },
+  "resource": {
+    "type": "account",
+    "id": "account-ref-2201",
+    "name": "client-cash-account",
+    "classification": "restricted",
+    "ownerId": "user-7712",
+    "tenantId": "tenant-44"
+  },
+  "relatedResources": [
+    {
+      "type": "external-account",
+      "id": "counterparty-ref-44"
+    }
+  ],
+  "application": {
+    "name": "brokerage-ledger",
+    "environment": "production",
+    "version": "9.1.4"
+  },
+  "organization": {
+    "tenantId": "tenant-44",
+    "businessUnitId": "treasury"
+  },
+  "request": {
+    "requestId": "request-7a01d92",
+    "correlationId": "withdrawal-lifecycle-2201"
+  },
+  "authentication": {
+    "method": "mfa",
+    "mfa": true,
+    "provider": "corporate-idp",
+    "assuranceLevel": "high"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "cash-withdrawal-policy",
+    "policyVersion": "5"
+  },
+  "approval": {
+    "workflowId": "treasury-dual-control",
+    "requestId": "approval-req-3318",
+    "requiredApprovals": 2,
+    "receivedApprovals": 2,
+    "approvers": [
+      {
+        "type": "user",
+        "id": "user-4477"
+      },
+      {
+        "type": "user",
+        "id": "user-4482"
+      }
+    ],
+    "approvedAt": "2026-03-14T10:29:40Z"
+  },
+  "reason": {
+    "code": "client-instruction",
+    "text": "Client instructed a cash withdrawal to their registered destination.",
+    "reference": "case-88041"
+  },
+  "controlCategories": ["financial-transaction-integrity", "segregation-of-duties"],
+  "metadata": {
+    "financial": {
+      "transactionId": "txn-2026-0314-0128",
+      "amount": 75000,
+      "currency": "USD",
+      "direction": "outbound",
+      "status": "settled",
+      "approvalRequired": true,
+      "manual": false
+    }
+  }
+}

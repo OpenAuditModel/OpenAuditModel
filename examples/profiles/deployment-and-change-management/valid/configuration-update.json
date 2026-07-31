@@ -1,0 +1,88 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-100a-7a3b-8c4d-5e6f7081920a",
+  "time": "2026-03-17T09:52:03.884Z",
+  "event": {
+    "name": "configuration.setting.update",
+    "category": "configuration",
+    "type": "update",
+    "outcome": "success",
+    "severity": "critical",
+    "summary": "Session lifetime reduced on the production authentication configuration."
+  },
+  "actor": {
+    "type": "admin",
+    "id": "admin-0091",
+    "roles": ["platform-administrator"]
+  },
+  "resource": {
+    "type": "configuration",
+    "id": "configuration-authentication-session",
+    "name": "authentication-session-policy",
+    "parentId": "cluster-production-1",
+    "classification": "restricted"
+  },
+  "application": {
+    "name": "platform-control-service",
+    "environment": "production",
+    "version": "9.0.3",
+    "instance": "instance-7c1a"
+  },
+  "authentication": {
+    "method": "mfa",
+    "mfa": true,
+    "assuranceLevel": "high"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "privileged-configuration-change",
+    "policyVersion": "23",
+    "permissions": ["configuration.setting.update"]
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-standard-change",
+    "requestId": "approval-request-6120",
+    "requiredApprovals": 2,
+    "receivedApprovals": 2,
+    "approvers": [
+      { "type": "user", "id": "user-1180", "roles": ["change-manager"] },
+      { "type": "user", "id": "user-7702", "roles": ["security-officer"] }
+    ],
+    "approvedAt": "2026-03-17T09:44:51Z"
+  },
+  "request": {
+    "requestId": "request-cc10ab",
+    "correlationId": "change-2026-0317-4",
+    "method": "PATCH",
+    "route": "/clusters/{clusterId}/configurations/{configurationId}"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["sessionLifetimeMinutes", "requireReauthenticationForPrivilegedActions"],
+    "before": {
+      "sessionLifetimeMinutes": 720,
+      "requireReauthenticationForPrivilegedActions": false
+    },
+    "after": {
+      "sessionLifetimeMinutes": 60,
+      "requireReauthenticationForPrivilegedActions": true
+    },
+    "ticketId": "change-2026-0317-4"
+  },
+  "reason": {
+    "code": "security-hardening",
+    "text": "Session lifetime reduced following a security review finding.",
+    "reference": "change-2026-0317-4"
+  },
+  "controlCategories": ["configuration-integrity", "change-approval"],
+  "tags": ["production"],
+  "metadata": {
+    "deployment": {
+      "id": "change-2026-0317-4",
+      "environment": "production",
+      "approvalRequired": true
+    }
+  }
+}

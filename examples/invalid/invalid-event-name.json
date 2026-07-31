@@ -1,0 +1,22 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c03-3c4d-7e5f-a061-7c8d9e0f1a23",
+  "time": "2026-03-19T07:11:44Z",
+  "event": {
+    "name": "Document.Share.Create",
+    "category": "data-access",
+    "outcome": "success"
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-5120"
+  },
+  "resource": {
+    "type": "document",
+    "id": "document-90311"
+  },
+  "application": {
+    "name": "document-service",
+    "environment": "production"
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0003-7a2b-9c3d-4e5f60718293",
+  "time": "2026-04-11T16:41:19.702Z",
+  "event": {
+    "name": "api-key.revoke",
+    "category": "security",
+    "type": "revoke",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Partner integration credential revoked after a suspected exposure."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-3390",
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "api-key",
+    "id": "api-key-4471",
+    "name": "partner-billing-reader",
+    "classification": "restricted",
+    "ownerId": "team-payments",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "integration-service",
+    "environment": "production",
+    "version": "4.2.0"
+  },
+  "organization": {
+    "tenantId": "tenant-7"
+  },
+  "authentication": {
+    "method": "mfa",
+    "provider": "workforce-directory",
+    "mfa": true,
+    "sessionId": "session-7710"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "integration-credential-revocation",
+    "policyVersion": "9"
+  },
+  "request": {
+    "requestId": "request-b31e005",
+    "correlationId": "credential-exposure-response-118"
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "integration-change-workflow",
+    "requestId": "approval-request-2288",
+    "requiredApprovals": 1,
+    "receivedApprovals": 1,
+    "approvedAt": "2026-04-11T16:38:02Z"
+  },
+  "reason": {
+    "code": "suspected-exposure",
+    "text": "Credential handle appeared in a partner support attachment and was withdrawn.",
+    "reference": "incident-4471"
+  },
+  "controlCategories": ["credential-lifecycle", "incident-response"],
+  "metadata": {
+    "integration": {
+      "type": "api-credential",
+      "provider": "partner-billing-platform",
+      "credentialReference": "credential-ref-8814",
+      "approvalRequired": true
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1b5c-9a5d-7f61-ad4e-7c8b9a0f1e2d",
+  "time": "2026-03-14T02:00:12.004Z",
+  "event": {
+    "name": "billing.reconciliation.complete",
+    "category": "data-modification",
+    "type": "execute",
+    "outcome": "partial",
+    "severity": "medium",
+    "summary": "Nightly reconciliation completed with a subset of ledger entries deferred."
+  },
+  "actor": {
+    "type": "system",
+    "id": "reconciliation-scheduler"
+  },
+  "resource": {
+    "type": "ledger",
+    "id": "ledger-primary"
+  },
+  "application": {
+    "name": "billing-service",
+    "service": "reconciliation-job",
+    "environment": "production"
+  },
+  "request": {
+    "correlationId": "nightly-reconciliation-2026-03-14"
+  },
+  "metadata": {
+    "recordsProcessed": 4187,
+    "recordsDeferred": 12
+  }
+}

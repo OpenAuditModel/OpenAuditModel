@@ -1,0 +1,41 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c40-0021-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-17T20:01:11.020Z",
+  "event": {
+    "name": "broker.message.publish",
+    "category": "data-infrastructure",
+    "type": "create",
+    "outcome": "success",
+    "severity": "info",
+    "summary": "Order state transition published to the orders topic."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-account-orders-publisher"
+  },
+  "resource": {
+    "type": "topic",
+    "id": "topic-orders-events",
+    "name": "orders-events",
+    "parentId": "cluster-streaming-production",
+    "classification": "internal"
+  },
+  "application": {
+    "name": "orders-service",
+    "environment": "production",
+    "version": "5.2.0",
+    "region": "region-1"
+  },
+  "request": {
+    "requestId": "request-7a1c05",
+    "correlationId": "correlation-order-4471"
+  },
+  "tags": ["production", "data-plane"],
+  "metadata": {
+    "broker": {
+      "system": "kafka",
+      "clusterId": "cluster-streaming-production"
+    }
+  }
+}

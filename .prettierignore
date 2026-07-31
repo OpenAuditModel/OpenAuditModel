@@ -1,0 +1,9 @@
+node_modules/
+dist/
+site/
+coverage/
+package-lock.json
+LICENSE
+
+# Generated and verified by a staleness check; the generator owns their format.
+mcp/src/*.generated.ts

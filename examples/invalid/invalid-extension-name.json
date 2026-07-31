@@ -1,0 +1,25 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c06-6f70-7182-d394-0f1a2b3c4d56",
+  "time": "2026-03-19T07:33:52Z",
+  "event": {
+    "name": "configuration.setting.update",
+    "category": "configuration",
+    "outcome": "success"
+  },
+  "actor": {
+    "type": "admin",
+    "id": "admin-0091"
+  },
+  "resource": {
+    "type": "configuration",
+    "id": "configuration-retention"
+  },
+  "application": {
+    "name": "platform-control-service",
+    "environment": "production"
+  },
+  "extensions": {
+    "clusterId": "production"
+  }
+}

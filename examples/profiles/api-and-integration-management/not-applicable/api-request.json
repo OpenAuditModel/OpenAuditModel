@@ -1,0 +1,45 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0101-7a2b-9c3d-4e5f60718293",
+  "time": "2026-04-18T09:02:11.400Z",
+  "event": {
+    "name": "api.request",
+    "category": "data-access",
+    "type": "read",
+    "outcome": "success",
+    "severity": "info",
+    "summary": "Settlement records read through the public API."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-partner-billing-client"
+  },
+  "resource": {
+    "type": "api-endpoint",
+    "id": "endpoint-settlements-list",
+    "classification": "internal",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "public-api-gateway",
+    "environment": "production",
+    "version": "4.2.0"
+  },
+  "organization": {
+    "tenantId": "tenant-7"
+  },
+  "authentication": {
+    "method": "api-key",
+    "provider": "integration-service"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "public-api-policy"
+  },
+  "request": {
+    "requestId": "request-c00a191",
+    "correlationId": "api-traffic-0418",
+    "protocol": "https",
+    "method": "GET"
+  }
+}

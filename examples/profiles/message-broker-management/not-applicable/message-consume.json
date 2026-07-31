@@ -1,0 +1,41 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c40-0022-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-17T20:01:11.480Z",
+  "event": {
+    "name": "broker.message.consume",
+    "category": "data-infrastructure",
+    "type": "read",
+    "outcome": "success",
+    "severity": "info",
+    "summary": "Fulfilment worker consumed an order state transition."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-account-fulfilment-worker"
+  },
+  "resource": {
+    "type": "topic",
+    "id": "topic-orders-events",
+    "name": "orders-events",
+    "parentId": "cluster-streaming-production",
+    "classification": "internal"
+  },
+  "application": {
+    "name": "fulfilment-service",
+    "environment": "production",
+    "version": "4.9.3",
+    "region": "region-1"
+  },
+  "request": {
+    "requestId": "request-7a1c06",
+    "correlationId": "correlation-order-4471"
+  },
+  "tags": ["production", "data-plane"],
+  "metadata": {
+    "broker": {
+      "system": "kafka",
+      "clusterId": "cluster-streaming-production"
+    }
+  }
+}

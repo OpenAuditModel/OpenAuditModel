@@ -1,0 +1,69 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c90-0031-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-14T09:12:44.310Z",
+  "event": {
+    "name": "financial.payment.capture",
+    "category": "data-modification",
+    "type": "execute",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Authorized payment captured after the order was fulfilled."
+  },
+  "actor": {
+    "type": "service",
+    "id": "payment-capture-worker",
+    "tenantId": "tenant-12"
+  },
+  "resource": {
+    "type": "payment",
+    "id": "payment-ref-4412",
+    "name": "order-88214-payment",
+    "ownerId": "account-ref-781",
+    "tenantId": "tenant-12"
+  },
+  "application": {
+    "name": "payment-service",
+    "environment": "production",
+    "version": "4.2.1",
+    "region": "eu-central"
+  },
+  "organization": {
+    "tenantId": "tenant-12"
+  },
+  "request": {
+    "requestId": "request-6f21a08",
+    "correlationId": "payment-lifecycle-4412"
+  },
+  "authentication": {
+    "method": "service-account",
+    "provider": "workload-identity"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "payment-capture-policy",
+    "policyVersion": "7"
+  },
+  "relatedResources": [
+    {
+      "type": "account",
+      "id": "account-ref-781",
+      "name": "merchant-receivables"
+    }
+  ],
+  "reason": {
+    "code": "order-fulfilled",
+    "text": "Goods dispatched, so the held authorization was captured."
+  },
+  "controlCategories": ["financial-transaction-integrity"],
+  "metadata": {
+    "financial": {
+      "transactionId": "txn-2026-0314-0091",
+      "currency": "EUR",
+      "direction": "inbound",
+      "status": "captured",
+      "approvalRequired": false,
+      "manual": false
+    }
+  }
+}

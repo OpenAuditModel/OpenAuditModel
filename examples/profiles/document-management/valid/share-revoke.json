@@ -1,0 +1,56 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1b80-0006-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-14T16:22:06.100Z",
+  "event": {
+    "name": "document.share.revoke",
+    "category": "data-access",
+    "type": "update",
+    "outcome": "success",
+    "summary": "External share withdrawn after the agreement was countersigned."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-5120",
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "document",
+    "id": "document-90311",
+    "name": "quarterly-supplier-agreement",
+    "parentId": "workspace-14",
+    "classification": "confidential",
+    "ownerId": "user-4004",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "document-service",
+    "environment": "production",
+    "version": "2.11.0"
+  },
+  "organization": {
+    "tenantId": "tenant-7",
+    "workspaceId": "workspace-14"
+  },
+  "request": {
+    "requestId": "request-a91c4f6",
+    "correlationId": "document-lifecycle-7712",
+    "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+    "spanId": "00f067aa0ba902b7",
+    "protocol": "https"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "document-governance",
+    "policyVersion": "12"
+  },
+  "reason": {
+    "code": "access-no-longer-required",
+    "text": "Agreement countersigned and filed."
+  },
+  "metadata": {
+    "share": {
+      "recipientType": "external"
+    }
+  }
+}

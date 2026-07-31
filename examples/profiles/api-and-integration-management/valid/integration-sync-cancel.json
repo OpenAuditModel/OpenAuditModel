@@ -1,0 +1,65 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0012-7a2b-9c3d-4e5f60718293",
+  "time": "2026-04-18T01:22:41.019Z",
+  "event": {
+    "name": "integration.sync.cancel",
+    "category": "data-access",
+    "type": "execute",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Running synchronization cancelled by an administrator."
+  },
+  "actor": {
+    "type": "admin",
+    "id": "user-3390",
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "integration",
+    "id": "connection-3312",
+    "name": "customer-records-connector",
+    "classification": "confidential",
+    "ownerId": "team-revenue",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "integration-service",
+    "environment": "production",
+    "version": "4.2.0",
+    "component": "sync-scheduler"
+  },
+  "organization": {
+    "tenantId": "tenant-7"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "third-party-connection-policy",
+    "policyVersion": "5"
+  },
+  "request": {
+    "requestId": "request-b31ef88",
+    "correlationId": "sync-run-3312-0418"
+  },
+  "approval": {
+    "status": "not-required",
+    "workflowId": "integration-change-workflow"
+  },
+  "reason": {
+    "code": "manual-override",
+    "text": "Synchronization was stopped because the provider reported inconsistent records.",
+    "reference": "incident-5601"
+  },
+  "controlCategories": ["third-party-access"],
+  "metadata": {
+    "integration": {
+      "type": "data-sync-connector",
+      "provider": "partner-crm-platform",
+      "connectionId": "connection-3312",
+      "endpointClass": "partner-network",
+      "syncMode": "incremental",
+      "approvalRequired": false
+    }
+  }
+}

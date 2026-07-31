@@ -1,0 +1,23 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c07-7081-7293-e4a5-1a2b3c4d5e67",
+  "time": "2026-03-19T07:41:18Z",
+  "event": {
+    "name": "identity.user.disable",
+    "category": "identity",
+    "outcome": "success"
+  },
+  "actor": {
+    "type": "admin",
+    "id": "admin-4821",
+    "department": "finance"
+  },
+  "resource": {
+    "type": "user",
+    "id": "user-7391"
+  },
+  "application": {
+    "name": "identity-service",
+    "environment": "production"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0103-7a2b-9c3d-4e5f60718293",
+  "time": "2026-04-18T01:04:27.630Z",
+  "event": {
+    "name": "integration.sync.progress",
+    "category": "data-access",
+    "type": "execute",
+    "outcome": "success",
+    "severity": "debug",
+    "summary": "Synchronization worker polled the provider and processed one page."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-integration-sync-worker"
+  },
+  "resource": {
+    "type": "integration",
+    "id": "connection-3312",
+    "name": "customer-records-connector",
+    "classification": "confidential",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "integration-service",
+    "environment": "production",
+    "version": "4.2.0",
+    "component": "sync-worker"
+  },
+  "organization": {
+    "tenantId": "tenant-7"
+  },
+  "request": {
+    "requestId": "request-c00a318",
+    "correlationId": "sync-run-3312-0418"
+  },
+  "metadata": {
+    "integration": {
+      "type": "data-sync-connector",
+      "connectionId": "connection-3312",
+      "pageNumber": 14
+    }
+  }
+}

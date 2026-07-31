@@ -1,0 +1,92 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c90-0012-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-14T19:33:41.205Z",
+  "event": {
+    "name": "financial.limit.update",
+    "category": "configuration",
+    "type": "update",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Daily withdrawal ceiling raised for a client account after a documented review."
+  },
+  "actor": {
+    "type": "admin",
+    "id": "user-3391",
+    "tenantId": "tenant-44",
+    "roles": ["treasury-controls-admin"]
+  },
+  "subject": {
+    "type": "user",
+    "id": "user-7712",
+    "tenantId": "tenant-44"
+  },
+  "resource": {
+    "type": "transaction-limit",
+    "id": "limit-ref-55",
+    "name": "daily-withdrawal-ceiling",
+    "ownerId": "user-7712",
+    "tenantId": "tenant-44"
+  },
+  "relatedResources": [
+    {
+      "type": "account",
+      "id": "account-ref-2201"
+    }
+  ],
+  "application": {
+    "name": "treasury-controls",
+    "environment": "production",
+    "version": "9.1.4"
+  },
+  "organization": {
+    "tenantId": "tenant-44",
+    "businessUnitId": "treasury"
+  },
+  "request": {
+    "requestId": "request-7a09b18",
+    "correlationId": "limit-review-5521"
+  },
+  "authentication": {
+    "method": "mfa",
+    "mfa": true,
+    "provider": "corporate-idp",
+    "assuranceLevel": "high"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "transaction-limit-policy",
+    "policyVersion": "4"
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "limit-change-review",
+    "requiredApprovals": 2,
+    "receivedApprovals": 2,
+    "approvers": [
+      { "type": "user", "id": "user-4477" },
+      { "type": "user", "id": "user-4482" }
+    ],
+    "approvedAt": "2026-03-14T19:30:22Z"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["dailyWithdrawalCeiling"],
+    "before": { "dailyWithdrawalCeiling": 25000 },
+    "after": { "dailyWithdrawalCeiling": 100000 }
+  },
+  "reason": {
+    "code": "documented-client-review",
+    "text": "Client onboarding review supported a higher ceiling for the account.",
+    "reference": "case-88203"
+  },
+  "controlCategories": ["preventive-control-change", "change-approval"],
+  "metadata": {
+    "financial": {
+      "limitType": "daily-withdrawal-limit",
+      "currency": "USD",
+      "approvalRequired": true,
+      "manual": false
+    }
+  }
+}

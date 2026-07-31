@@ -1,0 +1,75 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0004-7b3c-8d4e-5f6071829304",
+  "time": "2026-04-08T12:20:59.140Z",
+  "event": {
+    "name": "customer.close",
+    "category": "resource-lifecycle",
+    "type": "update",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Customer relationship closed at the customer's request."
+  },
+  "actor": {
+    "type": "user",
+    "id": "operator-3318",
+    "tenantId": "tenant-19",
+    "roles": ["customer-administrator"]
+  },
+  "resource": {
+    "type": "customer",
+    "id": "customer-42",
+    "classification": "restricted",
+    "tenantId": "tenant-19"
+  },
+  "application": {
+    "name": "customer-platform",
+    "environment": "production",
+    "version": "5.2.0",
+    "service": "customer-records"
+  },
+  "organization": {
+    "tenantId": "tenant-19",
+    "businessUnitId": "unit-retail"
+  },
+  "request": {
+    "requestId": "request-9f31d9",
+    "correlationId": "offboarding-6633"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "customer-offboarding",
+    "policyVersion": "6"
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-customer-offboarding",
+    "requiredApprovals": 1,
+    "receivedApprovals": 1,
+    "approvedAt": "2026-04-08T12:18:02Z"
+  },
+  "reason": {
+    "code": "customer-request",
+    "text": "Customer asked to end the relationship after contract expiry.",
+    "reference": "case-3688"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["status"],
+    "before": {
+      "status": "active"
+    },
+    "after": {
+      "status": "closed"
+    }
+  },
+  "controlCategories": ["customer-lifecycle"],
+  "metadata": {
+    "customer": {
+      "customerType": "business",
+      "status": "closed",
+      "closureChannel": "self-service"
+    }
+  }
+}

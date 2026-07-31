@@ -1,0 +1,38 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0020-7b3c-8d4e-5f6071829320",
+  "time": "2026-04-08T09:55:12.470Z",
+  "event": {
+    "name": "customer.profile.view",
+    "category": "data-access",
+    "type": "read",
+    "outcome": "success",
+    "summary": "Customer profile opened in the service desk console."
+  },
+  "actor": {
+    "type": "user",
+    "id": "operator-3318",
+    "tenantId": "tenant-19",
+    "roles": ["customer-support-operator"]
+  },
+  "resource": {
+    "type": "customer",
+    "id": "customer-42",
+    "classification": "restricted",
+    "tenantId": "tenant-19"
+  },
+  "application": {
+    "name": "customer-platform",
+    "environment": "production",
+    "version": "5.2.0",
+    "service": "customer-records"
+  },
+  "organization": {
+    "tenantId": "tenant-19",
+    "businessUnitId": "unit-retail"
+  },
+  "request": {
+    "requestId": "request-9f3271",
+    "correlationId": "support-contact-9014"
+  }
+}

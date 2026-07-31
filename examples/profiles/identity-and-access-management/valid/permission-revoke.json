@@ -1,0 +1,77 @@
+{
+  "specVersion": "0.1",
+  "id": "018f4a05-1111-7222-8333-000000000005",
+  "time": "2026-06-01T11:00:00.000Z",
+  "event": {
+    "name": "identity.permission.revoke",
+    "category": "identity",
+    "type": "revoke",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Direct export permission withdrawn after an access review."
+  },
+  "actor": {
+    "type": "admin",
+    "id": "admin-4821",
+    "roles": ["identity-administrator"]
+  },
+  "application": {
+    "name": "identity-service",
+    "environment": "production",
+    "version": "3.4.1"
+  },
+  "resource": {
+    "type": "user",
+    "id": "user-5120",
+    "tenantId": "tenant-42"
+  },
+  "relatedResources": [
+    {
+      "type": "permission",
+      "id": "permission-report-export"
+    }
+  ],
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "identity-permission-change",
+    "policyVersion": "7"
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-access-change",
+    "requestId": "approval-request-5512",
+    "requiredApprovals": 1,
+    "receivedApprovals": 1,
+    "approvers": [
+      {
+        "type": "user",
+        "id": "user-2210",
+        "roles": ["access-approver"]
+      }
+    ],
+    "approvedAt": "2026-06-01T09:59:47Z"
+  },
+  "reason": {
+    "code": "access-review",
+    "text": "Permission no longer required by the reviewed role definition.",
+    "reference": "access-review-2026-q2"
+  },
+  "request": {
+    "requestId": "request-a5",
+    "correlationId": "correlation-a5",
+    "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+    "spanId": "00f067aa0ba902b7",
+    "protocol": "https",
+    "method": "POST",
+    "route": "/identity/{principalId}/access"
+  },
+  "controlCategories": ["privileged-access", "separation-of-duties"],
+  "metadata": {
+    "permission": {
+      "id": "permission-report-export",
+      "scope": "tenant",
+      "privileged": false
+    }
+  }
+}

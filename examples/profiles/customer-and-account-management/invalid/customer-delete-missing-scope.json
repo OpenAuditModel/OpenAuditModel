@@ -1,0 +1,70 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0006-7b3c-8d4e-5f6071829306",
+  "time": "2026-04-08T15:02:38.410Z",
+  "event": {
+    "name": "customer.delete",
+    "category": "data-modification",
+    "type": "delete",
+    "outcome": "success",
+    "severity": "critical",
+    "summary": "Personal data erased from a closed customer record; settlement history retained."
+  },
+  "actor": {
+    "type": "user",
+    "id": "operator-4102",
+    "tenantId": "tenant-19",
+    "roles": ["customer-data-steward"]
+  },
+  "resource": {
+    "type": "customer",
+    "id": "customer-42",
+    "classification": "restricted",
+    "tenantId": "tenant-19"
+  },
+  "application": {
+    "name": "customer-platform",
+    "environment": "production",
+    "version": "5.2.0",
+    "service": "customer-records"
+  },
+  "organization": {
+    "tenantId": "tenant-19",
+    "businessUnitId": "unit-retail"
+  },
+  "request": {
+    "requestId": "request-9f31f3",
+    "correlationId": "erasure-7742"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "customer-data-retention",
+    "policyVersion": "3"
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-customer-erasure",
+    "requiredApprovals": 2,
+    "receivedApprovals": 2,
+    "approvedAt": "2026-04-08T14:59:10Z"
+  },
+  "reason": {
+    "code": "erasure-request",
+    "text": "Erasure requested after the retention period for the closed relationship elapsed.",
+    "reference": "case-3901"
+  },
+  "privacy": {
+    "containsPersonalData": false,
+    "processing": "drop",
+    "minimized": true,
+    "purpose": "operational-audit"
+  },
+  "controlCategories": ["customer-lifecycle", "data-erasure"],
+  "metadata": {
+    "customer": {
+      "customerType": "business",
+      "retainedRecords": "settlement-history"
+    }
+  }
+}

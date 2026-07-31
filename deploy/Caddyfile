@@ -1,0 +1,61 @@
+# Static file server for the OpenAuditModel site.
+#
+# TLS is NOT terminated here. This listens on plain HTTP on a port the host
+# publishes, and something in front of it — Cloudflare, a tunnel, or another
+# reverse proxy already running on the machine — holds the certificate and
+# terminates HTTPS. That keeps the deployment compatible with a server that is
+# already serving other sites on 80 and 443.
+#
+# `auto_https off` is required: without it Caddy would try to obtain a
+# certificate for the site name and fail, because it does not own port 443.
+
+{
+	auto_https off
+	admin off
+	# Trust the forwarding layer's client-address header so logs are not all one IP.
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+:8080 {
+	root * /srv/site
+	encode gzip zstd
+
+	# The versioned schema documents are immutable, so they may be cached hard.
+	# The identifier is a permanent name: the bytes behind it never change.
+	@versioned path /schemas/* /profiles/*
+	header @versioned Cache-Control "public, max-age=31536000, immutable"
+
+	# Tooling that dereferences $id looks at the content type. A plain
+	# application/json is not wrong, but this is what the resource actually is.
+	@schema path *.json
+	header @schema Content-Type "application/schema+json; charset=utf-8"
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		-Server
+	}
+
+	# Serve only on the names this site is actually published under, plus the
+	# loopback names the container healthcheck and local testing use. The
+	# `host` matcher strips any :port before comparing, so this holds
+	# regardless of which host port OAM_SITE_PORT publishes. Anything else —
+	# a bare IP, a scanner's default vhost, a lookalike domain — gets a 403
+	# with no file ever read, the same rebinding defence the MCP container
+	# applies via OAM_ALLOWED_HOSTS.
+	@allowed host openauditmodel.org www.openauditmodel.org localhost 127.0.0.1
+
+	handle @allowed {
+		file_server
+	}
+
+	handle {
+		respond "403 Forbidden" 403
+	}
+
+	handle_errors {
+		respond "{err.status_code} {err.status_text}" {err.status_code}
+	}
+}

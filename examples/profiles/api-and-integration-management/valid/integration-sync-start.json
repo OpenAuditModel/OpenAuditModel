@@ -1,0 +1,59 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0011-7a2b-9c3d-4e5f60718293",
+  "time": "2026-04-18T01:00:00.240Z",
+  "event": {
+    "name": "integration.sync.start",
+    "category": "data-access",
+    "type": "execute",
+    "outcome": "success",
+    "severity": "low",
+    "summary": "Nightly customer record synchronization started."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-integration-scheduler"
+  },
+  "resource": {
+    "type": "integration",
+    "id": "connection-3312",
+    "name": "customer-records-connector",
+    "classification": "confidential",
+    "ownerId": "team-revenue",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "integration-service",
+    "environment": "production",
+    "version": "4.2.0",
+    "component": "sync-scheduler"
+  },
+  "organization": {
+    "tenantId": "tenant-7"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "third-party-connection-policy",
+    "policyVersion": "5"
+  },
+  "request": {
+    "requestId": "request-b31ef12",
+    "correlationId": "sync-run-3312-0418"
+  },
+  "reason": {
+    "code": "scheduled-sync",
+    "text": "Nightly synchronization window."
+  },
+  "controlCategories": ["third-party-access", "data-access-logging"],
+  "metadata": {
+    "integration": {
+      "type": "data-sync-connector",
+      "provider": "partner-crm-platform",
+      "connectionId": "connection-3312",
+      "endpointClass": "partner-network",
+      "syncMode": "incremental",
+      "approvalRequired": false
+    }
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c1a-0004-7a2b-9c3d-4e5f60718304",
+  "time": "2026-03-14T09:55:36.010Z",
+  "event": {
+    "name": "incident.major.declare",
+    "category": "workflow",
+    "type": "update",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Incident escalated to major after checkout failures spread to two regions."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-1180",
+    "roles": ["incident-commander"],
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "incident",
+    "id": "incident-2026-0418",
+    "name": "checkout-latency-degradation",
+    "classification": "internal",
+    "tenantId": "tenant-7"
+  },
+  "relatedResources": [
+    {
+      "type": "service",
+      "id": "service-checkout"
+    },
+    {
+      "type": "service",
+      "id": "service-payments"
+    }
+  ],
+  "application": {
+    "name": "incident-service",
+    "environment": "production",
+    "version": "5.2.0"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "major-incident-declaration",
+    "permissions": ["incident.major.declare"]
+  },
+  "request": {
+    "requestId": "request-4501",
+    "correlationId": "correlation-incident-2026-0418"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["status", "major"],
+    "before": {
+      "status": "in-progress",
+      "major": false
+    },
+    "after": {
+      "status": "major",
+      "major": true
+    },
+    "incidentId": "incident-2026-0418"
+  },
+  "reason": {
+    "code": "customer-impact-threshold",
+    "text": "Checkout failures affected two regions and passed the major incident threshold."
+  },
+  "controlCategories": ["incident-traceability"],
+  "metadata": {
+    "incident": {
+      "status": "major",
+      "priority": "p1",
+      "impact": "multi-region",
+      "urgency": "critical",
+      "major": true,
+      "declaredAt": "2026-03-14T09:55:30Z",
+      "commandChannel": "bridge-checkout-2026-0418"
+    }
+  }
+}

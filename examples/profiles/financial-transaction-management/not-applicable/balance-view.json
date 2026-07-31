@@ -1,0 +1,36 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c90-0021-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-14T09:03:12.881Z",
+  "event": {
+    "name": "financial.balance.view",
+    "category": "data-access",
+    "type": "read",
+    "outcome": "success",
+    "summary": "Account balance displayed in the client portal."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-7712",
+    "tenantId": "tenant-44"
+  },
+  "resource": {
+    "type": "account",
+    "id": "account-ref-2201",
+    "classification": "restricted",
+    "ownerId": "user-7712",
+    "tenantId": "tenant-44"
+  },
+  "application": {
+    "name": "brokerage-ledger",
+    "environment": "production",
+    "version": "9.1.4"
+  },
+  "organization": {
+    "tenantId": "tenant-44"
+  },
+  "request": {
+    "requestId": "request-7a10c02",
+    "correlationId": "portal-session-4471"
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-1002-7a3b-8c4d-5e6f70819202",
+  "time": "2026-03-16T14:41:27.905Z",
+  "event": {
+    "name": "deployment.release.deploy",
+    "category": "deployment",
+    "type": "execute",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Approved release deployed to the production environment."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-3307",
+    "roles": ["release-manager"]
+  },
+  "resource": {
+    "type": "deployment",
+    "id": "deployment-2026-0316-9",
+    "name": "checkout-service-release",
+    "parentId": "cluster-production-1"
+  },
+  "relatedResources": [
+    { "type": "service", "id": "service-checkout" },
+    { "type": "service", "id": "service-pricing" }
+  ],
+  "application": {
+    "name": "delivery-platform",
+    "environment": "production",
+    "version": "4.2.0",
+    "component": "release-controller"
+  },
+  "authentication": {
+    "method": "mfa",
+    "mfa": true,
+    "assuranceLevel": "high"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "production-release",
+    "policyVersion": "7"
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-production-release",
+    "requestId": "approval-request-4471",
+    "requiredApprovals": 2,
+    "receivedApprovals": 2,
+    "approvers": [
+      { "type": "user", "id": "user-1180", "roles": ["change-manager"] },
+      { "type": "user", "id": "user-7702", "roles": ["service-owner"] }
+    ],
+    "approvedAt": "2026-03-16T14:22:10Z"
+  },
+  "request": {
+    "requestId": "request-9b21ce",
+    "correlationId": "deployment-2026-0316-9"
+  },
+  "change": {
+    "type": "execute",
+    "changedFields": ["releaseVersion"],
+    "ticketId": "change-2026-0316-9",
+    "deploymentId": "deployment-2026-0316-9"
+  },
+  "reason": {
+    "code": "planned-release",
+    "text": "Scheduled release of the approved checkout change set.",
+    "reference": "change-2026-0316-9"
+  },
+  "controlCategories": ["change-approval", "change-management"],
+  "tags": ["production"],
+  "metadata": {
+    "deployment": {
+      "id": "deployment-2026-0316-9",
+      "environment": "production",
+      "version": "9.1.0",
+      "previousVersion": "9.0.3",
+      "approvalRequired": true,
+      "pipelineId": "pipeline-checkout-delivery",
+      "strategy": "blue-green"
+    }
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c1a-000c-7a2b-9c3d-4e5f60718312",
+  "time": "2026-04-11T08:00:44.130Z",
+  "event": {
+    "name": "corrective-action.verify",
+    "category": "workflow",
+    "type": "update",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Corrective action verified after seven days of production observation."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-2245",
+    "roles": ["problem-manager"],
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "corrective-action",
+    "id": "corrective-action-2026-0418",
+    "name": "raise-checkout-connection-pool-ceiling",
+    "classification": "internal",
+    "tenantId": "tenant-7"
+  },
+  "relatedResources": [
+    {
+      "type": "incident",
+      "id": "incident-2026-0418"
+    },
+    {
+      "type": "service",
+      "id": "service-checkout"
+    }
+  ],
+  "application": {
+    "name": "incident-service",
+    "environment": "production",
+    "version": "5.2.0"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "corrective-action-management",
+    "permissions": ["corrective-action.verify"]
+  },
+  "request": {
+    "requestId": "request-4986",
+    "correlationId": "correlation-incident-2026-0418"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["status"],
+    "before": {
+      "status": "implemented"
+    },
+    "after": {
+      "status": "verified"
+    },
+    "incidentId": "incident-2026-0418"
+  },
+  "reason": {
+    "code": "observation-window-passed",
+    "text": "Checkout response times stayed inside the agreed range for the full observation window."
+  },
+  "evidence": [
+    {
+      "type": "document",
+      "reference": "records/verification/corrective-action-2026-0418"
+    }
+  ],
+  "controlCategories": ["incident-traceability"],
+  "metadata": {
+    "incident": {
+      "status": "verified",
+      "correctiveAction": {
+        "verificationMethod": "production-observation",
+        "verifiedAt": "2026-04-11T07:55:00Z",
+        "observationDays": 7
+      }
+    }
+  }
+}

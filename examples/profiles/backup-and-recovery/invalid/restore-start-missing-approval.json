@@ -1,0 +1,66 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2a10-0008-7c4d-8b1e-2f3a40516208",
+  "time": "2026-03-19T08:50:02.770Z",
+  "event": {
+    "name": "restore.start",
+    "category": "data-infrastructure",
+    "type": "restore",
+    "outcome": "success",
+    "severity": "critical",
+    "summary": "Point-in-time restore of the orders database started."
+  },
+  "actor": {
+    "type": "admin",
+    "id": "user-3312",
+    "tenantId": "tenant-7",
+    "roles": ["database-operator"]
+  },
+  "resource": {
+    "type": "database",
+    "id": "database-orders",
+    "name": "orders-primary",
+    "parentId": "cluster-north-primary",
+    "classification": "confidential",
+    "ownerId": "team-payments",
+    "tenantId": "tenant-7"
+  },
+  "application": {
+    "name": "backup-service",
+    "environment": "production",
+    "version": "4.2.0",
+    "region": "region-north"
+  },
+  "organization": {
+    "tenantId": "tenant-7"
+  },
+  "request": {
+    "correlationId": "restore-run-2026-0319"
+  },
+  "authentication": {
+    "method": "mfa",
+    "mfa": true,
+    "assuranceLevel": "high"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "restore-authorization",
+    "policyVersion": "2",
+    "permissions": ["restore-execute"]
+  },
+  "reason": {
+    "code": "data-corruption",
+    "text": "A faulty migration corrupted order records; service is being returned to the last verified recovery point.",
+    "reference": "incident-record-2211"
+  },
+  "controlCategories": ["recoverability", "privileged-access"],
+  "metadata": {
+    "backup": {
+      "restoreId": "restore-2026-0319-0850",
+      "sourceId": "backup-2026-0318-0200",
+      "recoveryPoint": "2026-03-18T02:00:00Z",
+      "targetScope": "cluster-north-primary",
+      "approvalRequired": true
+    }
+  }
+}

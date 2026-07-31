@@ -1,0 +1,65 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c40-0036-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-17T10:26:12.410Z",
+  "event": {
+    "name": "broker.topic.delete",
+    "category": "data-infrastructure",
+    "type": "delete",
+    "outcome": "success",
+    "severity": "critical",
+    "summary": "Decommissioned topic deleted after the consuming service was retired."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-4188",
+    "roles": ["streaming-administrator"]
+  },
+  "resource": {
+    "type": "topic",
+    "id": "topic-legacy-invoice-export",
+    "name": "legacy-invoice-export",
+    "parentId": "cluster-streaming-production",
+    "classification": "internal",
+    "ownerId": "team-finance-integration"
+  },
+  "relatedResources": [{ "type": "cluster", "id": "cluster-streaming-production" }],
+  "application": {
+    "name": "broker-control-service",
+    "environment": "production",
+    "version": "3.4.1",
+    "region": "region-1"
+  },
+  "authentication": {
+    "method": "oidc",
+    "provider": "corporate-idp",
+    "mfa": true
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "broker-administration",
+    "permissions": ["topic.delete"]
+  },
+  "request": {
+    "requestId": "request-6f0b58",
+    "correlationId": "correlation-broker-decommission-1180"
+  },
+  "reason": {
+    "code": "service-decommission",
+    "text": "Consuming service retired and the topic drained.",
+    "reference": "change-8244"
+  },
+  "controlCategories": ["privileged-access", "change-approval"],
+  "tags": ["production", "control-plane"],
+  "metadata": {
+    "broker": {
+      "system": "kafka",
+      "clusterId": "cluster-streaming-production",
+      "approvalRequired": true,
+      "operation": {
+        "destructive": true
+      }
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2a30-1111-7222-8333-444455556603",
+  "time": "2026-04-03T09:47:02.310Z",
+  "sequence": 2,
+  "event": {
+    "name": "privileged.access.revoke",
+    "category": "privileged-operation",
+    "type": "revoke",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Time-bound platform administrator access revoked after the change window."
+  },
+  "actor": {
+    "type": "system",
+    "id": "system-access-expiry"
+  },
+  "resource": {
+    "type": "user",
+    "id": "admin-0091"
+  },
+  "application": {
+    "name": "platform-control-service",
+    "environment": "production",
+    "instance": "instance-7c1a"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "just-in-time-access"
+  },
+  "reason": {
+    "code": "grant-expired",
+    "reference": "change-10241"
+  },
+  "controlCategories": ["privileged-access"],
+  "integrity": {
+    "canonicalization": "RFC8785",
+    "hashAlgorithm": "SHA-256",
+    "hash": "9242f739b091e1ad17d2406f383064cba121d579f7162f9fd0bdad43445bcab5",
+    "previousHash": "f7fbea247bdde9c24f07d81cb6ba82b60372f293b2d618066b065bac880dcbf1",
+    "chainId": "chain-platform-control-service-instance-7c1a"
+  }
+}

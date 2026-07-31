@@ -1,0 +1,74 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0011-7b3c-8d4e-5f6071829311",
+  "time": "2026-04-08T14:26:51.470Z",
+  "event": {
+    "name": "account.limit.increase",
+    "category": "configuration",
+    "type": "update",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Daily outbound transfer limit raised for a settlement account."
+  },
+  "actor": {
+    "type": "user",
+    "id": "operator-4102",
+    "tenantId": "tenant-19",
+    "roles": ["account-supervisor"]
+  },
+  "resource": {
+    "type": "account",
+    "id": "account-ref-781",
+    "ownerId": "customer-42",
+    "classification": "restricted",
+    "tenantId": "tenant-19"
+  },
+  "application": {
+    "name": "customer-platform",
+    "environment": "production",
+    "version": "5.2.0",
+    "service": "account-limits"
+  },
+  "organization": {
+    "tenantId": "tenant-19",
+    "businessUnitId": "unit-retail"
+  },
+  "request": {
+    "requestId": "request-9f324b",
+    "correlationId": "limit-review-3320"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "account-limit-controls",
+    "policyVersion": "5"
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-limit-change",
+    "requiredApprovals": 1,
+    "receivedApprovals": 1,
+    "approvedAt": "2026-04-08T14:24:09Z"
+  },
+  "reason": {
+    "code": "customer-request",
+    "text": "Customer demonstrated a sustained increase in settlement volume.",
+    "reference": "case-4211"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["dailyTransferLimit"],
+    "after": {
+      "dailyTransferLimit": 250000
+    }
+  },
+  "controlCategories": ["account-lifecycle", "limit-change"],
+  "metadata": {
+    "customer": {
+      "customerType": "business",
+      "accountType": "settlement",
+      "status": "active",
+      "limitType": "daily-transfer-limit"
+    }
+  }
+}

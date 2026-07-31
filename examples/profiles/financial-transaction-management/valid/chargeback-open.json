@@ -1,0 +1,73 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c90-0008-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-14T14:07:33.910Z",
+  "event": {
+    "name": "financial.chargeback.open",
+    "category": "workflow",
+    "type": "create",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Counterparty raised a dispute against a settled payment and provisionally debited the merchant."
+  },
+  "actor": {
+    "type": "external",
+    "id": "acquirer-network-gateway"
+  },
+  "resource": {
+    "type": "chargeback-case",
+    "id": "dispute-ref-6620",
+    "ownerId": "account-ref-781",
+    "tenantId": "tenant-12"
+  },
+  "relatedResources": [
+    {
+      "type": "payment",
+      "id": "payment-ref-4412"
+    },
+    {
+      "type": "account",
+      "id": "account-ref-781"
+    }
+  ],
+  "application": {
+    "name": "payment-service",
+    "environment": "production",
+    "version": "4.2.1",
+    "component": "dispute-intake"
+  },
+  "organization": {
+    "tenantId": "tenant-12"
+  },
+  "request": {
+    "requestId": "request-7a05c73",
+    "correlationId": "payment-lifecycle-4412"
+  },
+  "authentication": {
+    "method": "certificate",
+    "provider": "acquirer-mutual-tls"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "dispute-intake-policy",
+    "policyVersion": "2"
+  },
+  "reason": {
+    "code": "cardholder-dispute",
+    "text": "Counterparty reported that the cardholder did not recognise the transaction.",
+    "reference": "dispute-case-6620"
+  },
+  "controlCategories": ["financial-transaction-integrity", "dispute-handling"],
+  "metadata": {
+    "financial": {
+      "transactionId": "txn-2026-0314-0174",
+      "originalTransactionId": "txn-2026-0314-0091",
+      "amount": 148.5,
+      "currency": "EUR",
+      "direction": "outbound",
+      "status": "disputed",
+      "approvalRequired": false,
+      "manual": false
+    }
+  }
+}

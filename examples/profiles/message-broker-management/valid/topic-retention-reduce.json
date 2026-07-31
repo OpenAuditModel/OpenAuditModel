@@ -1,0 +1,77 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c40-0002-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-17T09:03:41.880Z",
+  "event": {
+    "name": "broker.topic.update",
+    "category": "data-infrastructure",
+    "type": "update",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Topic retention shortened, discarding messages older than the new window."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-6612",
+    "roles": ["streaming-operator"]
+  },
+  "resource": {
+    "type": "topic",
+    "id": "topic-payments-settlement-completed",
+    "name": "payments-settlement-completed",
+    "parentId": "cluster-streaming-production",
+    "classification": "confidential",
+    "ownerId": "team-payments-platform"
+  },
+  "application": {
+    "name": "broker-control-service",
+    "environment": "production",
+    "version": "3.4.1",
+    "region": "region-1"
+  },
+  "authentication": {
+    "method": "oidc",
+    "provider": "corporate-idp",
+    "mfa": true
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "broker-administration",
+    "permissions": ["topic.configure"]
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-broker-change",
+    "requiredApprovals": 1,
+    "receivedApprovals": 1,
+    "approvedAt": "2026-03-17T08:58:10Z"
+  },
+  "request": {
+    "requestId": "request-6f0b44",
+    "correlationId": "correlation-broker-change-4472"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["retentionHours"],
+    "before": { "retentionHours": 720 },
+    "after": { "retentionHours": 24 },
+    "ticketId": "change-8210"
+  },
+  "reason": {
+    "code": "storage-reclaim",
+    "text": "Retention shortened to recover cluster storage after a capacity review.",
+    "reference": "change-8210"
+  },
+  "controlCategories": ["privileged-access", "change-approval"],
+  "tags": ["production", "control-plane"],
+  "metadata": {
+    "broker": {
+      "system": "kafka",
+      "clusterId": "cluster-streaming-production",
+      "operation": {
+        "destructive": true
+      }
+    }
+  }
+}

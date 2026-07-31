@@ -1,0 +1,87 @@
+{
+  "specVersion": "0.1",
+  "id": "018f4a04-1111-7222-8333-000000000004",
+  "time": "2026-06-01T10:00:00.000Z",
+  "event": {
+    "name": "identity.role.assign",
+    "category": "identity",
+    "type": "update",
+    "outcome": "success",
+    "severity": "critical",
+    "summary": "Time-bound platform administrator role assigned for a change window."
+  },
+  "actor": {
+    "type": "admin",
+    "id": "admin-4821",
+    "roles": ["identity-administrator"]
+  },
+  "application": {
+    "name": "identity-service",
+    "environment": "production",
+    "version": "3.4.1"
+  },
+  "resource": {
+    "type": "user",
+    "id": "admin-0091",
+    "tenantId": "tenant-42"
+  },
+  "relatedResources": [
+    {
+      "type": "role",
+      "id": "role-platform-administrator",
+      "name": "platform-administrator"
+    }
+  ],
+  "authentication": {
+    "method": "oidc",
+    "provider": "corporate-idp",
+    "mfa": true,
+    "assuranceLevel": "high",
+    "authenticatedAt": "2026-06-01T09:58:02Z"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "just-in-time-privileged-access",
+    "policyVersion": "7"
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-access-change",
+    "requestId": "approval-request-5512",
+    "requiredApprovals": 2,
+    "receivedApprovals": 2,
+    "approvers": [
+      {
+        "type": "user",
+        "id": "user-2210",
+        "roles": ["access-approver"]
+      }
+    ],
+    "approvedAt": "2026-06-01T09:59:47Z"
+  },
+  "reason": {
+    "code": "scheduled-maintenance",
+    "text": "Approved change window for the authentication configuration update.",
+    "reference": "change-10241"
+  },
+  "request": {
+    "requestId": "request-a4",
+    "correlationId": "correlation-a4",
+    "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+    "spanId": "00f067aa0ba902b7",
+    "protocol": "https",
+    "method": "POST",
+    "route": "/identity/{principalId}/access"
+  },
+  "controlCategories": ["privileged-access", "change-approval", "separation-of-duties"],
+  "metadata": {
+    "role": {
+      "id": "role-platform-administrator",
+      "privileged": true,
+      "scope": "tenant"
+    },
+    "effectiveFrom": "2026-06-01T10:00:00Z",
+    "expiresAt": "2026-06-01T12:00:00Z"
+  }
+}

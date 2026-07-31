@@ -1,0 +1,73 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c1a-0002-7a2b-9c3d-4e5f60718302",
+  "time": "2026-03-14T09:41:02.500Z",
+  "event": {
+    "name": "incident.priority.change",
+    "category": "workflow",
+    "type": "update",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Incident priority raised after a second region began failing."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-3301",
+    "roles": ["incident-manager"],
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "incident",
+    "id": "incident-2026-0418",
+    "name": "checkout-latency-degradation",
+    "classification": "internal",
+    "tenantId": "tenant-7"
+  },
+  "relatedResources": [
+    {
+      "type": "service",
+      "id": "service-checkout"
+    },
+    {
+      "type": "service",
+      "id": "service-payments"
+    }
+  ],
+  "application": {
+    "name": "incident-service",
+    "environment": "production",
+    "version": "5.2.0"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "incident-handling",
+    "permissions": ["incident.priority.change"]
+  },
+  "request": {
+    "requestId": "request-4488",
+    "correlationId": "correlation-incident-2026-0418"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["priority"],
+    "before": {
+      "priority": "p2"
+    },
+    "after": {
+      "priority": "p1"
+    },
+    "incidentId": "incident-2026-0418"
+  },
+  "reason": {
+    "code": "impact-increase",
+    "text": "A second region began returning checkout errors, widening customer impact."
+  },
+  "controlCategories": ["incident-traceability"],
+  "metadata": {
+    "incident": {
+      "status": "in-progress",
+      "impact": "multi-region",
+      "urgency": "critical"
+    }
+  }
+}

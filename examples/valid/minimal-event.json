@@ -1,0 +1,22 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1b5c-6d2a-7c3e-9a1b-4f5e6d7c8b9a",
+  "time": "2026-03-14T09:24:31.412Z",
+  "event": {
+    "name": "data.record.update",
+    "category": "data-modification",
+    "outcome": "success"
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-123"
+  },
+  "resource": {
+    "type": "record",
+    "id": "resource-123"
+  },
+  "application": {
+    "name": "application-service",
+    "environment": "production"
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c40-0008-7b3c-8d4e-5f6071829308",
+  "time": "2026-04-08T16:18:05.720Z",
+  "event": {
+    "name": "account.update",
+    "category": "data-modification",
+    "type": "update",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Statement cycle changed by an operator overriding the automated schedule."
+  },
+  "actor": {
+    "type": "user",
+    "id": "operator-4102",
+    "tenantId": "tenant-19",
+    "roles": ["account-supervisor"]
+  },
+  "resource": {
+    "type": "account",
+    "id": "account-ref-781",
+    "ownerId": "customer-42",
+    "classification": "restricted",
+    "tenantId": "tenant-19"
+  },
+  "application": {
+    "name": "customer-platform",
+    "environment": "production",
+    "version": "5.2.0",
+    "service": "account-records"
+  },
+  "organization": {
+    "tenantId": "tenant-19",
+    "businessUnitId": "unit-retail"
+  },
+  "request": {
+    "requestId": "request-9f3214",
+    "correlationId": "account-maintenance-5511"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "account-maintenance",
+    "policyVersion": "8",
+    "reason": "Supervisor override permitted for statement scheduling."
+  },
+  "reason": {
+    "code": "manual-override",
+    "text": "Automated statement schedule produced a cycle the customer contract does not allow.",
+    "reference": "case-4055"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["statementCycle"],
+    "before": {
+      "statementCycle": "monthly"
+    },
+    "after": {
+      "statementCycle": "quarterly"
+    }
+  },
+  "controlCategories": ["account-lifecycle", "manual-override"],
+  "metadata": {
+    "customer": {
+      "customerType": "business",
+      "accountType": "settlement",
+      "status": "active",
+      "manualOverride": true,
+      "overrideReference": "override-2026-0188"
+    }
+  }
+}

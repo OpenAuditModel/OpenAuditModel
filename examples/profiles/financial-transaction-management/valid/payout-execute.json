@@ -1,0 +1,64 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2c90-0009-7a2b-9c3d-4e5f60718293",
+  "time": "2026-03-14T15:00:04.271Z",
+  "event": {
+    "name": "financial.payout.execute",
+    "category": "data-modification",
+    "type": "execute",
+    "outcome": "success",
+    "severity": "low",
+    "summary": "Scheduled seller payout released without human intervention."
+  },
+  "actor": {
+    "type": "service",
+    "id": "payout-scheduler",
+    "tenantId": "tenant-31"
+  },
+  "resource": {
+    "type": "payout",
+    "id": "payout-ref-9014",
+    "ownerId": "account-ref-3390",
+    "tenantId": "tenant-31"
+  },
+  "relatedResources": [
+    {
+      "type": "account",
+      "id": "account-ref-3390",
+      "name": "seller-balance-account"
+    }
+  ],
+  "application": {
+    "name": "marketplace-payouts",
+    "environment": "production",
+    "version": "2.6.3"
+  },
+  "organization": {
+    "tenantId": "tenant-31"
+  },
+  "request": {
+    "requestId": "request-7a06d41",
+    "correlationId": "payout-cycle-2026-0314"
+  },
+  "authentication": {
+    "method": "service-account",
+    "provider": "workload-identity"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "payout-schedule-policy",
+    "policyVersion": "8"
+  },
+  "controlCategories": ["financial-transaction-integrity"],
+  "metadata": {
+    "financial": {
+      "transactionId": "txn-2026-0314-0188",
+      "amount": 612.4,
+      "currency": "EUR",
+      "direction": "outbound",
+      "status": "settled",
+      "approvalRequired": false,
+      "manual": false
+    }
+  }
+}

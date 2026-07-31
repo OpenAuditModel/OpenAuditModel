@@ -1,0 +1,47 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1b5c-ab6e-7072-be5f-8d9c0b1a2f3e",
+  "time": "2026-03-16T14:07:52.118Z",
+  "event": {
+    "name": "iam.access-request.approve",
+    "category": "identity-and-access",
+    "type": "approve",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Access request approved after review by two approvers in a separate service."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-approver-88"
+  },
+  "subject": {
+    "type": "user",
+    "id": "user-4471"
+  },
+  "resource": {
+    "type": "entitlement",
+    "id": "entitlement-finance-reporting"
+  },
+  "application": {
+    "name": "access-governance",
+    "service": "approval-service",
+    "environment": "production"
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "wf-access-review-v3",
+    "requestId": "ar-2026-0912",
+    "requiredApprovals": 2,
+    "receivedApprovals": 2,
+    "approvedAt": "2026-03-16T14:07:51.902Z"
+  },
+  "request": {
+    "requestId": "req-c41f09",
+    "correlationId": "access-request-2026-0912",
+    "traceId": "5c6d7e8f90a1b2c3d4e5f60718293a4b",
+    "spanId": "4d5e6f7081920304",
+    "protocol": "https",
+    "method": "POST",
+    "route": "/access-requests/{accessRequestId}/approvals"
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "specVersion": "0.1",
+  "id": "018f3a03-3e42-7d62-9f73-4a5b6c7d8e92",
+  "time": "2026-05-04T10:41:02.310Z",
+  "event": {
+    "name": "incident.case.close",
+    "category": "workflow",
+    "outcome": "success"
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-3301"
+  },
+  "resource": {
+    "type": "incident",
+    "id": "incident-2026-0418"
+  },
+  "application": {
+    "name": "incident-service",
+    "environment": "production"
+  },
+  "request": {
+    "route": "/incidents/{incidentId}/close",
+    "method": "POST",
+    "protocol": "https"
+  },
+  "reason": {
+    "code": "resolution-verified",
+    "text": "Corrective action verified in production for seven consecutive days.",
+    "reference": "rca-2026-0418"
+  },
+  "evidence": [
+    {
+      "type": "document",
+      "reference": "https://records.example.com/evidence/rca-2026-0418",
+      "contentType": "application/pdf"
+    },
+    {
+      "type": "approval",
+      "reference": "workflow-incident-closure/approval-request-9921"
+    }
+  ]
+}

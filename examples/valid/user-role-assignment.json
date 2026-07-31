@@ -1,0 +1,92 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1b62-7a41-7d55-8c02-9b6f3d1e4a77",
+  "time": "2026-03-14T10:02:11Z",
+  "event": {
+    "name": "identity.role.assign",
+    "category": "identity",
+    "type": "update",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Support role assigned to an existing user account."
+  },
+  "actor": {
+    "type": "admin",
+    "id": "admin-4821",
+    "tenantId": "tenant-42",
+    "roles": ["identity-administrator"]
+  },
+  "resource": {
+    "type": "user",
+    "id": "user-7391",
+    "tenantId": "tenant-42"
+  },
+  "relatedResources": [
+    {
+      "type": "role",
+      "id": "role-support-agent",
+      "name": "support-agent"
+    }
+  ],
+  "application": {
+    "name": "identity-service",
+    "environment": "production",
+    "version": "3.4.1",
+    "region": "region-1"
+  },
+  "organization": {
+    "tenantId": "tenant-42",
+    "departmentId": "department-support"
+  },
+  "authentication": {
+    "method": "oidc",
+    "provider": "corporate-idp",
+    "mfa": true,
+    "sessionId": "session-9f2c",
+    "authenticatedAt": "2026-03-14T09:58:02Z"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "identity-role-assignment",
+    "policyVersion": "7",
+    "permissions": ["identity.role.assign"]
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "workflow-role-change",
+    "requestId": "approval-request-5512",
+    "requiredApprovals": 1,
+    "receivedApprovals": 1,
+    "approvers": [
+      {
+        "type": "user",
+        "id": "user-2210",
+        "roles": ["access-approver"]
+      }
+    ],
+    "approvedAt": "2026-03-14T09:59:47Z"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["roles"],
+    "before": {
+      "roles": ["reader"]
+    },
+    "after": {
+      "roles": ["reader", "support-agent"]
+    }
+  },
+  "reason": {
+    "code": "access-request",
+    "text": "Approved access request for the support duty rotation.",
+    "reference": "access-request-8841"
+  },
+  "controlCategories": ["privileged-access", "separation-of-duties", "change-approval"],
+  "metadata": {
+    "assignedRole": "support-agent",
+    "assignmentScope": "tenant",
+    "effectiveFrom": "2026-03-16T00:00:00Z",
+    "expiresAt": "2026-06-16T00:00:00Z"
+  }
+}

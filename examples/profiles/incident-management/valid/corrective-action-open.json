@@ -1,0 +1,72 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c1a-000b-7a2b-9c3d-4e5f60718311",
+  "time": "2026-03-17T10:12:55.470Z",
+  "event": {
+    "name": "corrective-action.open",
+    "category": "workflow",
+    "type": "create",
+    "outcome": "success",
+    "severity": "medium",
+    "summary": "Corrective action opened to raise the checkout connection pool ceiling permanently."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-2245",
+    "roles": ["problem-manager"],
+    "tenantId": "tenant-7"
+  },
+  "resource": {
+    "type": "corrective-action",
+    "id": "corrective-action-2026-0418",
+    "name": "raise-checkout-connection-pool-ceiling",
+    "classification": "internal",
+    "tenantId": "tenant-7"
+  },
+  "relatedResources": [
+    {
+      "type": "incident",
+      "id": "incident-2026-0418"
+    },
+    {
+      "type": "root-cause-analysis",
+      "id": "rca-2026-0418"
+    }
+  ],
+  "application": {
+    "name": "incident-service",
+    "environment": "production",
+    "version": "5.2.0"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "corrective-action-management",
+    "permissions": ["corrective-action.open"]
+  },
+  "request": {
+    "requestId": "request-4744",
+    "correlationId": "correlation-incident-2026-0418"
+  },
+  "reason": {
+    "code": "rca-recommendation",
+    "text": "The approved analysis recommends a permanent capacity change to the connection pool."
+  },
+  "evidence": [
+    {
+      "type": "document",
+      "reference": "records/root-cause-analysis/rca-2026-0418"
+    }
+  ],
+  "controlCategories": ["incident-traceability"],
+  "metadata": {
+    "incident": {
+      "status": "open",
+      "correctiveAction": {
+        "dueAt": "2026-04-07T00:00:00Z",
+        "ownerTeam": "team-platform",
+        "actionType": "permanent-fix"
+      },
+      "assigneeId": "user-5140"
+    }
+  }
+}
