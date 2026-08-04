@@ -3,14 +3,26 @@
 All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This project uses a
-specification version (`0.1`) and a repository version (`0.1.0`); they are aligned during the
-experimental phase.
+specification version (`0.1`) and a repository version, tracked in `package.json`; they are aligned
+during the experimental phase.
 
 While the project is **Experimental**, breaking changes are possible in any release and are labelled
 as such. A change that alters the meaning of an existing field or event name is never acceptable — a
 new name is introduced instead.
 
-## 0.1.0 - Unreleased
+## 0.1.1 - Unreleased
+
+### Fixed — the published package's own README said it was not published
+
+`0.1.0`'s bundled `README.md` told a reader the CLI was "not yet published to a package registry" —
+accurate when that sentence was written, false from the moment `npm publish` succeeded, and
+uncorrectable in place: a published npm version's contents cannot be edited after the fact, only
+superseded. `README.md` and the mirrored Quick Start section of the generated site now drive the CLI
+through `npx @openauditmodel/cli` again, and `conformance/tests/readme-quick-start.test.ts` asserts
+it, so the stale wording cannot silently come back. `0.1.0` is left exactly as published,
+contradiction included — that is what an immutable version is for.
+
+## 0.1.0 - 2026-08-04
 
 First bootstrap of the OpenAuditModel v0.1 Experimental Specification, followed by the
 tamper-evidence verification toolchain.

@@ -1,6 +1,6 @@
 {
   "name": "@openauditmodel/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Conformance toolchain for OpenAuditModel: validate audit events against the canonical JSON Schema, verify tamper-evidence, lint for leaked secrets and check domain profiles. Offline and deterministic.",
   "keywords": [
     "audit",
