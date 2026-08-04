@@ -129,7 +129,7 @@ describe("the README quick start event", () => {
 });
 
 describe("the README documents the commands that exist", () => {
-  test("the quick start does not assume a registry publish that has not happened", () => {
+  test("the package name in the quick start is the published package name", () => {
     const manifest = JSON.parse(
       readFileSync(path.join(repoRoot, "package.json"), "utf8"),
     ) as Record<string, unknown>;
@@ -138,13 +138,13 @@ describe("the README documents the commands that exist", () => {
       readme.indexOf("## What is OpenAuditModel?"),
     );
     assert.ok(
-      !quickStart.includes(`npx ${manifest["name"] as string}`),
-      "the quick start runs the package via npx, which 404s while it is unpublished — " +
-        "once published, restore an npx-based quick start and update this test with it",
+      quickStart.includes(`npx ${manifest["name"] as string} validate`),
+      "the quick start does not use the package's own name",
     );
     assert.ok(
-      quickStart.includes("npm run auditmodel --"),
-      "the quick start should drive the CLI through the build-from-source invocation while unpublished",
+      !quickStart.includes("npm run auditmodel --"),
+      "the quick start still drives the CLI through the build-from-source invocation — " +
+        "now that the package is published, it should use npx instead",
     );
   });
 

@@ -161,13 +161,10 @@ const INDEX = `<!doctype html>
       <pre><code>${MINIMAL.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c])}</code></pre>
 
       <h2>Check one</h2>
-      <p>Not yet published to a package registry. Requires Node.js 22 or newer.</p>
-      <pre><code>git clone https://github.com/OpenAuditModel/OpenAuditModel.git
-cd OpenAuditModel && npm install && npm run build
-
-npm run auditmodel -- validate audit-event.json
-npm run auditmodel -- lint-privacy audit-event.json
-npm run auditmodel -- check-profile audit-event.json --profile financial-transaction-management</code></pre>
+      <p>No install, no checkout. Requires Node.js 22 or newer.</p>
+      <pre><code>npx @openauditmodel/cli validate audit-event.json
+npx @openauditmodel/cli lint-privacy audit-event.json
+npx @openauditmodel/cli check-profile audit-event.json --profile financial-transaction-management</code></pre>
       <p>
         Exit <code>0</code> means a verdict was produced and it passed. <code>1</code> means it
         failed. <code>2</code> means the tool could not run. <code>3</code> means
