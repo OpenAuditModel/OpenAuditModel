@@ -21,6 +21,7 @@
  * The tooling is offline: it resolves no remote reference, fetches no evidence
  * URL and executes nothing contained in an event.
  */
+import type { KeyObject } from "node:crypto";
 import { readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -30,6 +31,7 @@ import { loadEventDocuments, type DocumentLoadResult, type EventDocument } from 
 import { formatIssues } from "./format-errors.js";
 import { verifyEventIntegrity } from "./integrity/verify-event.js";
 import { verifyChains, type ChainEventInput } from "./integrity/verify-chain.js";
+import { loadPublicKey } from "./integrity/signature.js";
 import type { Finding, Note, PassedCheck } from "./integrity/types.js";
 import { lintEvent } from "./privacy/lint-event.js";
 import { summarise } from "./privacy/types.js";
@@ -81,6 +83,9 @@ Options:
   -q, --quiet                            Only report failures
       --format <text|json>               Output format for lint-privacy and check-profile
       --profile <name>                   Profile to check against (check-profile)
+      --public-key <path>                PEM public key to verify integrity.signature against
+                                          (verify-integrity, verify-chain). Ed25519 only in v0.1.
+                                          Without it, a declared signature is not checked.
 
 Exit codes:
   0  a verdict was produced and it passed
@@ -261,7 +266,11 @@ function runValidate(inputs: readonly string[], quiet: boolean): number {
   return invalid > 0 ? EXIT_INVALID : EXIT_OK;
 }
 
-function runVerifyIntegrity(inputs: readonly string[], quiet: boolean): number {
+function runVerifyIntegrity(
+  inputs: readonly string[],
+  quiet: boolean,
+  publicKey: KeyObject | undefined,
+): number {
   const loaded = loadInput(inputs, "verify-integrity", quiet);
   if (typeof loaded === "number") {
     return loaded;
@@ -274,7 +283,7 @@ function runVerifyIntegrity(inputs: readonly string[], quiet: boolean): number {
 
   for (const document of loaded.documents) {
     const label = displayLabel(document);
-    const result = verifyEventIntegrity(document.event, label, loaded.validator);
+    const result = verifyEventIntegrity(document.event, label, loaded.validator, { publicKey });
 
     if (result.verified) {
       verified += 1;
@@ -311,7 +320,11 @@ function runVerifyIntegrity(inputs: readonly string[], quiet: boolean): number {
   return failed > 0 ? EXIT_INVALID : EXIT_OK;
 }
 
-function runVerifyChain(inputs: readonly string[], quiet: boolean): number {
+function runVerifyChain(
+  inputs: readonly string[],
+  quiet: boolean,
+  publicKey: KeyObject | undefined,
+): number {
   const loaded = loadInput(inputs, "verify-chain", quiet);
   if (typeof loaded === "number") {
     return loaded;
@@ -324,7 +337,7 @@ function runVerifyChain(inputs: readonly string[], quiet: boolean): number {
     event: document.event,
   }));
 
-  const report = verifyChains(events, loaded.validator);
+  const report = verifyChains(events, loaded.validator, publicKey);
 
   if (report.unassigned.length > 0) {
     write("events that could not be assigned to a chain\n");
@@ -601,6 +614,7 @@ export function run(argv: readonly string[]): number {
         quiet: { type: "boolean", short: "q", default: false },
         format: { type: "string", default: "text" },
         profile: { type: "string" },
+        "public-key": { type: "string" },
       },
     });
   } catch (cause) {
@@ -637,14 +651,37 @@ export function run(argv: readonly string[]): number {
     return EXIT_ERROR;
   }
 
+  let publicKey: KeyObject | undefined;
+  if (
+    typeof values["public-key"] === "string" &&
+    (command === "verify-integrity" || command === "verify-chain")
+  ) {
+    const keyPath = values["public-key"];
+    let pemText: string;
+    try {
+      pemText = readFileSync(keyPath, "utf8");
+    } catch (cause) {
+      process.stderr.write(
+        `auditmodel: cannot read --public-key "${keyPath}": ${(cause as Error).message}\n`,
+      );
+      return EXIT_ERROR;
+    }
+    try {
+      publicKey = loadPublicKey(pemText);
+    } catch (cause) {
+      process.stderr.write(`auditmodel: --public-key "${keyPath}" ${(cause as Error).message}\n`);
+      return EXIT_ERROR;
+    }
+  }
+
   if (command === "validate") {
     return runValidate(rest, quiet);
   }
   if (command === "verify-integrity") {
-    return runVerifyIntegrity(rest, quiet);
+    return runVerifyIntegrity(rest, quiet, publicKey);
   }
   if (command === "verify-chain") {
-    return runVerifyChain(rest, quiet);
+    return runVerifyChain(rest, quiet, publicKey);
   }
   if (command === "lint-privacy") {
     return runLintPrivacy(rest, quiet, format);

@@ -1,6 +1,6 @@
 {
   "name": "@openauditmodel/mcp-server",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "description": "Stateless OpenAuditModel MCP server over Streamable HTTP. Run as a locally built Docker container; not published to npm and not a stdio server.",
   "license": "Apache-2.0",

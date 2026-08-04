@@ -74,6 +74,14 @@ Seven, all deterministic, read-only, stateless and offline. Each delegates to th
 | `generate_event_template` | Produce a placeholder skeleton for an event name                           |
 | `get_event_guidance`      | Explain what an event name requires, from schema, conventions and profile  |
 
+`verify_integrity` and `verify_chain` accept an optional `publicKeyPem` argument — a PEM-encoded
+Ed25519 public key — to additionally verify `integrity.signature`, the same way the CLI's
+`--public-key` does. `ECDSA-P256-SHA256` and `RSA-PSS-SHA256` are not yet implemented. Without it, a
+declared signature is neither checked nor mentioned. The key is public by definition, so passing it as
+a tool argument carries no confidentiality concern; nothing about the key is persisted or logged
+either way, the same as every other tool input. See
+[ADR 0012](../decisions/0012-ed25519-signature-verification.md).
+
 No tool returns the event it was given. `lint_privacy` never returns a matched value, a preview, a
 prefix, a suffix or a decoded token claim. `verify_integrity` never returns canonicalized content or
 digest input.

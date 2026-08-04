@@ -158,6 +158,32 @@ present it as one.
 
 A verifier MUST reject a declared hash whose length disagrees with the declared algorithm.
 
+### 6.1 Signature algorithms
+
+`integrity.signature.algorithm` is likewise an open vocabulary, matched case-sensitively.
+
+Conforming v0.1 tooling MUST implement:
+
+```text
+Ed25519
+```
+
+`ECDSA-P256-SHA256` and `RSA-PSS-SHA256` are recommended identifiers a producer MAY use; a verifier
+that does not implement them MUST report the signature as unverifiable rather than as verified, for
+the same reason an unimplemented hash algorithm is reported and not silently accepted.
+
+A signature is calculated and verified over the same digest input as `hash` — the canonicalized event
+with `/integrity/hash` and `/integrity/signature` removed (§4) — so it covers `sequence`,
+`previousHash` and `chainId` exactly as the hash does; a signed chain is exactly as tamper-evident as a
+hashed one. `integrity.signature.value` MUST be base64-encoded for a v0.1 verifier to check it. The
+schema's `digest` type also permits hexadecimal and base64url, because the field is often echoed
+verbatim from whatever system produced it, but a v0.1 verifier implements one encoding, not three, and
+reports a value in another encoding as unverifiable.
+
+`integrity.signature.keyId` is never dereferenced. v0.1 defines no key registry, trust store or
+certificate parsing: a verifying party obtains the public key out of band, by whatever means it
+already trusts, and supplies it directly.
+
 ## 7. Chains
 
 `previousHash` links an event to its predecessor, so that removing or altering a member of the
@@ -256,12 +282,25 @@ canonicalization and algorithm are implemented, recalculates the digest and comp
 link. It detects broken links, modified events, reordering, duplicate sequences, missing sequences,
 mixed algorithms and unsupported algorithms.
 
+Both commands accept `--public-key <path>`, a PEM-encoded Ed25519 public key. When it is supplied and
+an event declares `integrity.signature`, the signature is verified against the same digest input as
+the hash; without it, a declared signature is neither checked nor reported on, which keeps every
+example above byte-for-byte the same whether or not an event happens to carry one:
+
+```bash
+auditmodel verify-integrity examples/integrity/valid/signed-event-ed25519.json \
+  --public-key examples/integrity/keys/ed25519-test-public.pem
+```
+
 Exit codes are `0` verified, `1` a verification failed, `2` a usage, read or parse error.
 
+**Implemented in v0.1:** Ed25519 signature verification, given a public key supplied out of band —
+there is no key registry to resolve `keyId` against.
+
 **Not implemented in v0.1**, and not to be inferred from the presence of the fields that would support
-them: signing, signature verification, key generation, key storage, key management integrations,
-certificate parsing, trust stores, transparency logs, timestamp authorities, WORM storage and remote
-verification services.
+them: signing, ECDSA-P256-SHA256 and RSA-PSS-SHA256 signature verification, key generation, key
+storage, key management integrations, certificate parsing, trust stores, transparency logs, timestamp
+authorities, WORM storage and remote verification services.
 
 ## 10. Practical guidance
 
@@ -295,7 +334,12 @@ An event in an instance-level chain:
 }
 ```
 
-A signed event with no chain. The signature is recorded but is not verified by v0.1 tooling:
+A signed event with no hash and no chain. This one is illustrative only, not verifiable: v0.1's
+`verify-integrity` requires a hash before it checks anything at all, so a signature with no
+accompanying `hash` is reported `hash-missing` even though the tooling implements Ed25519 signature
+verification. A signature MUST currently accompany a hash to be checked; see
+[examples/integrity/valid/signed-event-ed25519.json](../examples/integrity/valid/signed-event-ed25519.json)
+for the combination `verify-integrity --public-key` actually verifies.
 
 ```json
 {

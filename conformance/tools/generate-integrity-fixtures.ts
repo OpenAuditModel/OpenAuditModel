@@ -17,11 +17,13 @@
  * `--check`; nothing writes fixtures during a normal test run.
  */
 import { deepStrictEqual } from "node:assert";
+import { createPrivateKey, createPublicKey, sign as cryptoSign } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { resolveSchemaPath } from "../src/validate.js";
-import { calculateDigest, sealEvent } from "../src/integrity/digest.js";
+import { buildDigestInput, calculateDigest, sealEvent } from "../src/integrity/digest.js";
+import { canonicalBytes } from "../src/integrity/canonicalize.js";
 import { CANONICALIZATION_RFC8785 } from "../src/integrity/types.js";
 
 type Event = Record<string, unknown>;
@@ -30,6 +32,51 @@ const repoRoot = path.dirname(path.dirname(path.dirname(resolveSchemaPath())));
 const fixtureRoot = path.join(repoRoot, "examples", "integrity");
 
 const CHAIN_ID = "chain-platform-control-service-instance-7c1a";
+
+// ---------------------------------------------------------------------------
+// Signature fixtures
+//
+// TEST-ONLY Ed25519 key pair. The private key is committed and public,
+// deliberately: it exists only to make the signed fixtures below
+// reproducible by this generator, the same way their hashes are. Anyone can
+// therefore forge a "validly signed" event under this key, which is exactly
+// why a real key must never be generated this way or checked into a
+// repository — see the caution note in examples/integrity/README.md.
+// ---------------------------------------------------------------------------
+
+const TEST_SIGNING_KEY_PEM = `-----BEGIN PRIVATE KEY-----
+MC4CAQAwBQYDK2VwBCIEINSFExEuYKx62r0fQ6EQuZZunDj34W2McAZ3OAf8qz9S
+-----END PRIVATE KEY-----
+`;
+
+const TEST_SIGNING_KEY_ID = "example-fixture-key-2026";
+
+const testPrivateKey = createPrivateKey(TEST_SIGNING_KEY_PEM);
+const testPublicKeyPem = createPublicKey(testPrivateKey).export({
+  type: "spki",
+  format: "pem",
+}) as string;
+
+/**
+ * Returns a copy of `event` with `integrity.signature` set to an Ed25519
+ * signature over the same canonicalized input `sealEvent` hashes — computed
+ * with the same `buildDigestInput`/canonicalization code the verifier uses,
+ * so a fixture cannot encode a signing procedure the implementation does not
+ * follow.
+ */
+function signEvent<T>(event: T): T {
+  const data = canonicalBytes(buildDigestInput(event));
+  const signature = cryptoSign(null, data, testPrivateKey).toString("base64");
+  const record = event as Record<string, unknown>;
+  const integrityRecord = record["integrity"] as Record<string, unknown>;
+  return {
+    ...record,
+    integrity: {
+      ...integrityRecord,
+      signature: { algorithm: "Ed25519", value: signature, keyId: TEST_SIGNING_KEY_ID },
+    },
+  } as T;
+}
 
 /** An unsealed integrity object. `hash` is a placeholder so that key order is stable. */
 function integrity(options: { previousHash?: string; chainId?: string } = {}): Event {
@@ -138,6 +185,38 @@ const unicodeAndNumberEvent: Event = sealEvent({
   },
   integrity: integrity(),
 });
+
+/**
+ * A hash and a signature together: the hash lets any verifier detect
+ * modification, the signature additionally proves who sealed it, to anyone
+ * holding the corresponding public key.
+ */
+const signedEvent: Event = signEvent(
+  sealEvent({
+    specVersion: "0.1",
+    id: "018f2a45-9d31-7e42-8b17-2c3d4e5f6a71",
+    time: "2026-04-05T16:42:08.900Z",
+    event: {
+      name: "secret.rotate",
+      category: "configuration",
+      type: "update",
+      outcome: "success",
+      severity: "high",
+      summary: "Database credential rotated ahead of schedule after a suspected exposure.",
+    },
+    actor: { type: "admin", id: "admin-0091", roles: ["platform-administrator"] },
+    resource: { type: "secret", id: "secret-db-primary", classification: "secret" },
+    application: {
+      name: "platform-control-service",
+      environment: "production",
+      instance: "instance-7c1a",
+    },
+    authorization: { decision: "allow", policy: "privileged-configuration-change" },
+    reason: { code: "suspected-exposure" },
+    controlCategories: ["configuration-integrity", "privileged-access"],
+    integrity: integrity(),
+  }),
+);
 
 const chain001: Event = sealEvent({
   specVersion: "0.1",
@@ -270,6 +349,34 @@ const unsupportedAlgorithm: Event = {
   },
 };
 
+/**
+ * Content changed after both sealing and signing. The hash mismatch is
+ * reported first — hash verification runs before signature verification —
+ * so this fixture exercises the same `hash-mismatch` path as
+ * tampered-event.json, over a signed event.
+ */
+const tamperedSignedEvent: Event = {
+  ...structuredClone(signedEvent),
+  resource: { type: "secret", id: "secret-db-primary", classification: "restricted" },
+};
+
+/**
+ * Signed with a valid Ed25519 signature, then relabelled to an algorithm this
+ * verifier does not implement. Mirrors unsupported-algorithm.json for
+ * signatures: the schema's open vocabulary accepts the identifier, and
+ * acceptance is not support.
+ */
+const unsupportedSignatureAlgorithm: Event = {
+  ...structuredClone(signedEvent),
+  integrity: {
+    ...(structuredClone(signedEvent)["integrity"] as Event),
+    signature: {
+      ...((structuredClone(signedEvent)["integrity"] as Event)["signature"] as Event),
+      algorithm: "ECDSA-P256-SHA256",
+    },
+  },
+};
+
 /** Event 3 re-linked past event 2 and re-sealed: every digest holds, the link does not. */
 const brokenPreviousHash = [
   chain001,
@@ -339,6 +446,7 @@ const FIXTURES: readonly Fixture[] = [
     relativePath: path.join("valid", "unicode-and-number-event.json"),
     content: unicodeAndNumberEvent,
   },
+  { relativePath: path.join("valid", "signed-event-ed25519.json"), content: signedEvent },
   ...chainFixtures(path.join("valid", "three-event-chain"), [chain001, chain002, chain003]),
   { relativePath: path.join("invalid", "tampered-event.json"), content: tamperedEvent },
   { relativePath: path.join("invalid", "wrong-declared-hash.json"), content: wrongDeclaredHash },
@@ -346,11 +454,23 @@ const FIXTURES: readonly Fixture[] = [
     relativePath: path.join("invalid", "unsupported-algorithm.json"),
     content: unsupportedAlgorithm,
   },
+  {
+    relativePath: path.join("invalid", "tampered-signed-event.json"),
+    content: tamperedSignedEvent,
+  },
+  {
+    relativePath: path.join("invalid", "unsupported-signature-algorithm.json"),
+    content: unsupportedSignatureAlgorithm,
+  },
   ...chainFixtures(path.join("invalid", "broken-previous-hash"), brokenPreviousHash),
   ...chainFixtures(path.join("invalid", "duplicate-sequence"), duplicateSequence),
   ...chainFixtures(path.join("invalid", "missing-sequence"), missingSequence),
   ...chainFixtures(path.join("invalid", "reordered-chain"), reorderedChain),
 ];
+
+/** Not a JSON fixture: the public half of the TEST-ONLY signing key, for
+ * `--public-key` in docs, tests and manual verification. */
+const PUBLIC_KEY_PATH = path.join(fixtureRoot, "keys", "ed25519-test-public.pem");
 
 /** Compares the generated fixtures with what is on disk. Returns the drifted paths. */
 export function checkFixtures(): string[] {
@@ -369,6 +489,12 @@ export function checkFixtures(): string[] {
     }
   }
 
+  if (!existsSync(PUBLIC_KEY_PATH)) {
+    drifted.push(`${path.relative(fixtureRoot, PUBLIC_KEY_PATH)} (missing)`);
+  } else if (readFileSync(PUBLIC_KEY_PATH, "utf8") !== testPublicKeyPem) {
+    drifted.push(path.relative(fixtureRoot, PUBLIC_KEY_PATH));
+  }
+
   return drifted;
 }
 
@@ -379,6 +505,11 @@ function writeFixtures(): void {
     writeFileSync(absolute, `${JSON.stringify(fixture.content, null, 2)}\n`, "utf8");
     process.stdout.write(`wrote ${fixture.relativePath}\n`);
   }
+
+  mkdirSync(path.dirname(PUBLIC_KEY_PATH), { recursive: true });
+  writeFileSync(PUBLIC_KEY_PATH, testPublicKeyPem, "utf8");
+  process.stdout.write(`wrote ${path.relative(fixtureRoot, PUBLIC_KEY_PATH)}\n`);
+
   process.stdout.write(
     `\n${FIXTURES.length} fixtures written. Run "npm run format" to normalise formatting.\n`,
   );

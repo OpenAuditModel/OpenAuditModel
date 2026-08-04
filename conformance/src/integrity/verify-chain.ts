@@ -6,6 +6,7 @@
  * who removes the tail of a chain, or who never let an event be produced,
  * leaves nothing for a verifier to find. See specification/integrity.md §8.
  */
+import type { KeyObject } from "node:crypto";
 import type { EventValidator } from "../validate-core.js";
 import { digestsEqual } from "./digest.js";
 import { verifyEventIntegrity, readIntegrity } from "./verify-event.js";
@@ -49,16 +50,21 @@ function verifyOneChain(
   chainId: string,
   members: readonly ChainMember[],
   validator: EventValidator,
+  publicKey: KeyObject | undefined,
 ): ChainVerificationResult {
   const findings: Finding[] = [];
   const notes: Note[] = [];
   const checks: PassedCheck[] = [];
 
-  // Every event's own digest must hold before its links mean anything.
+  // Every event's own digest must hold before its links mean anything. A
+  // signature, when a key was supplied to check it, is verified alongside:
+  // it covers the same canonicalized input as the hash, chain metadata
+  // included, so a signed link is exactly as tamper-evident as a hashed one.
   let digestsValid = true;
   for (const member of members) {
     const result = verifyEventIntegrity(member.event, member.label, validator, {
       validateSchema: false,
+      publicKey,
     });
     if (!result.verified) {
       digestsValid = false;
@@ -218,6 +224,7 @@ function verifyOneChain(
 export function verifyChains(
   inputs: readonly ChainEventInput[],
   validator: EventValidator,
+  publicKey?: KeyObject | undefined,
 ): ChainReport {
   const unassigned: Finding[] = [];
   const groups = new Map<string, ChainMember[]>();
@@ -284,7 +291,7 @@ export function verifyChains(
 
   const chains = [...groups.entries()]
     .sort((left, right) => left[0].localeCompare(right[0], "en"))
-    .map(([chainId, members]) => verifyOneChain(chainId, members, validator));
+    .map(([chainId, members]) => verifyOneChain(chainId, members, validator, publicKey));
 
   return {
     chains,
