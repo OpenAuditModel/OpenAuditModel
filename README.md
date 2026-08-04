@@ -26,13 +26,9 @@ specification is not compliance with any law, regulation, standard or contract.
 
 ## Quick start
 
-Not yet published to a package registry. One clone, one build, then commands against any file.
-Requires Node.js 22 or newer.
+No install, no checkout — three commands against one file.
 
 ```bash
-git clone https://github.com/OpenAuditModel/OpenAuditModel.git
-cd OpenAuditModel && npm install && npm run build
-
 cat > audit-event.json <<'EOF'
 {
   "specVersion": "0.1",
@@ -49,14 +45,13 @@ cat > audit-event.json <<'EOF'
 }
 EOF
 
-npm run auditmodel -- validate audit-event.json
-npm run auditmodel -- lint-privacy audit-event.json
-npm run auditmodel -- check-profile audit-event.json --profile financial-transaction-management
+npx @openauditmodel/cli validate audit-event.json
+npx @openauditmodel/cli lint-privacy audit-event.json
+npx @openauditmodel/cli check-profile audit-event.json --profile financial-transaction-management
 ```
 
-The binary is `auditmodel` once built (`node dist/conformance/src/cli.js` directly, or `npm run
-auditmodel --` as above); `openauditmodel` is accepted as an alias. The profile is passed with
-`--profile`, never positionally.
+The binary is `auditmodel` once installed (`npm i -D @openauditmodel/cli`); `openauditmodel` is
+accepted as an alias. The profile is passed with `--profile`, never positionally.
 
 That third command **fails**, and it is meant to. The event is schema-valid but the financial profile
 requires an authorization decision, a correlation identifier, a transaction reference, an amount, a
@@ -109,7 +104,7 @@ The same contract across every command, so a CI job can branch on it:
 # conforming → 0        the profile's rules were checked and passed
 # violations  → 1        the event matched the profile and failed a rule
 # not applicable → 3     the event name matched no rule in the profile
-npm run auditmodel -- check-profile audit-event.json --profile document-management
+npx @openauditmodel/cli check-profile audit-event.json --profile document-management
 ```
 
 That last command returns `3` for the financial event above: `document-management` governs no
