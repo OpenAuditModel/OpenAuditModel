@@ -209,7 +209,7 @@ reason.
 2. Keep the change focused. A schema change, a specification rewrite and a tooling refactor are three
    pull requests.
 3. Run `npm run verify` before pushing.
-4. Update [CHANGELOG.md](CHANGELOG.md) under `0.1.0 - Unreleased`.
+4. Update [CHANGELOG.md](CHANGELOG.md) under the `Unreleased` section at the top of the file.
 5. Update the specification, the schema, the fixtures and the tests **together**. A schema change
    without a specification change is a defect, and so is the reverse.
 6. Explain the reasoning in the pull request description. For a decision of consequence, add an ADR in

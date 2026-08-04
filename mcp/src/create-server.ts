@@ -17,7 +17,7 @@ export const SERVER_NAME = "openauditmodel";
 export const SERVER_TITLE = "OpenAuditModel";
 
 /** Repository version. Kept in step with the root package manifest. */
-export const SERVER_VERSION = "0.1.0";
+export const SERVER_VERSION = "0.1.1";
 
 const INSTRUCTIONS = `OpenAuditModel: a common, verifiable and backend-independent audit event model for business applications.
 
