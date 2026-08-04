@@ -5,6 +5,7 @@
  * specification/integrity.md §4.
  */
 import assert from "node:assert/strict";
+import { generateKeyPairSync, sign as cryptoSign, type KeyObject } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import test, { describe } from "node:test";
@@ -18,7 +19,13 @@ import {
   isSupportedHashAlgorithm,
   sealEvent,
 } from "../src/integrity/digest.js";
+import { canonicalBytes } from "../src/integrity/canonicalize.js";
 import { verifyEventIntegrity } from "../src/integrity/verify-event.js";
+import {
+  isSupportedSignatureAlgorithm,
+  loadPublicKey,
+  verifyEventSignature,
+} from "../src/integrity/signature.js";
 import { SUPPORTED_HASH_ALGORITHMS } from "../src/integrity/types.js";
 import { checkFixtures } from "../tools/generate-integrity-fixtures.js";
 
@@ -26,7 +33,11 @@ const schemaPath = resolveSchemaPath();
 const repoRoot = path.dirname(path.dirname(path.dirname(schemaPath)));
 const integrityValid = path.join(repoRoot, "examples", "integrity", "valid");
 const integrityInvalid = path.join(repoRoot, "examples", "integrity", "invalid");
+const integrityKeys = path.join(repoRoot, "examples", "integrity", "keys");
 const validator = createValidator(schemaPath);
+const testPublicKey = loadPublicKey(
+  readFileSync(path.join(integrityKeys, "ed25519-test-public.pem"), "utf8"),
+);
 
 type Event = Record<string, unknown>;
 
@@ -308,6 +319,173 @@ describe("single event verification", () => {
   });
 });
 
+describe("signatures", () => {
+  const { publicKey: keyA, privateKey: keyAPrivate } = generateKeyPairSync("ed25519");
+  const { publicKey: keyB } = generateKeyPairSync("ed25519");
+
+  /** Signs `event`'s digest input with `keyAPrivate`, base64-encoded. */
+  function signWithKeyA(event: unknown): string {
+    return cryptoSign(null, canonicalBytes(buildDigestInput(event)), keyAPrivate).toString(
+      "base64",
+    );
+  }
+
+  function withSignature(event: Event, signature: Event): Event {
+    return { ...event, integrity: { ...integrityOf(event), signature } };
+  }
+
+  test("algorithm identifiers are matched case-sensitively", () => {
+    assert.equal(isSupportedSignatureAlgorithm("Ed25519"), true);
+    for (const identifier of ["ed25519", "ED25519", "EdDSA", "RSA-PSS-SHA256"]) {
+      assert.equal(isSupportedSignatureAlgorithm(identifier), false, identifier);
+    }
+  });
+
+  test("loadPublicKey derives the public key when handed a private key", () => {
+    // Node's own behaviour, exercised because verifyEventSignature relies on
+    // it: pointing --public-key at the wrong (private) file by mistake still
+    // verifies correctly, since the derived key is the genuine public half.
+    const privatePem = keyAPrivate.export({ type: "pkcs8", format: "pem" }) as string;
+    const derived = loadPublicKey(privatePem);
+    const event = sealEvent(baseEvent());
+    const value = signWithKeyA(event);
+    assert.deepEqual(verifyEventSignature(event, "Ed25519", value, derived), { ok: true });
+  });
+
+  test("loadPublicKey rejects unreadable text", () => {
+    assert.throws(() => loadPublicKey("not a key"), /not a readable public key/);
+  });
+
+  describe("verifyEventSignature", () => {
+    test("a genuine signature over the event's digest input verifies", () => {
+      const event = sealEvent(baseEvent());
+      const value = signWithKeyA(event);
+      assert.deepEqual(verifyEventSignature(event, "Ed25519", value, keyA), { ok: true });
+    });
+
+    test("a signature over different content does not verify", () => {
+      const event = sealEvent(baseEvent());
+      const value = signWithKeyA(event);
+      const changed = structuredClone(event);
+      (changed["resource"] as Event)["id"] = "resource-999";
+      const result = verifyEventSignature(changed, "Ed25519", value, keyA);
+      assert.equal(result.ok, false);
+      assert.equal(!result.ok && result.kind, "signature-invalid");
+    });
+
+    test("a signature verified against the wrong public key does not verify", () => {
+      const event = sealEvent(baseEvent());
+      const value = signWithKeyA(event);
+      const result = verifyEventSignature(event, "Ed25519", value, keyB);
+      assert.equal(result.ok, false);
+      assert.equal(!result.ok && result.kind, "signature-invalid");
+    });
+
+    test("an unimplemented algorithm is refused before any key material is touched", () => {
+      const event = sealEvent(baseEvent());
+      const result = verifyEventSignature(event, "ECDSA-P256-SHA256", "not-checked", keyA);
+      assert.deepEqual(result, {
+        ok: false,
+        kind: "unsupported-signature-algorithm",
+        message: 'signature algorithm "ECDSA-P256-SHA256" is not implemented by this verifier',
+      });
+    });
+
+    test("a value that is not base64 is reported as malformed, never as invalid", () => {
+      const event = sealEvent(baseEvent());
+      const result = verifyEventSignature(event, "Ed25519", "not base64! ##", keyA);
+      assert.equal(result.ok, false);
+      assert.equal(!result.ok && result.kind, "malformed-signature");
+    });
+
+    test("a value of the wrong byte length is reported as malformed", () => {
+      const event = sealEvent(baseEvent());
+      const short = Buffer.from("too short").toString("base64");
+      const result = verifyEventSignature(event, "Ed25519", short, keyA);
+      assert.equal(result.ok, false);
+      assert.equal(!result.ok && result.kind, "malformed-signature");
+    });
+
+    test("a key of the wrong type is rejected rather than throwing", () => {
+      const event = sealEvent(baseEvent());
+      const { publicKey: rsaKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+      const value = signWithKeyA(event);
+      const result = verifyEventSignature(event, "Ed25519", value, rsaKey as unknown as KeyObject);
+      assert.equal(result.ok, false);
+      assert.equal(!result.ok && result.kind, "signature-invalid");
+    });
+  });
+
+  describe("verifyEventIntegrity with publicKey", () => {
+    test("without a public key, a declared signature is neither checked nor mentioned", () => {
+      const event = sealEvent(baseEvent());
+      const signed = withSignature(event, {
+        algorithm: "Ed25519",
+        value: signWithKeyA(event),
+        keyId: "test-key-a",
+      });
+      const result = verifyEventIntegrity(signed, "event", validator);
+      assert.equal(result.verified, true);
+      assert.deepEqual(
+        result.checks.map((check) => check.message),
+        [
+          "schema valid",
+          "canonicalization: RFC8785",
+          "hash algorithm: SHA-256",
+          "integrity hash valid",
+        ],
+      );
+    });
+
+    test("with a public key, a genuine signature is verified and reported", () => {
+      const event = sealEvent(baseEvent());
+      const signed = withSignature(event, {
+        algorithm: "Ed25519",
+        value: signWithKeyA(event),
+        keyId: "test-key-a",
+      });
+      const result = verifyEventIntegrity(signed, "event", validator, { publicKey: keyA });
+      assert.equal(result.verified, true);
+      assert.deepEqual(
+        result.checks.map((check) => check.message).at(-1),
+        "signature valid (Ed25519)",
+      );
+    });
+
+    test("with the wrong public key, verification fails on the signature alone", () => {
+      const event = sealEvent(baseEvent());
+      const signed = withSignature(event, {
+        algorithm: "Ed25519",
+        value: signWithKeyA(event),
+        keyId: "test-key-a",
+      });
+      const result = verifyEventIntegrity(signed, "event", validator, { publicKey: keyB });
+      assert.equal(result.verified, false);
+      assert.deepEqual(
+        result.findings.map((finding) => finding.kind),
+        ["signature-invalid"],
+      );
+      // The hash was already proven valid; the signature is the only thing that failed.
+      assert.ok(result.checks.some((check) => check.message === "integrity hash valid"));
+    });
+
+    test("a bad hash is still reported first, before the signature is ever checked", () => {
+      const event = sealEvent(baseEvent());
+      const signed = withSignature(event, {
+        algorithm: "Ed25519",
+        value: signWithKeyA(event),
+        keyId: "test-key-a",
+      });
+      integrityOf(signed)["hash"] = "f".repeat(64);
+      const result = verifyEventIntegrity(signed, "event", validator, { publicKey: keyB });
+      assert.deepEqual(
+        result.findings.map((finding) => finding.kind),
+        ["hash-mismatch"],
+      );
+    });
+  });
+});
+
 describe("published integrity fixtures", () => {
   test("every valid fixture verifies", () => {
     const files = [
@@ -351,6 +529,38 @@ describe("published integrity fixtures", () => {
     assert.deepEqual(kinds(readFixture(integrityInvalid, "unsupported-algorithm.json")), [
       "unsupported-algorithm",
     ]);
+  });
+
+  test("signed-event-ed25519.json verifies its hash without a key, and its signature with one", () => {
+    const event = readFixture(integrityValid, "signed-event-ed25519.json");
+
+    const withoutKey = verifyEventIntegrity(event, "signed", validator);
+    assert.equal(withoutKey.verified, true);
+    assert.ok(!withoutKey.checks.some((check) => check.message.startsWith("signature valid")));
+
+    const withKey = verifyEventIntegrity(event, "signed", validator, { publicKey: testPublicKey });
+    assert.equal(withKey.verified, true);
+    assert.ok(withKey.checks.some((check) => check.message === "signature valid (Ed25519)"));
+  });
+
+  test("tampered-signed-event.json fails on the hash before the signature is reached", () => {
+    const event = readFixture(integrityInvalid, "tampered-signed-event.json");
+    assert.deepEqual(
+      verifyEventIntegrity(event, "signed", validator, { publicKey: testPublicKey }).findings.map(
+        (finding) => finding.kind,
+      ),
+      ["hash-mismatch"],
+    );
+  });
+
+  test("unsupported-signature-algorithm.json is refused once a key is supplied to check it", () => {
+    const event = readFixture(integrityInvalid, "unsupported-signature-algorithm.json");
+    assert.deepEqual(
+      verifyEventIntegrity(event, "signed", validator, { publicKey: testPublicKey }).findings.map(
+        (finding) => finding.kind,
+      ),
+      ["unsupported-signature-algorithm"],
+    );
   });
 });
 

@@ -48,6 +48,8 @@ function writeScratch(name: string, contents: string): string {
 
 const VALID_EVENT = "examples/integrity/valid/single-event-sha256.json";
 const VALID_CHAIN = "examples/integrity/valid/three-event-chain";
+const SIGNED_EVENT = "examples/integrity/valid/signed-event-ed25519.json";
+const TEST_PUBLIC_KEY = "examples/integrity/keys/ed25519-test-public.pem";
 
 describe("verify-integrity", () => {
   test("exits 0 and reports each check for a sealed event", () => {
@@ -170,6 +172,80 @@ describe("verify-chain", () => {
   });
 });
 
+describe("--public-key", () => {
+  test("without it, a signed event verifies and the signature is not mentioned", () => {
+    const result = auditmodel("verify-integrity", SIGNED_EVENT);
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /integrity hash valid/);
+    assert.doesNotMatch(result.stdout, /signature/);
+  });
+
+  test("with it, a genuinely signed event reports the signature as verified", () => {
+    const result = auditmodel("verify-integrity", SIGNED_EVENT, "--public-key", TEST_PUBLIC_KEY);
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /signature valid \(Ed25519\)/);
+    assert.match(result.stdout, /1 event checked: 1 verified, 0 failed/);
+  });
+
+  test("a tampered signed event still fails on the hash, before the signature is reached", () => {
+    const result = auditmodel(
+      "verify-integrity",
+      "examples/integrity/invalid/tampered-signed-event.json",
+      "--public-key",
+      TEST_PUBLIC_KEY,
+    );
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /\[hash-mismatch\]/);
+    assert.doesNotMatch(result.stdout, /signature/);
+  });
+
+  test("a signature algorithm this verifier does not implement is refused", () => {
+    const result = auditmodel(
+      "verify-integrity",
+      "examples/integrity/invalid/unsupported-signature-algorithm.json",
+      "--public-key",
+      TEST_PUBLIC_KEY,
+    );
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /\[unsupported-signature-algorithm\]/);
+  });
+
+  test("verify-chain accepts --public-key and verifies signatures across the chain", () => {
+    const result = auditmodel("verify-chain", VALID_CHAIN, "--public-key", TEST_PUBLIC_KEY);
+    // The published chain fixtures are hashed but not signed, so supplying a
+    // key that finds nothing to check must not change the verdict.
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /all 3 event digests valid/);
+  });
+
+  test("exits 2 when the key file does not exist", () => {
+    const result = auditmodel(
+      "verify-integrity",
+      SIGNED_EVENT,
+      "--public-key",
+      "examples/integrity/keys/no-such-key.pem",
+    );
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /cannot read --public-key/);
+  });
+
+  test("exits 2 when the key file is not a readable key", () => {
+    const result = auditmodel("verify-integrity", SIGNED_EVENT, "--public-key", SIGNED_EVENT);
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /not a readable public key/);
+  });
+
+  test("is ignored by commands that do not use it, even when the path is bad", () => {
+    const result = auditmodel(
+      "validate",
+      "examples/valid/minimal-event.json",
+      "--public-key",
+      "no-such-key.pem",
+    );
+    assert.equal(result.status, 0);
+  });
+});
+
 describe("input forms", () => {
   test("an array of events in one file is verified", () => {
     const events = ["001.json", "002.json", "003.json"].map((name) =>
@@ -236,6 +312,12 @@ describe("help and options", () => {
     assert.equal(result.status, 0);
     assert.match(result.stdout, /auditmodel verify-integrity <path\.\.\.>/);
     assert.match(result.stdout, /auditmodel verify-chain <path\.\.\.>/);
+  });
+
+  test("help documents --public-key and that it defaults to not checking signatures", () => {
+    const result = auditmodel("--help");
+    assert.match(result.stdout, /--public-key <path>/);
+    assert.match(result.stdout, /a declared signature is not checked/);
   });
 
   test("help no longer lists the implemented commands as planned", () => {

@@ -6,6 +6,7 @@
  * status codes, headers and transport framing.
  */
 import assert from "node:assert/strict";
+import { generateKeyPairSync, sign as cryptoSign } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import test, { after, before, describe } from "node:test";
@@ -21,6 +22,8 @@ import { MAX_EVENTS_PER_REQUEST } from "../src/output-safety.js";
 import { resolveSchemaPath, createValidator } from "../../conformance/src/validate.js";
 import { verifyEventIntegrity } from "../../conformance/src/integrity/verify-event.js";
 import { verifyChains } from "../../conformance/src/integrity/verify-chain.js";
+import { buildDigestInput, sealEvent } from "../../conformance/src/integrity/digest.js";
+import { canonicalBytes } from "../../conformance/src/integrity/canonicalize.js";
 import { lintEvent } from "../../conformance/src/privacy/lint-event.js";
 import { checkProfile } from "../../conformance/src/profiles/check-profile.js";
 
@@ -328,6 +331,136 @@ describe("tool parity with the conformance engines", () => {
       assert.equal(actual["chainCount"], expected.chains.length, directory);
       assert.equal(actual["eventCount"], events.length, directory);
     }
+  });
+
+  test("verify_integrity: without publicKeyPem, a signed event verifies and the signature is not mentioned", async () => {
+    const event = readEvent("examples/integrity/valid", "signed-event-ed25519.json");
+    const actual = await callTool("verify_integrity", { event });
+
+    assert.equal(actual["integrityValid"], true);
+    assert.ok(
+      !(actual["checks"] as string[]).some((message) => message.includes("signature")),
+      JSON.stringify(actual["checks"]),
+    );
+  });
+
+  test("verify_integrity: with the matching publicKeyPem, the signature is verified", async () => {
+    const event = readEvent("examples/integrity/valid", "signed-event-ed25519.json");
+    const publicKeyPem = readFileSync(
+      path.join(repoRoot, "examples", "integrity", "keys", "ed25519-test-public.pem"),
+      "utf8",
+    );
+    const actual = await callTool("verify_integrity", { event, publicKeyPem });
+
+    assert.equal(actual["integrityValid"], true);
+    assert.ok((actual["checks"] as string[]).includes("signature valid (Ed25519)"));
+  });
+
+  test("verify_integrity: with the wrong publicKeyPem, only the signature fails", async () => {
+    const event = readEvent("examples/integrity/valid", "signed-event-ed25519.json");
+    // A genuine, freshly generated Ed25519 public key — not the one this event
+    // was signed with.
+    const { publicKey } = generateKeyPairSync("ed25519");
+    const wrongKeyPem = publicKey.export({ type: "spki", format: "pem" }) as string;
+    const actual = await callTool("verify_integrity", { event, publicKeyPem: wrongKeyPem });
+
+    assert.equal(actual["integrityValid"], false);
+    assert.deepEqual(
+      (actual["findings"] as Array<{ kind: string }>).map((finding) => finding.kind),
+      ["signature-invalid"],
+    );
+  });
+
+  test("verify_integrity: an unreadable publicKeyPem is refused, without echoing the event", async () => {
+    const event = { specVersion: "0.1", metadata: { distinctiveMarker: "should-not-appear" } };
+    const result = await rpc("tools/call", {
+      name: "verify_integrity",
+      arguments: { event, publicKeyPem: "not a key" },
+    });
+    const content = result["content"] as Array<{ type: string; text: string }>;
+    const rendered = content[0]?.text ?? "";
+
+    assert.equal(result["isError"], true);
+    assert.match(rendered, /invalid-public-key/);
+    assert.doesNotMatch(rendered, /distinctiveMarker|should-not-appear/);
+  });
+
+  test("verify_chain accepts publicKeyPem without changing the verdict for an unsigned chain", async () => {
+    const directory = "examples/integrity/valid/three-event-chain";
+    const events = ["001.json", "002.json", "003.json"].map((file) => readEvent(directory, file));
+    const publicKeyPem = readFileSync(
+      path.join(repoRoot, "examples", "integrity", "keys", "ed25519-test-public.pem"),
+      "utf8",
+    );
+
+    // The published chain fixtures are hashed but not signed, so a key that
+    // finds nothing to check must not change the verdict.
+    const actual = await callTool("verify_chain", { events, publicKeyPem });
+    assert.equal(actual["valid"], true);
+    assert.equal(actual["eventCount"], events.length);
+  });
+
+  test("verify_chain actually checks a signed chain's signatures, not just its hashes", async () => {
+    const { publicKey, privateKey } = generateKeyPairSync("ed25519");
+    const publicKeyPem = publicKey.export({ type: "spki", format: "pem" }) as string;
+
+    function baseEvent(sequence: number, previousHash?: string): Json {
+      return {
+        specVersion: "0.1",
+        id: `018f3000-0000-7000-8000-00000000000${sequence}`,
+        time: "2026-04-06T00:00:00.000Z",
+        sequence,
+        event: { name: "record.update", category: "data-modification", outcome: "success" },
+        actor: { type: "user", id: "user-1" },
+        resource: { type: "record", id: "record-1" },
+        application: { name: "test-app", environment: "production" },
+        integrity: {
+          canonicalization: "RFC8785",
+          hashAlgorithm: "SHA-256",
+          hash: "",
+          chainId: "chain-mcp-signed-test",
+          ...(previousHash === undefined ? {} : { previousHash }),
+        },
+      };
+    }
+
+    function sign(event: Json): string {
+      return cryptoSign(null, canonicalBytes(buildDigestInput(event)), privateKey).toString(
+        "base64",
+      );
+    }
+
+    function seal(event: Json, keyId: string): Json {
+      const hashed = sealEvent(event);
+      const integrity = hashed["integrity"] as Json;
+      return {
+        ...hashed,
+        integrity: {
+          ...integrity,
+          signature: { algorithm: "Ed25519", value: sign(hashed), keyId },
+        },
+      };
+    }
+
+    const first = seal(baseEvent(1), "test-key");
+    const firstHash = ((first["integrity"] as Json)["hash"] as string) ?? "";
+    const second = seal(baseEvent(2, firstHash), "test-key");
+    const events = [first, second];
+
+    const withCorrectKey = await callTool("verify_chain", { events, publicKeyPem });
+    assert.equal(withCorrectKey["valid"], true, JSON.stringify(withCorrectKey));
+
+    const { publicKey: wrongKey } = generateKeyPairSync("ed25519");
+    const wrongKeyPem = wrongKey.export({ type: "spki", format: "pem" }) as string;
+    const withWrongKey = await callTool("verify_chain", { events, publicKeyPem: wrongKeyPem });
+    assert.equal(withWrongKey["valid"], false);
+    const chains = withWrongKey["chains"] as Array<{ findings: Array<{ kind: string }> }>;
+    assert.ok(
+      chains.some((chain) =>
+        chain.findings.some((finding) => finding.kind === "signature-invalid"),
+      ),
+      JSON.stringify(withWrongKey),
+    );
   });
 
   test("lint_privacy matches the privacy linter", async () => {

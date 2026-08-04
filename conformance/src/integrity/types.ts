@@ -33,6 +33,25 @@ export const DIGEST_BYTE_LENGTHS: Readonly<Record<SupportedHashAlgorithm, number
 };
 
 /**
+ * Signature algorithms this verifier can execute, as normative identifiers.
+ *
+ * `integrity.signature.algorithm` is an open vocabulary for the same reason
+ * `hashAlgorithm` is: schema acceptance is not verifier support. Ed25519 is
+ * the only algorithm implemented in v0.1 — it needs no key-size parameter, no
+ * hash-algorithm choice, and is natively supported by Node's `crypto` module,
+ * so it introduces no new dependency. ECDSA-P256-SHA256 and RSA-PSS-SHA256
+ * are recommended by the schema's own description but not yet implemented.
+ */
+export const SUPPORTED_SIGNATURE_ALGORITHMS = ["Ed25519"] as const;
+
+export type SupportedSignatureAlgorithm = (typeof SUPPORTED_SIGNATURE_ALGORITHMS)[number];
+
+/** Signature length in bytes for each supported algorithm. */
+export const SIGNATURE_BYTE_LENGTHS: Readonly<Record<SupportedSignatureAlgorithm, number>> = {
+  Ed25519: 64,
+};
+
+/**
  * JSON Pointers removed from an event before its digest is calculated.
  *
  * Everything else, including `sequence`, `integrity.previousHash`,
@@ -53,7 +72,10 @@ export type EventFindingKind =
   | "malformed-hash"
   | "digest-length-mismatch"
   | "hash-mismatch"
-  | "canonicalization-failed";
+  | "canonicalization-failed"
+  | "unsupported-signature-algorithm"
+  | "malformed-signature"
+  | "signature-invalid";
 
 /** Why a chain failed verification. */
 export type ChainFindingKind =

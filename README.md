@@ -272,7 +272,7 @@ examples/profiles/     conforming, violating and out-of-scope profile fixtures
 conformance/           the `auditmodel` CLI and its test suite
 mcp/                   the remote MCP server, distributed as a container image
 deploy/                Docker Compose and reverse-proxy examples
-decisions/             11 architecture decision records
+decisions/             12 architecture decision records
 ```
 
 The core model requires seven fields — `specVersion`, `id`, `time`, `event`, `actor`, `resource`,
@@ -393,10 +393,11 @@ canonicalization and hash algorithm are ones the verifier implements; that recal
 reproduces `integrity.hash`; and, for chains, that every event links to its predecessor, that
 sequences are unique and orderable, and that one algorithm is used throughout.
 
-**What is not verified.** Signatures, keys and certificates — none of which v0.1 touches. Nor whether
-the events you supplied are all the events that existed: chain verification proves consistency of the
-supplied set, and an attacker who removes the _end_ of a chain leaves something internally consistent.
-Detecting that needs an external checkpoint, which is out of scope.
+**What is not verified.** Whether the events you supplied are all the events that existed: chain
+verification proves consistency of the supplied set, and an attacker who removes the _end_ of a chain
+leaves something internally consistent. Detecting that needs an external checkpoint, which is out of
+scope. Key generation, storage, rotation, revocation and certificate parsing are likewise out of scope,
+regardless of whether a signature is present.
 
 **How the digest is calculated.** Deep-clone the event, remove exactly `/integrity/hash` and
 `/integrity/signature`, serialize with **RFC 8785** (the JSON Canonicalization Scheme), encode as
@@ -410,6 +411,19 @@ attacker could re-link and re-order events freely while every hash still verifie
 **Supported algorithms.** `SHA-256`, `SHA-384` and `SHA-512`, matched case-sensitively. The schema
 keeps the vocabulary open so a future algorithm needs no schema change — but acceptance by the schema
 is not support, and an event declaring anything else is reported as unverifiable rather than verified.
+
+**Signature verification.** `integrity.signature` can additionally be checked with `--public-key
+<path>`, a PEM-encoded Ed25519 public key — `ECDSA-P256-SHA256` and `RSA-PSS-SHA256` are
+schema-recommended but not yet implemented. It verifies over the same digest input as the hash, so a
+signed chain is exactly as tamper-evident as a hashed one. Without the flag, a declared signature is
+neither checked nor mentioned, and a signature currently requires an accompanying `hash` to be checked
+at all. There is no key registry: `keyId` is never dereferenced, and a verifying party supplies the key
+it already trusts. See [ADR 0012](decisions/0012-ed25519-signature-verification.md).
+
+```bash
+auditmodel verify-integrity examples/integrity/valid/signed-event-ed25519.json \
+  --public-key examples/integrity/keys/ed25519-test-public.pem
+```
 
 **Tamper-evident, not tamper-proof.** Verification detects modification of the events it is given. It
 does not prevent deletion, does not provide storage immutability, and creates no legal evidentiary

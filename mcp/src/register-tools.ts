@@ -7,9 +7,11 @@
  * analysis a caller gets here is the analysis the command line tool performs.
  */
 import { z } from "zod";
+import type { KeyObject } from "node:crypto";
 import type { McpServer } from "@modelcontextprotocol/server";
 import { verifyEventIntegrity } from "../../conformance/src/integrity/verify-event.js";
 import { verifyChains } from "../../conformance/src/integrity/verify-chain.js";
+import { loadPublicKey } from "../../conformance/src/integrity/signature.js";
 import { lintEvent } from "../../conformance/src/privacy/lint-event.js";
 import { checkProfile } from "../../conformance/src/profiles/check-profile.js";
 import { selectRules } from "../../conformance/src/profiles/select-rules.js";
@@ -64,6 +66,34 @@ function requireProfile(name: string) {
     );
   }
   return profile;
+}
+
+/**
+ * Parses `publicKeyPem` into a key to verify `integrity.signature` against, or
+ * `undefined` when the caller supplied none — in which case a declared
+ * signature is neither checked nor reported on, exactly as the CLI behaves
+ * without `--public-key`. The value is a PEM string, not a path: this server
+ * touches no filesystem.
+ *
+ * On a parse failure the message is a fixed string, never `loadPublicKey`'s
+ * own message: that message is Node's own OpenSSL decoder error, written by
+ * neither this module nor `output-safety.ts`, and every other
+ * {@link InputLimitError} in this file carries a message this module wrote
+ * itself. Forwarding an external message here would be the one path where
+ * that invariant is not enforced by construction.
+ */
+function resolvePublicKey(publicKeyPem: string | undefined): KeyObject | undefined {
+  if (publicKeyPem === undefined) {
+    return undefined;
+  }
+  try {
+    return loadPublicKey(publicKeyPem);
+  } catch {
+    throw new InputLimitError(
+      "invalid-public-key",
+      "publicKeyPem could not be parsed as an Ed25519 public key",
+    );
+  }
 }
 
 /** Sets a value at a JSON Pointer inside a plain object, creating containers as needed. */
@@ -134,14 +164,15 @@ export function registerTools(server: McpServer, limits: EventLimits = DEFAULT_E
     {
       title: "Verify an event's own digest",
       description:
-        "Recalculates an event's integrity digest and compares it with the declared hash. Tamper-evident, not tamper-proof: it detects modification of the event supplied, and proves nothing about deletion. Canonicalized content, digest input and signature material are never returned.",
-      inputSchema: z.object({ event: eventSchema }),
+        "Recalculates an event's integrity digest and compares it with the declared hash. Tamper-evident, not tamper-proof: it detects modification of the event supplied, and proves nothing about deletion. Canonicalized content and digest input are never returned. Optionally accepts publicKeyPem, a PEM-encoded Ed25519 public key, to additionally verify integrity.signature over the same digest input; without it, a declared signature is neither checked nor mentioned. ECDSA-P256-SHA256 and RSA-PSS-SHA256 are not yet implemented.",
+      inputSchema: z.object({ event: eventSchema, publicKeyPem: z.string().optional() }),
     },
-    ({ event }) =>
+    ({ event, publicKeyPem }) =>
       runTool(() => {
         assertEventWithinLimits(event, LABEL, limits);
+        const publicKey = resolvePublicKey(publicKeyPem);
         const schemaValid = validator.validateEvent(event).length === 0;
-        const result = verifyEventIntegrity(event, LABEL, validator);
+        const result = verifyEventIntegrity(event, LABEL, validator, { publicKey });
 
         return {
           schemaValid,
@@ -163,15 +194,17 @@ export function registerTools(server: McpServer, limits: EventLimits = DEFAULT_E
     {
       title: "Verify previous-hash chains",
       description:
-        "Groups events by chain identifier, orders them by sequence and verifies every digest and link. Proves consistency of the supplied set only: an attacker who removes the end of a chain leaves something internally consistent.",
-      inputSchema: z.object({ events: z.array(eventSchema) }),
+        "Groups events by chain identifier, orders them by sequence and verifies every digest and link. Proves consistency of the supplied set only: an attacker who removes the end of a chain leaves something internally consistent. Optionally accepts publicKeyPem, a PEM-encoded Ed25519 public key, applied to every event's integrity.signature the same way verify_integrity applies it; without it, signatures are neither checked nor mentioned.",
+      inputSchema: z.object({ events: z.array(eventSchema), publicKeyPem: z.string().optional() }),
     },
-    ({ events }) =>
+    ({ events, publicKeyPem }) =>
       runTool(() => {
         assertEventsWithinLimits(events, limits);
+        const publicKey = resolvePublicKey(publicKeyPem);
         const report = verifyChains(
           events.map((event, index) => ({ label: `events[${index}]`, event })),
           validator,
+          publicKey,
         );
 
         const validChains = report.chains.filter((chain) => chain.intact).length;

@@ -5,6 +5,7 @@
  * calculated. It proves nothing about whether the event was ever stored, is
  * still stored, or belongs to a complete chain.
  */
+import type { KeyObject } from "node:crypto";
 import type { EventValidator } from "../validate-core.js";
 import { CanonicalizationError, isSupportedCanonicalization } from "./canonicalize.js";
 import {
@@ -14,6 +15,7 @@ import {
   isHexDigest,
   isSupportedHashAlgorithm,
 } from "./digest.js";
+import { verifyEventSignature } from "./signature.js";
 import {
   SUPPORTED_CANONICALIZATIONS,
   SUPPORTED_HASH_ALGORITHMS,
@@ -25,6 +27,13 @@ import {
 export interface VerifyEventOptions {
   /** Validate against the canonical schema first. Defaults to true. */
   readonly validateSchema?: boolean;
+  /**
+   * Key to verify `integrity.signature` against, when present. Without it, a
+   * declared signature is neither checked nor reported on: v0.1 defines no
+   * key registry, so there is no key to try by default, and a signature this
+   * verifier was not asked to check is not evidence of anything.
+   */
+  readonly publicKey?: KeyObject | undefined;
 }
 
 /** The integrity object of an event, once it is known to be an object. */
@@ -34,6 +43,24 @@ interface IntegrityObject {
   readonly hash?: unknown;
   readonly previousHash?: unknown;
   readonly chainId?: unknown;
+  readonly signature?: unknown;
+}
+
+/** `integrity.signature`, once it is known to be an object. Schema validation
+ * (when not bypassed) already guarantees `algorithm` and `value` are strings;
+ * this is read defensively regardless, because chain verification bypasses
+ * schema validation on the assumption it already ran once for the same event. */
+function readSignature(signature: unknown): { algorithm: string; value: string } | undefined {
+  if (signature === null || typeof signature !== "object" || Array.isArray(signature)) {
+    return undefined;
+  }
+  const record = signature as Record<string, unknown>;
+  const algorithm = record["algorithm"];
+  const value = record["value"];
+  if (typeof algorithm !== "string" || typeof value !== "string") {
+    return undefined;
+  }
+  return { algorithm, value };
 }
 
 function failure(
@@ -219,6 +246,24 @@ export function verifyEventIntegrity(
 
   checks.push({ message: "integrity hash valid" });
 
+  const signatureResult = checkSignature(event, integrity.signature, options.publicKey);
+  if (signatureResult !== undefined) {
+    if (signatureResult.ok) {
+      checks.push({ message: signatureResult.message });
+    } else {
+      return {
+        label,
+        verified: false,
+        checks,
+        findings: [{ kind: signatureResult.kind, label, message: signatureResult.message }],
+        canonicalization,
+        hashAlgorithm,
+        declaredHash: hash,
+        calculatedHash: calculated,
+      };
+    }
+  }
+
   return {
     label,
     verified: true,
@@ -229,4 +274,30 @@ export function verifyEventIntegrity(
     declaredHash: hash,
     calculatedHash: calculated,
   };
+}
+
+/**
+ * Checks `integrity.signature` when both a signature is declared and a public
+ * key was supplied to verify it against. Returns `undefined` when there is
+ * nothing to check — no signature, or no key to check it with — which the
+ * caller treats as "does not change the verdict", not as a pass.
+ */
+function checkSignature(
+  event: unknown,
+  signature: unknown,
+  publicKey: KeyObject | undefined,
+):
+  | { readonly ok: true; readonly message: string }
+  | { readonly ok: false; readonly kind: Finding["kind"]; readonly message: string }
+  | undefined {
+  const declared = readSignature(signature);
+  if (declared === undefined || publicKey === undefined) {
+    return undefined;
+  }
+
+  const result = verifyEventSignature(event, declared.algorithm, declared.value, publicKey);
+  if (result.ok) {
+    return { ok: true, message: `signature valid (${declared.algorithm})` };
+  }
+  return { ok: false, kind: result.kind, message: result.message };
 }

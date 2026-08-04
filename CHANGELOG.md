@@ -10,7 +10,40 @@ While the project is **Experimental**, breaking changes are possible in any rele
 as such. A change that alters the meaning of an existing field or event name is never acceptable — a
 new name is introduced instead.
 
-## 0.1.1 - Unreleased
+## 0.2.0 - Unreleased
+
+### Added — Ed25519 signature verification
+
+`integrity.signature` has been part of the schema since v0.1, but v0.1's `verify-integrity` and
+`verify-chain` never checked it: the field could record a signature, and the tooling would say nothing
+about whether it was genuine. Both commands now accept `--public-key <path>`, a PEM-encoded Ed25519
+public key; when it is supplied and an event declares a signature, the signature is verified over the
+same canonicalized digest input as `integrity.hash`, so a signed chain is exactly as tamper-evident as
+a hashed one. Without `--public-key`, a declared signature is neither checked nor mentioned — every
+existing invocation of either command behaves exactly as before.
+
+The MCP server's `verify_integrity` and `verify_chain` tools gained the same capability, through an
+optional `publicKeyPem` argument (a PEM string, since the server touches no filesystem) rather than a
+path. A public key carries no confidentiality concern by definition, so this raises nothing the
+server's existing per-call input model does not already handle.
+
+A signature currently requires an accompanying `hash` to be checked: `verify-integrity` still reports
+`hash-missing` for a signature-only event, before any signature logic runs. Signature-only events are
+possible future work, not a defect in this one.
+
+ECDSA-P256-SHA256 and RSA-PSS-SHA256 remain unimplemented, as recommended-but-optional identifiers the
+schema already names; an event declaring either is reported `unsupported-signature-algorithm`, the
+same way an unimplemented hash algorithm always has been.
+
+See [ADR 0012](decisions/0012-ed25519-signature-verification.md) for why Ed25519 first, why a CLI flag
+rather than a key registry, and why this needed no schema change.
+
+- New fixtures: `examples/integrity/valid/signed-event-ed25519.json`,
+  `examples/integrity/invalid/tampered-signed-event.json`,
+  `examples/integrity/invalid/unsupported-signature-algorithm.json`, and the TEST-ONLY public key they
+  verify against at `examples/integrity/keys/ed25519-test-public.pem`.
+
+## 0.1.1 - 2026-08-04
 
 ### Fixed — the published package's own README said it was not published
 
