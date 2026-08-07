@@ -157,6 +157,50 @@ changes, privileged operations, data access, data modification, configuration ch
 approvals, delegation, impersonation, administrative actions, security-relevant actions, external
 data sharing, resource lifecycle operations, and deployment and operational changes.
 
+## Has this been tried before?
+
+Yes, several times, and by serious people. This project is not the first attempt to give audit
+events a common shape, and the reason for another one is narrower than "there wasn't a standard".
+
+**XDAS** (The Open Group, 1998) defined a set of generic events and a portable audit record format
+so that records from different components of a distributed system could be merged and analysed
+together. It remained a Preliminary Specification.
+
+**CEE** (MITRE) is the closest predecessor in shape. It defined an Event Taxonomy, a Field
+Dictionary, an Event Schema with extensions, and Event Profiles — customizable extensions of the
+schema for a particular need — together with JSON and XML encodings and a transport layer that
+covered secure logging and verifiable record logs. That is close enough to this project's structure
+that it should be said plainly rather than discovered. MITRE stopped all work on CEE in 2014 when
+its sponsor's funding ended, and keeps the site as an archive. It stopped for want of funding, not
+because the idea was wrong.
+
+**CADF** (DMTF DSP0262) is a full audit event model: schema definitions, extensible taxonomies, and
+interfaces for federating event records between providers. Its framing — initiator, action, target,
+outcome, observer — is reflected here. Its target is cloud and service-provider auditing.
+
+**OCSF** is the active one, describing itself as an extensible framework for developing schemas with
+a vendor-agnostic core security schema, initially focused on cybersecurity events. It has real
+adoption across security vendors.
+
+### So why another one?
+
+Not because those are wrong, and not because a schema is a novel idea. The differences are of focus:
+
+- **The subject is a business operation, not security telemetry or a control-plane action.** The
+  questions this model insists on — who authorized it, who approved it, on whose behalf it was done,
+  why, and what the record looked like before and after — are the ones that come up when a business
+  application is audited, and they are peripheral in models built for other domains.
+- **Conformance is testable rather than asserted.** A canonical JSON Schema, published fixtures and a
+  validator mean a producer can be shown to conform, or shown not to, before the data is retained for
+  years. Profiles add requirements for a domain and are structurally unable to relax the core.
+- **The specification is reachable by the tooling that writes the code.** Much of this instrumentation
+  is now written with a coding agent in the loop, and an agent that can query the model, generate an
+  event against it, validate the result and check it for leaked credentials is a different proposition
+  from a specification document it has to be told about.
+
+None of those parts is individually novel. The combination, and the narrowness of the target, are the
+bet this project is making.
+
 ## Why is an audit event different from an application debug log?
 
 An application log line says:
@@ -215,7 +259,7 @@ OpenAuditModel complements existing standards rather than reinventing them. None
 | **OpenTelemetry**             | MAY be used for telemetry transport, collection and trace correlation.           |
 | **ECS**                       | Supported through an informative export mapping.                                 |
 | **OCSF**                      | Supported through an informative security-event mapping.                         |
-| **CADF**                      | A conceptual reference for audit semantics.                                      |
+| **CADF**                      | A DMTF audit event standard. Prior art; not an export target in v0.1.            |
 | **OSCAL**                     | May later be used for control and assessment mappings. Not addressed in v0.1.    |
 | **JSON Schema Draft 2020-12** | Defines the canonical machine-verifiable structure.                              |
 
@@ -238,9 +282,11 @@ event is valid standalone. See [mappings/cloudevents.md](mappings/cloudevents.md
 
 ### Specifically, ECS, OCSF and CADF
 
-ECS is a field vocabulary for search; OCSF is a schema for security telemetry; CADF is a conceptual
-model for cloud audit. OpenAuditModel exports to the first two and takes conceptual framing from the
-third. All three mappings are informative, one-directional, and honest about what does not map — see
+ECS is a field vocabulary for search; OCSF is a schema for security telemetry; CADF (DMTF DSP0262) is
+a complete audit event model with its own schema definitions, taxonomies and federation interfaces,
+aimed at cloud and service-provider auditing. OpenAuditModel exports to the first two and takes
+conceptual framing from the third — the difference there is domain, not completeness. All three
+mappings are informative, one-directional, and honest about what does not map — see
 [mappings/](mappings/).
 
 ## Why is the model backend-independent?

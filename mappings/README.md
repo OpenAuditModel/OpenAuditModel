@@ -19,7 +19,7 @@ fully conforming.
 | [opentelemetry.md](opentelemetry.md) | OpenTelemetry         | OPTIONAL telemetry transport and trace correlation |
 | [ecs.md](ecs.md)                     | Elastic Common Schema | Export mapping                                     |
 | [ocsf.md](ocsf.md)                   | OCSF                  | Security-event mapping                             |
-| [cadf.md](cadf.md)                   | CADF                  | Conceptual reference for audit semantics           |
+| [cadf.md](cadf.md)                   | CADF                  | Prior art; a comparison, not a mapping             |
 
 OSCAL may later be supported for control and assessment mappings. It is not addressed in v0.1.
 
@@ -27,13 +27,13 @@ OSCAL may later be supported for control and assessment mappings. It is not addr
 
 Each of these standards solves a real problem, and none of them solves this one:
 
-| Standard      | What it standardizes                                             | What it leaves open                                           |
-| ------------- | ---------------------------------------------------------------- | ------------------------------------------------------------- |
-| CloudEvents   | The envelope around an event                                     | Everything inside the envelope                                |
-| OpenTelemetry | Telemetry transport, correlation and semantics for observability | Business audit semantics: approval, delegation, justification |
-| ECS           | A field vocabulary for search and analysis                       | Requirements: what a producer MUST record                     |
-| OCSF          | Security event classes and their attributes                      | Business operations that are not security telemetry           |
-| CADF          | A conceptual model for cloud audit                               | A modern, machine-verifiable schema and conformance tooling   |
+| Standard      | What it standardizes                                                 | What it leaves open                                                              |
+| ------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| CloudEvents   | The envelope around an event                                         | Everything inside the envelope                                                   |
+| OpenTelemetry | Telemetry transport, correlation and semantics for observability     | Business audit semantics: approval, delegation, justification                    |
+| ECS           | A field vocabulary for search and analysis                           | Requirements: what a producer MUST record                                        |
+| OCSF          | Security event classes and their attributes                          | Business operations that are not security telemetry                              |
+| CADF          | A cloud audit event model, with taxonomies and federation interfaces | Business-application semantics, and conformance tooling that makes them testable |
 
 OpenAuditModel standardizes **what a business application must record about an auditable operation**,
 and makes that machine-verifiable. It defines no transport, so it can travel over any of these.

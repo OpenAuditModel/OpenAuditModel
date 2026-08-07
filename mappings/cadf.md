@@ -1,10 +1,14 @@
 # CADF Comparison
 
-**Status: Informative. CADF is a conceptual reference, not an export target in v0.1.**
+**Status: Informative. CADF is prior art this model draws on, not an export target in v0.1.**
 
-The Cloud Auditing Data Federation defines a conceptual model for cloud audit events. Its central
-insight — that an audit event is fundamentally _initiator, action, target, outcome, observer_ — is
-correct and is reflected in this model.
+The Cloud Auditing Data Federation (DMTF DSP0262) is a full audit event model: a data format with
+schema definitions, extensible taxonomies for actions, outcomes and resource types, and interfaces
+for submitting, querying and federating event records. It is a standard rather than a set of ideas,
+and it predates this work by roughly a decade.
+
+Its central insight — that an audit event is fundamentally _initiator, action, target, outcome,
+observer_ — is correct and is reflected in this model.
 
 This document is a **comparison**, not a mapping. It explains what OpenAuditModel took from CADF's
 conceptual framing and where it deliberately differs.
