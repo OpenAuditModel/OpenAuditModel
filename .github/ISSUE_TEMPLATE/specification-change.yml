@@ -1,0 +1,116 @@
+name: Specification change
+description: Propose a change to the model, a core field, a constraint or a semantic convention
+title: "[spec] "
+labels: ["specification", "needs-discussion"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Specification changes follow an RFC-like process: the problem and the compatibility impact
+        matter more than the proposed wording.
+
+        Please read
+        [design-principles.md](../blob/main/specification/design-principles.md) first. Most proposals
+        are decided on the design principles, and the core is deliberately small — proposals for new
+        core fields are usually redirected to a semantic convention, a profile or an extension.
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of change
+      options:
+        - New core field
+        - Change to an existing core field
+        - New or changed constraint
+        - Vocabulary change (open or closed)
+        - New or changed semantic convention
+        - Specification text correction or clarification
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What question cannot be answered today?
+      description: Describe the problem in terms of what a reviewer, investigator or consumer cannot determine from a conforming event.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Include the schema fragment where applicable, and state whether any vocabulary is open or closed.
+      render: json
+    validations:
+      required: true
+
+  - type: textarea
+    id: generality
+    attributes:
+      label: Evidence of generality
+      description: |
+        For a new core field, name at least three unrelated application domains that need it, with a
+        concrete scenario for each. For a convention, name at least two independent applications that
+        would emit it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Why are metadata, extensions and a profile insufficient?
+      description: |
+        Required for any proposal that adds to the core model. Explain what is lost if the concept
+        lives in `metadata`, in a reverse-domain `extensions` key, or as a profile requirement.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: compatibility
+    attributes:
+      label: Compatibility impact
+      description: See the compatibility table in CONTRIBUTING.md.
+      options:
+        - Compatible — optional field or open vocabulary addition
+        - Compatible for producers only — closed enum addition
+        - Breaking — new required field or conditional requirement
+        - Breaking — tightened constraint
+        - Breaking — renamed or removed field
+        - Changes the meaning of an existing field or event name
+    validations:
+      required: true
+
+  - type: textarea
+    id: existing-events
+    attributes:
+      label: What happens to existing conforming events?
+      description: Describe what an event that is valid today would do under the proposed schema.
+    validations:
+      required: true
+
+  - type: textarea
+    id: tests
+    attributes:
+      label: Conformance tests
+      description: |
+        Which tests and fixtures would prove this works? A constraint needs at least one negative
+        fixture that fails for exactly the intended reason.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: neutrality
+    attributes:
+      label: Neutrality
+      description: The core model excludes these without exception.
+      options:
+        - label: This change introduces no product-specific or company-specific concept.
+          required: true
+        - label: This change introduces no country-specific or jurisdiction-specific concept.
+          required: true
+        - label: This change introduces no regulation-specific or control-framework-specific concept.
+          required: true
+        - label: This change requires no specific backend, transport, database, SIEM or policy engine.
+          required: true

@@ -1,0 +1,99 @@
+name: Bug report
+description: A defect in the schema, the conformance tooling, the examples or the specification text
+title: "[bug] "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a defect.
+
+        **Do not report security issues here.** See [SECURITY.md](../blob/main/SECURITY.md).
+
+        For a proposed change to the model itself, use the *Specification change* template instead.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of the project is affected?
+      options:
+        - Canonical schema (schemas/v0.1/audit-event.schema.json)
+        - Conformance CLI (auditmodel)
+        - Conformance tests
+        - Examples and fixtures
+        - Specification text
+        - Semantic conventions
+        - Mappings
+        - Build, tooling or CI
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: What is wrong?
+      description: A clear description of the defect.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How can it be reproduced?
+      description: |
+        Commands, and a minimal audit event document if the defect involves validation.
+        Please redact any real data — this is a public tracker.
+      placeholder: |
+        1. Save this event as event.json:
+           { "specVersion": "0.1", ... }
+        2. Run: npm run auditmodel -- validate event.json
+        3. Observe: ...
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+      description: Where possible, quote the specification section that says so.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead?
+      render: text
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: The specification version, repository version or commit SHA.
+      placeholder: "0.1 / 0.1.0 / 262a3e2"
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Node.js version and operating system, if relevant to the defect.
+      placeholder: "Node 22.11.0, Ubuntu 24.04"
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I have searched existing issues for a duplicate.
+          required: true
+        - label: This is not a security vulnerability report.
+          required: true
+        - label: My example contains no real credentials or personal data.
+          required: true

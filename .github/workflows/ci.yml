@@ -1,0 +1,433 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  conformance:
+    name: Conformance (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    # The suite runs offline in seconds. A job that reaches this bound is stuck,
+    # not slow, and should stop rather than hold a runner for the six-hour default.
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ["22.x", "24.x"]
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Install dependencies from the lock file
+        run: npm ci
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Confirm the built site matches the repository
+        # The site republishes the canonical schemas at the URLs their own $id
+        # declares. A hand-edited second copy would drift silently and only be
+        # noticed by a consumer dereferencing an identifier.
+        run: |
+          npm run site:build
+          npm run site:check
+
+      - name: Confirm the generated MCP artifacts are current
+        # Checked on every pull request rather than only at publish time: a
+        # stale validator would make the server disagree with the CLI, which is
+        # exactly the drift the precompiled artifact exists to prevent.
+        run: npm run mcp:check-generated
+
+      - name: Build the CLI and tests
+        run: npm run build
+
+      - name: Validate the canonical JSON Schema
+        run: node --test dist/conformance/tests/schema-validation.test.js
+
+      - name: Run the conformance test suite
+        run: node --test "dist/conformance/tests/*.test.js"
+
+      - name: Run the MCP server test suite
+        run: node --test "dist/mcp/tests/*.test.js"
+
+      - name: Validate every valid example
+        run: node dist/conformance/src/cli.js validate examples/valid
+
+      - name: Confirm the integrity fixtures match their generator
+        run: node dist/conformance/tools/generate-integrity-fixtures.js --check
+
+      - name: Verify the integrity of every sealed example
+        run: |
+          node dist/conformance/src/cli.js verify-integrity examples/integrity/valid
+          node dist/conformance/src/cli.js verify-integrity examples/integrity/valid/three-event-chain
+          node dist/conformance/src/cli.js verify-integrity examples/valid/privileged-configuration-change.json
+
+      - name: Verify a well-formed chain
+        run: node dist/conformance/src/cli.js verify-chain examples/integrity/valid/three-event-chain
+
+      - name: Verify an Ed25519-signed event with the test public key
+        run: |
+          node dist/conformance/src/cli.js verify-integrity \
+            examples/integrity/valid/signed-event-ed25519.json \
+            --public-key examples/integrity/keys/ed25519-test-public.pem
+
+      - name: Confirm every tampered fixture fails verification
+        # The public key is supplied because two fixtures are signature cases:
+        # a tampered-but-declared signature and an unimplemented algorithm.
+        # Without a key, a declared signature is not checked at all, and the
+        # unimplemented-algorithm fixture verifies clean.
+        run: |
+          set -u
+          status=0
+          for file in examples/integrity/invalid/*.json; do
+            if node dist/conformance/src/cli.js verify-integrity "$file" \
+              --public-key examples/integrity/keys/ed25519-test-public.pem --quiet; then
+              echo "::error file=$file::expected this event to fail integrity verification, but it passed"
+              status=1
+            else
+              echo "ok (expected failure): $file"
+            fi
+          done
+          for directory in examples/integrity/invalid/*/; do
+            if node dist/conformance/src/cli.js verify-chain "$directory" --quiet; then
+              echo "::error::expected chain $directory to fail verification, but it passed"
+              status=1
+            else
+              echo "ok (expected failure): $directory"
+            fi
+          done
+          exit "$status"
+
+      - name: Confirm every invalid example fails
+        run: |
+          set -u
+          status=0
+          for file in examples/invalid/*.json; do
+            if node dist/conformance/src/cli.js validate "$file" --quiet; then
+              echo "::error file=$file::expected this example to fail validation, but it passed"
+              status=1
+            else
+              echo "ok (expected failure): $file"
+            fi
+          done
+          exit "$status"
+
+      - name: Privacy-lint every example that must be clean
+        run: |
+          node dist/conformance/src/cli.js lint-privacy examples/valid
+          node dist/conformance/src/cli.js lint-privacy examples/integrity/valid
+          node dist/conformance/src/cli.js lint-privacy examples/integrity/valid/three-event-chain
+          node dist/conformance/src/cli.js lint-privacy examples/privacy/clean
+
+      - name: Confirm every privacy finding fixture is reported
+        run: |
+          set -u
+          status=0
+          for file in examples/privacy/findings/*.json; do
+            if node dist/conformance/src/cli.js lint-privacy "$file" --quiet; then
+              echo "::error file=$file::expected this event to raise a privacy finding, but it was clean"
+              status=1
+            else
+              echo "ok (expected finding): $file"
+            fi
+          done
+          exit "$status"
+
+      - name: Confirm privacy output never contains a fixture value
+        run: |
+          set -u
+          report=$(node dist/conformance/src/cli.js lint-privacy examples/privacy/findings || true)
+          json=$(node dist/conformance/src/cli.js lint-privacy examples/privacy/findings --format json || true)
+          status=0
+          for marker in "synthetic-fixture-value-not-a-real-password" "SYNTHETICFIXTUREVALUE" "eyJhbGciOiJIUzI1NiI" "BEGIN PRIVATE KEY" "synthetic_password" "customerId"; do
+            case "$report$json" in
+              *"$marker"*)
+                echo "::error::privacy output leaked a fixture value"
+                status=1
+                ;;
+            esac
+          done
+          if [ "$status" -eq 0 ]; then echo "no fixture value appeared in privacy output"; fi
+          exit "$status"
+
+      - name: Check every implemented profile's fixtures
+        run: |
+          set -u
+          status=0
+          # Every implemented profile carries the same guarantees, so the checks
+          # are run over each rather than duplicated per profile.
+          for PROFILE in \
+            identity-and-access-management \
+            document-management \
+            incident-management \
+            message-broker-management \
+            deployment-and-change-management \
+            financial-transaction-management \
+            secrets-and-key-management \
+            customer-and-account-management \
+            backup-and-recovery \
+            api-and-integration-management; do
+          BASE=examples/profiles/$PROFILE
+
+          node dist/conformance/src/cli.js check-profile "$BASE/valid" --profile "$PROFILE"
+          node dist/conformance/src/cli.js validate "$BASE/valid" "$BASE/invalid" "$BASE/not-applicable"
+          node dist/conformance/src/cli.js lint-privacy "$BASE/valid"
+
+          for file in "$BASE"/invalid/*.json; do
+            if node dist/conformance/src/cli.js check-profile "$file" --profile "$PROFILE" --quiet; then
+              echo "::error file=$file::expected this event to violate the profile, but it conformed"
+              status=1
+            else
+              echo "ok (expected violation): $file"
+            fi
+          done
+
+          node dist/conformance/src/cli.js check-profile "$BASE/not-applicable" --profile "$PROFILE" && code=0 || code=$?
+          if [ "$code" -ne 3 ]; then
+            echo "::error::expected exit code 3 for a not-applicable event, got $code"
+            status=1
+          fi
+
+          node dist/conformance/src/cli.js check-profile "$BASE/valid" --profile no-such-profile && code=0 || code=$?
+          if [ "$code" -ne 2 ]; then
+            echo "::error::expected exit code 2 for an unknown profile, got $code"
+            status=1
+          fi
+          done
+
+          exit "$status"
+
+      - name: Smoke test the built CLI
+        run: |
+          node dist/conformance/src/cli.js --version
+          node dist/conformance/src/cli.js validate examples/valid/minimal-event.json
+          npm run auditmodel -- validate examples/valid/privileged-configuration-change.json
+
+      - name: Smoke test the CLI exit codes
+        run: |
+          # `&& code=0 || code=$?` keeps a non-zero exit from aborting the step.
+          node dist/conformance/src/cli.js validate examples/invalid/missing-actor.json && code=0 || code=$?
+          if [ "$code" -ne 1 ]; then
+            echo "::error::expected exit code 1 for an invalid event, got $code"
+            exit 1
+          fi
+          node dist/conformance/src/cli.js validate examples/valid/does-not-exist.json && code=0 || code=$?
+          if [ "$code" -ne 2 ]; then
+            echo "::error::expected exit code 2 for an unreadable path, got $code"
+            exit 1
+          fi
+          echo "exit codes are as documented"
+
+  clean-clone:
+    name: Clean clone works
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22.x"
+          cache: npm
+
+      - name: Install and verify exactly as a new contributor would
+        run: |
+          npm ci
+          npm run verify
+
+  package:
+    name: Published CLI works for a consumer
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24.x"
+          cache: npm
+
+      - name: Install dependencies from the lock file
+        run: npm ci
+
+      - name: Pack, install into a clean directory and drive the installed binary
+        # Catches the failure class no in-repo test can see: a path that resolves
+        # in the checkout and nowhere else. `files` omitted profiles/ for the
+        # whole of v0.1's development and every test still passed.
+        run: npm run package:smoke
+
+  container:
+    name: Container builds and serves MCP
+    runs-on: ubuntu-latest
+    # Build, health wait, protocol tests and two vulnerability scans. The health
+    # loop polls for 30s and the scans fetch a database, so this is the slowest job.
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        # Only to run the smoke test against the container. Nothing is installed
+        # from npm in this job: the image carries its own dependencies.
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24.x"
+
+      - name: Build the image
+        # The documented build command, with an ephemeral tag. Plain `docker
+        # build` rather than a build-and-push action: there is no registry, and
+        # running exactly what the deployment documentation tells an operator to
+        # run is what keeps the two from drifting. Nothing is ever pushed.
+        run: |
+          docker build \
+            --tag openauditmodel-mcp:ci \
+            --file Dockerfile \
+            .
+
+      - name: Start it with the hardening the deployment documentation prescribes
+        run: |
+          docker run -d --name mcp-ci \
+            -p 127.0.0.1:3000:3000 \
+            -e OAM_ALLOWED_ORIGINS=https://openauditmodel.org \
+            --read-only --cap-drop ALL --security-opt no-new-privileges:true \
+            openauditmodel-mcp:ci
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/health >/dev/null 2>&1; then
+              echo "healthy"; exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::the container never became healthy"
+          docker logs mcp-ci
+          exit 1
+
+      - name: Confirm it runs as a non-root user that cannot write
+        run: |
+          set -u
+          status=0
+          uid=$(docker exec mcp-ci id -u)
+          if [ "$uid" = "0" ]; then
+            echo "::error::the container runs as root"
+            status=1
+          fi
+          if docker exec mcp-ci sh -c 'touch /app/probe' 2>/dev/null; then
+            echo "::error::the root filesystem is writable"
+            status=1
+          fi
+          # A production container has no reason to be able to install anything.
+          for manager in npm npx yarn corepack; do
+            if docker exec mcp-ci sh -c "command -v $manager" >/dev/null 2>&1; then
+              echo "::error::$manager is present in the runtime image"
+              status=1
+            fi
+          done
+          exit "$status"
+
+      - name: Confirm the image carries no source, test or fixture
+        run: |
+          set -u
+          status=0
+          for pattern in "*.ts" "*.map"; do
+            count=$(docker run --rm --entrypoint sh openauditmodel-mcp:ci \
+              -c "find /app/dist -name '$pattern' | wc -l")
+            if [ "$count" != "0" ]; then
+              echo "::error::$count files matching $pattern reached the image"
+              status=1
+            fi
+          done
+          for directory in tests examples schemas; do
+            count=$(docker run --rm --entrypoint sh openauditmodel-mcp:ci \
+              -c "find /app -type d -name '$directory' -not -path '*/node_modules/*' | wc -l")
+            if [ "$count" != "0" ]; then
+              echo "::error::a $directory directory reached the image"
+              status=1
+            fi
+          done
+          exit "$status"
+
+      - name: Serve MCP over Streamable HTTP
+        # The same script an operator runs against their own deployment, so CI
+        # and a production smoke test cannot drift apart.
+        run: node deploy/smoke-test.mjs http://127.0.0.1:3000
+
+      - name: Confirm the logs carry no event content
+        run: |
+          if docker logs mcp-ci 2>&1 | grep -qiE '"(actor|resource|outcome|event|digest)"'; then
+            echo "::error::an application log line carried event content"
+            docker logs mcp-ci
+            exit 1
+          fi
+          echo "ok: logs carry only allowlisted fields"
+
+      - name: Shut down on SIGTERM rather than being killed
+        run: |
+          set -u
+          start=$(date +%s)
+          docker stop -t 20 mcp-ci >/dev/null
+          elapsed=$(( $(date +%s) - start ))
+          code=$(docker inspect mcp-ci --format '{{.State.ExitCode}}')
+          if [ "$code" != "0" ]; then
+            echo "::error::the container exited with $code rather than shutting down cleanly"
+            exit 1
+          fi
+          if [ "$elapsed" -ge 20 ]; then
+            echo "::error::SIGTERM was ignored and the container was killed after ${elapsed}s"
+            exit 1
+          fi
+          echo "ok: exited cleanly in ${elapsed}s"
+
+      - name: Scan the image for vulnerabilities that have a fix
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: openauditmodel-mcp:ci
+          scanners: vuln
+          severity: CRITICAL,HIGH
+          # Only findings an upgrade could actually resolve fail the build. The
+          # Debian base carries CVEs marked will_not_fix or fix_deferred that no
+          # action here can clear, and failing on those would train everyone to
+          # ignore this step rather than read it.
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+
+      - name: Report every finding, including the ones with no fix
+        # Informational: never fails the build, so the unfixable base-image
+        # findings stay visible instead of being silently tolerated.
+        if: always()
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: openauditmodel-mcp:ci
+          scanners: vuln
+          severity: CRITICAL,HIGH
+          ignore-unfixed: false
+          exit-code: "0"
+          format: table

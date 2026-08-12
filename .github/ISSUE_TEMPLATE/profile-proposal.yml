@@ -1,0 +1,108 @@
+name: Profile proposal
+description: Propose an optional domain profile that adds stricter requirements on top of the core model
+title: "[profile] "
+labels: ["profile", "needs-discussion"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A profile adds requirements for one domain. It may require fields the core leaves optional;
+        it may never relax the core, add top-level properties, redefine a core field, or introduce
+        product, company, country or regulation specific fields.
+
+        See [ADR 0005](../blob/main/decisions/0005-core-and-profile-separation.md) and
+        [profiles/README.md](../blob/main/profiles/README.md).
+
+        The most common reason a proposal is declined is that it is one product's field list wearing
+        a domain's name.
+
+  - type: input
+    id: domain
+    attributes:
+      label: Domain
+      description: The class of applications this profile covers.
+      placeholder: "Document management, incident management, message broker administration, ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: applications
+    attributes:
+      label: Which independent applications need this?
+      description: |
+        Name application categories or systems that are not related products from the same vendor. A
+        profile serves a domain, not a product.
+    validations:
+      required: true
+
+  - type: textarea
+    id: events
+    attributes:
+      label: Event families
+      description: The event names the profile would cover, following the rules in semantic-conventions/event-naming.md.
+      render: text
+      placeholder: |
+        document.share.create
+        document.share.revoke
+        document.retention.update
+    validations:
+      required: true
+
+  - type: textarea
+    id: requirements
+    attributes:
+      label: Additional requirements
+      description: |
+        Which core-optional fields would become REQUIRED, and for which event classes? Be specific:
+        "approval REQUIRED on destructive production operations", not "approval should be recorded".
+    validations:
+      required: true
+
+  - type: textarea
+    id: metadata
+    attributes:
+      label: Metadata fields
+      description: Which `metadata` fields would the profile define, and what does each mean?
+      render: text
+
+  - type: textarea
+    id: why-not-core
+    attributes:
+      label: Why can this not be met by the core plus a semantic convention?
+      description: A convention recommends; a profile requires. Explain why recommendation is insufficient here.
+    validations:
+      required: true
+
+  - type: textarea
+    id: fixtures
+    attributes:
+      label: Conformance fixtures
+      description: Which valid and invalid fixtures would the profile add, and what would each prove?
+    validations:
+      required: true
+
+  - type: textarea
+    id: open-questions
+    attributes:
+      label: Open questions
+      description: |
+        Where is the domain genuinely undecided? Honest open questions make a proposal stronger, not
+        weaker.
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Profile constraints
+      options:
+        - label: This profile relaxes no core requirement.
+          required: true
+        - label: This profile adds no top-level property.
+          required: true
+        - label: This profile redefines no core field.
+          required: true
+        - label: This profile introduces no product-specific or company-specific field.
+          required: true
+        - label: This profile introduces no country-specific or regulation-specific field.
+          required: true
+        - label: Every profile-conforming event would also be a core-conforming event.
+          required: true
