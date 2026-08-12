@@ -2,12 +2,14 @@
 
 ## Supported versions
 
-| Version | Status                                 |
-| ------- | -------------------------------------- |
-| 0.1     | Experimental. Fixes applied to `main`. |
+| Version | Status                                                                     |
+| ------- | -------------------------------------------------------------------------- |
+| 0.2.x   | Current release (conformance CLI and MCP server). Fixes applied to `main`. |
+| 0.1.x   | Superseded. No fixes; upgrade to the current release.                      |
 
-OpenAuditModel v0.1 is **experimental and not production-ready**. There are no released production
-SDKs, and no long-term support commitment.
+The repository version above is the tooling release. The **specification** version is `0.1` and is
+unchanged by tooling releases. Both are **experimental and not production-ready**. There are no
+released production SDKs, and no long-term support commitment.
 
 ## Reporting a vulnerability
 
