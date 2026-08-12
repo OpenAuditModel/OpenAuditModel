@@ -3,12 +3,39 @@
 All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This project uses a
-specification version (`0.1`) and a repository version, tracked in `package.json`; they are aligned
-during the experimental phase.
+specification version (`0.1`) and a repository version, tracked in `package.json`. The repository
+version moves with the tooling; the specification version changes only when the schema or a
+normative document changes meaning, and the two are stated separately in every release note.
 
 While the project is **Experimental**, breaking changes are possible in any release and are labelled
 as such. A change that alters the meaning of an existing field or event name is never acceptable — a
 new name is introduced instead.
+
+## 0.2.1 - 2026-08-12
+
+Specification `0.1`, unchanged. Repository `0.2.1`. Documentation only; no behaviour changes.
+
+### Added — prior art
+
+The README gained a prior-art section, and the description of CADF was corrected in the README and
+both CADF mappings documents: DSP0262 is a full event model with schema definitions, taxonomies and
+federation interfaces, not only a conceptual reference. Merged after 0.2.0 was tagged; recorded
+here.
+
+### Fixed — documentation
+
+- `specification/integrity.md` §2 still said signature verification is not part of v0.1,
+  contradicting §6.1 and §9 of the same document after 0.2.0 shipped Ed25519 verification. It now
+  states what the tooling does. The MCP resource manifest, which embeds the document, is
+  regenerated to match.
+- `SECURITY.md` described the public MCP endpoint as not yet deployed. It is deployed and
+  answering, as the README already said; the two documents now agree.
+- The README's v0.1 inventory counted "127 rules" without qualification. 113 are error-severity;
+  14 are advisory warnings, which cannot fail conformance.
+- This changelog's preamble claimed the specification and repository versions are aligned. They
+  have differed since 0.2.0; the preamble now states the actual policy.
+- The supported-versions table in `SECURITY.md` names the current 0.2.x release line. Added after
+  the 0.2.0 tag; recorded here.
 
 ## 0.2.0 - 2026-08-05
 
