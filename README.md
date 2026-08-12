@@ -309,7 +309,7 @@ See [ADR 0003](decisions/0003-backend-and-transport-independence.md).
 specification/         15 normative documents defining the model
 schemas/v0.1/          the canonical JSON Schema (Draft 2020-12)
 semantic-conventions/  recommended event names and vocabularies
-profiles/              ten enforceable domain profiles, 127 rules
+profiles/              ten enforceable domain profiles, 127 rules (113 error-severity, 14 advisory)
 mappings/              informative mappings to CloudEvents, OTel, ECS, OCSF, CADF
 examples/              11 valid and 7 invalid conformance fixtures
 examples/integrity/    generated tamper-evidence fixtures, valid and invalid

@@ -56,10 +56,9 @@ unless you prefer otherwise.
 
 ## The remote MCP service
 
-The project intends to operate a public, unauthenticated MCP endpoint at
-`https://mcp.openauditmodel.org/mcp`. **It is not deployed yet**: nothing runs at that address and
-the DNS record has not been created. The threat model below describes what that endpoint will be
-when it is stood up, because it is the only component that would accept data from strangers.
+The project operates a public, unauthenticated MCP endpoint at
+`https://mcp.openauditmodel.org/mcp`. The threat model below describes that endpoint, because it is
+the only component that accepts data from strangers.
 
 **Never put a production audit event, a real credential or personal data into a public bug report,
 a GitHub issue, or a reproduction fixture.** If a defect needs an event to reproduce, construct a

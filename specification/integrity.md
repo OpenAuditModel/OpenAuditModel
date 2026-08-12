@@ -31,7 +31,8 @@ without it is fully conforming. When the object is present it MUST contain at le
 | `signature`        | Digital signature over the canonicalized event.                                |
 
 `signature` is an object requiring `algorithm` and `value`, and optionally `keyId`. `keyId` MUST NOT
-contain key material. Signature verification is **not** part of v0.1; see §9.
+contain key material. v0.1 tooling verifies Ed25519 signatures when a public key is supplied out of
+band; signing and key management are not part of v0.1. See §6.1 and §9.
 
 ### 2.1 What `batchId` is not
 
