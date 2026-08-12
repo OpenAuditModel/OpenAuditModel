@@ -406,7 +406,7 @@ jobs:
           echo "ok: exited cleanly in ${elapsed}s"
 
       - name: Scan the image for vulnerabilities that have a fix
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: openauditmodel-mcp:ci
           scanners: vuln
@@ -423,7 +423,7 @@ jobs:
         # Informational: never fails the build, so the unfixable base-image
         # findings stay visible instead of being silently tolerated.
         if: always()
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: openauditmodel-mcp:ci
           scanners: vuln
