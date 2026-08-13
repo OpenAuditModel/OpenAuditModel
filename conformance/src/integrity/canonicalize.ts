@@ -116,9 +116,15 @@ export function canonicalize(value: unknown): string {
   return canonical;
 }
 
-/** Returns the UTF-8 encoding of the RFC 8785 canonical form. */
-export function canonicalBytes(value: unknown): Buffer {
-  return Buffer.from(canonicalize(value), "utf8");
+const encoder = new TextEncoder();
+
+/**
+ * Returns the UTF-8 encoding of the RFC 8785 canonical form. `Uint8Array`
+ * rather than Node's `Buffer`, so the module runs identically in a browser
+ * bundle; every Node crypto API this project feeds it to accepts either.
+ */
+export function canonicalBytes(value: unknown): Uint8Array {
+  return encoder.encode(canonicalize(value));
 }
 
 /** True when this verifier implements the declared canonicalization. */

@@ -12,15 +12,19 @@
 |                           |                                                                  |
 | ------------------------- | ---------------------------------------------------------------- |
 | **Specification version** | 0.1                                                              |
+| **Tooling release**       | 0.3.0 — the CLI and MCP server, versioned in `package.json`      |
 | **Project status**        | **Experimental**                                                 |
 | **Production readiness**  | **Not production-ready**                                         |
 | **Compliance**            | **No compliance guarantee**                                      |
 | **Canonical schema**      | `https://openauditmodel.org/schemas/audit-event/0.1/schema.json` |
 | **License**               | Apache License 2.0                                               |
 
-Version 0.1 is an experimental specification. Field names, constraints, vocabularies and the
-compatibility strategy may all change. Nothing here constitutes legal advice, and conformance to this
-specification is not compliance with any law, regulation, standard or contract.
+The two versions move independently: tooling releases ship fixes and commands without touching the
+model, and the specification version changes only when the schema or a normative document changes
+meaning. Every release note states both. Version 0.1 is an experimental specification. Field names,
+constraints, vocabularies and the compatibility strategy may all change. Nothing here constitutes
+legal advice, and conformance to this specification is not compliance with any law, regulation,
+standard or contract.
 
 ---
 
@@ -99,6 +103,10 @@ The same contract across every command, so a CI job can branch on it:
   The linter reads the locations the specification defines on an audit event; point it at an
   arbitrary application log and it has nowhere to look. It reports that plainly rather than
   reporting `clean`.
+- `verify-chain` returns it when **no event could be assigned to a chain**, so no chain was
+  checked. The per-event findings name why — most commonly a missing `integrity.chainId`,
+  `integrity.hash` or `sequence`, or a schema-invalid event. A set of events with no verifiable
+  chain is not a broken chain; it is a set nothing was proven about.
 
 ```bash
 # conforming → 0        the profile's rules were checked and passed
@@ -462,9 +470,11 @@ is not support, and an event declaring anything else is reported as unverifiable
 <path>`, a PEM-encoded Ed25519 public key — `ECDSA-P256-SHA256` and `RSA-PSS-SHA256` are
 schema-recommended but not yet implemented. It verifies over the same digest input as the hash, so a
 signed chain is exactly as tamper-evident as a hashed one. Without the flag, a declared signature is
-neither checked nor mentioned, and a signature currently requires an accompanying `hash` to be checked
-at all. There is no key registry: `keyId` is never dereferenced, and a verifying party supplies the key
-it already trusts. See [ADR 0012](decisions/0012-ed25519-signature-verification.md).
+reported as present but not checked — never silently passed over — and an algorithm this verifier
+does not implement fails verification whether or not a key is supplied. A signature currently
+requires an accompanying `hash` to be checked at all. There is no key registry: `keyId` is never
+dereferenced, and a verifying party supplies the key it already trusts. See
+[ADR 0012](decisions/0012-ed25519-signature-verification.md).
 
 ```bash
 auditmodel verify-integrity examples/integrity/valid/signed-event-ed25519.json \

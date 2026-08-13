@@ -324,3 +324,20 @@ describe("published chain fixtures", () => {
     assert.equal(chainKinds(report).filter((kind) => kind === "hash-mismatch").length, 2);
   });
 });
+
+describe("signatures in chains", () => {
+  test("an unimplemented signature algorithm breaks the chain, with or without a key", () => {
+    // Seal first, then attach the signature: `integrity.signature` is excluded
+    // from the digest, so the hash stays valid and the signature alone fails.
+    const events = buildChain(2);
+    const signed = events[1] as Event;
+    integrityOf(signed)["signature"] = {
+      algorithm: "RSA-PSS-SHA256",
+      value: "c2lnbmF0dXJlLXZhbHVlLW5vdC1jaGVja2FibGU=",
+    };
+
+    const report = verify(events);
+    assert.equal(report.intact, false);
+    assert.ok(chainKinds(report).includes("unsupported-signature-algorithm"));
+  });
+});

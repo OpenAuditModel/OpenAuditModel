@@ -64,6 +64,18 @@ const PLANNED_COMMANDS = new Set(["check-coverage"]);
 
 const OUTPUT_FORMATS = new Set(["text", "json"]);
 
+/** Every implemented command, for diagnosing flags before dispatch. */
+const IMPLEMENTED_COMMANDS = new Set([
+  "validate",
+  "verify-integrity",
+  "verify-chain",
+  "lint-privacy",
+  "check-profile",
+]);
+
+/** The commands --format applies to; every other implemented command refuses the flag. */
+const FORMAT_COMMANDS = new Set(["lint-privacy", "check-profile"]);
+
 const USAGE = `auditmodel — OpenAuditModel conformance tooling (specification ${SPEC_VERSION}, experimental)
 
 Usage:
@@ -85,7 +97,9 @@ Options:
       --profile <name>                   Profile to check against (check-profile)
       --public-key <path>                PEM public key to verify integrity.signature against
                                           (verify-integrity, verify-chain). Ed25519 only in v0.1.
-                                          Without it, a declared signature is not checked.
+                                          Without it, a declared signature is reported but not
+                                          checked; an algorithm this verifier does not implement
+                                          fails verification either way.
 
 Exit codes:
   0  a verdict was produced and it passed
@@ -95,6 +109,8 @@ Exit codes:
   3  no verdict was produced, so nothing was approved:
        check-profile  no checked event is governed by the profile
        lint-privacy   the input is not an audit event and was NOT scanned
+       verify-chain   no event could be assigned to a chain, so no chain
+                      was checked
 
 Verification is tamper-evident, not tamper-proof: it detects modification of the
 events supplied to it. It cannot prove that events were never deleted, and it
@@ -381,9 +397,16 @@ function runVerifyChain(
   if (loaded.failures.length > 0) {
     return EXIT_ERROR;
   }
-  if (report.chains.length === 0 && report.unassigned.length === 0) {
-    process.stderr.write("auditmodel: no chains found in the given paths\n");
-    return EXIT_INVALID;
+  if (report.chains.length === 0) {
+    // No chain was evaluated, so there is nothing to pass or fail. Reporting
+    // this as a failed verdict would make "nothing was checked" indistinguishable
+    // from "a chain was checked and is broken". The per-event findings above
+    // name why each event could not join a chain — a missing chainId, a missing
+    // sequence, or a schema-invalid event.
+    process.stderr.write(
+      "auditmodel: no chain was verified: no event could be assigned to a chain (the findings above name why)\n",
+    );
+    return EXIT_NO_VERDICT;
   }
   return report.intact ? EXIT_OK : EXIT_INVALID;
 }
@@ -612,7 +635,10 @@ export function run(argv: readonly string[]): number {
         help: { type: "boolean", short: "h", default: false },
         version: { type: "boolean", default: false },
         quiet: { type: "boolean", short: "q", default: false },
-        format: { type: "string", default: "text" },
+        // No default here: "was --format passed at all" must stay observable,
+        // because commands that do not support it refuse it. The textual
+        // default is applied where the value is read.
+        format: { type: "string" },
         profile: { type: "string" },
         "public-key": { type: "string" },
       },
@@ -647,6 +673,21 @@ export function run(argv: readonly string[]): number {
   if (!OUTPUT_FORMATS.has(format)) {
     process.stderr.write(
       `auditmodel: unknown output format "${format}"; expected ${[...OUTPUT_FORMATS].join(" or ")}\n`,
+    );
+    return EXIT_ERROR;
+  }
+
+  // --format is honest: a command that would ignore it refuses it instead.
+  // Accepting the flag and silently emitting text taught a CI author that
+  // their pipeline was consuming JSON when it never was. Unknown and planned
+  // commands fall through to their own diagnosis, which is the useful one.
+  if (
+    typeof values.format === "string" &&
+    IMPLEMENTED_COMMANDS.has(command) &&
+    !FORMAT_COMMANDS.has(command)
+  ) {
+    process.stderr.write(
+      `auditmodel: --format is not supported by "${command}"; it applies to ${[...FORMAT_COMMANDS].join(" and ")}\n`,
     );
     return EXIT_ERROR;
   }

@@ -285,15 +285,20 @@ mixed algorithms and unsupported algorithms.
 
 Both commands accept `--public-key <path>`, a PEM-encoded Ed25519 public key. When it is supplied and
 an event declares `integrity.signature`, the signature is verified against the same digest input as
-the hash; without it, a declared signature is neither checked nor reported on, which keeps every
-example above byte-for-byte the same whether or not an event happens to carry one:
+the hash. Without it, `verify-integrity` reports a declared signature in an implemented algorithm as
+present but not checked — the verdict rests on the hash alone, and silence never stands in for a
+check; `verify-chain` reports chain-level checks, not per-event ones. A declared
+signature in an algorithm this verifier does not implement fails verification whether or not a key is
+supplied, as §6.1 requires: a signature that can never be checked here must not read as verified.
 
 ```bash
 auditmodel verify-integrity examples/integrity/valid/signed-event-ed25519.json \
   --public-key examples/integrity/keys/ed25519-test-public.pem
 ```
 
-Exit codes are `0` verified, `1` a verification failed, `2` a usage, read or parse error.
+Exit codes are `0` verified, `1` a verification failed, `2` a usage, read or parse error, and — for
+`verify-chain` — `3` when no event could be assigned to a chain, so no chain was checked and
+nothing was proven.
 
 **Implemented in v0.1:** Ed25519 signature verification, given a public key supplied out of band —
 there is no key registry to resolve `keyId` against.

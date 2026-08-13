@@ -158,18 +158,18 @@ an operator runs cannot drift apart.
 
 ## Environment
 
-| Variable                | Default                                                     | Meaning                                                                  |
-| ----------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `PORT`                  | `3000`                                                      | Port **inside** the container. The host port is `OAM_MCP_PORT`.          |
-| `HOST`                  | `0.0.0.0`                                                   | Bind address.                                                            |
-| `OAM_ALLOWED_ORIGINS`   | `https://openauditmodel.org,https://www.openauditmodel.org` | Browser origins accepted on `/mcp`. A wildcard is rejected at startup.   |
-| `OAM_ALLOWED_HOSTS`     | _(unset — check disabled)_                                  | Hostnames this deployment answers on.                                    |
-| `OAM_TRUST_PROXY`       | `false`                                                     | Believe `X-Forwarded-Host`. Enable **only** behind a proxy that sets it. |
-| `OAM_MAX_REQUEST_BYTES` | `1000000`                                                   | Largest request body.                                                    |
-| `OAM_MAX_EVENT_BYTES`   | `256000`                                                    | Largest single event.                                                    |
-| `OAM_MAX_CHAIN_EVENTS`  | `200`                                                       | Events per `verify_chain` call.                                          |
-| `OAM_LOG_LEVEL`         | `info`                                                      | `debug`, `info`, `error` or `silent`.                                    |
-| `OAM_SHUTDOWN_GRACE_MS` | `10000`                                                     | Grace period for in-flight requests on SIGTERM.                          |
+| Variable                | Default                                                     | Meaning                                                                                                                                 |
+| ----------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`                  | `3000`                                                      | Port **inside** the container. The host port is `OAM_MCP_PORT`.                                                                         |
+| `HOST`                  | `0.0.0.0`                                                   | Bind address.                                                                                                                           |
+| `OAM_ALLOWED_ORIGINS`   | `https://openauditmodel.org,https://www.openauditmodel.org` | Browser origins accepted on `/mcp`. A wildcard is rejected at startup.                                                                  |
+| `OAM_ALLOWED_HOSTS`     | _(unset — loopback only)_                                   | Hostnames this deployment answers on. Unset accepts only `localhost`, `127.0.0.1` and `[::1]`; a public deployment must list its names. |
+| `OAM_TRUST_PROXY`       | `false`                                                     | Believe `X-Forwarded-Host`. Enable **only** behind a proxy that sets it.                                                                |
+| `OAM_MAX_REQUEST_BYTES` | `1000000`                                                   | Largest request body.                                                                                                                   |
+| `OAM_MAX_EVENT_BYTES`   | `256000`                                                    | Largest single event.                                                                                                                   |
+| `OAM_MAX_CHAIN_EVENTS`  | `200`                                                       | Events per `verify_chain` call.                                                                                                         |
+| `OAM_LOG_LEVEL`         | `info`                                                      | `debug`, `info`, `error` or `silent`.                                                                                                   |
+| `OAM_SHUTDOWN_GRACE_MS` | `10000`                                                     | Grace period for in-flight requests on SIGTERM.                                                                                         |
 
 Configuration is parsed and validated once at startup. An invalid value fails startup with exit code
 78 and a message naming the variable — never its value.

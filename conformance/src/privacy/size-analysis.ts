@@ -76,7 +76,9 @@ export function profileValue(value: unknown): SizeProfile {
 
   let serializedBytes: number;
   try {
-    serializedBytes = Buffer.byteLength(JSON.stringify(value) ?? "", "utf8");
+    // TextEncoder rather than Node's Buffer, so the module runs identically in
+    // a browser bundle. Both measure UTF-8 bytes.
+    serializedBytes = new TextEncoder().encode(JSON.stringify(value) ?? "").length;
   } catch {
     // A value that cannot be serialized cannot be measured; it is not reported.
     serializedBytes = 0;

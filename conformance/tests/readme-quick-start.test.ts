@@ -129,6 +129,19 @@ describe("the README quick start event", () => {
 });
 
 describe("the README documents the commands that exist", () => {
+  test("the tooling-release row in the status table matches package.json", () => {
+    const manifest = JSON.parse(
+      readFileSync(path.join(repoRoot, "package.json"), "utf8"),
+    ) as Record<string, unknown>;
+    const row = readme.match(/\*\*Tooling release\*\*\s*\|\s*([0-9]+\.[0-9]+\.[0-9]+)/);
+    assert.ok(row?.[1], "the README status table has no Tooling release row");
+    assert.equal(
+      row?.[1],
+      manifest["version"],
+      "the README's tooling-release version drifted from package.json",
+    );
+  });
+
   test("the package name in the quick start is the published package name", () => {
     const manifest = JSON.parse(
       readFileSync(path.join(repoRoot, "package.json"), "utf8"),

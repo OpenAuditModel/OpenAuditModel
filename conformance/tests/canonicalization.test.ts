@@ -140,7 +140,7 @@ describe("UTF-8 encoding", () => {
     // "é" is two UTF-8 bytes, so the byte length exceeds the character length.
     const bytes = canonicalBytes("é");
     assert.equal(bytes.length, 4); // quote, two bytes, quote
-    assert.equal(bytes.toString("utf8"), '"é"');
+    assert.equal(new TextDecoder().decode(bytes), '"é"');
   });
 
   test("a four-byte character is encoded as four bytes", () => {

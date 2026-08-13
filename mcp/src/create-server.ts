@@ -16,8 +16,8 @@ import { DEFAULT_EVENT_LIMITS, type EventLimits } from "./output-safety.js";
 export const SERVER_NAME = "openauditmodel";
 export const SERVER_TITLE = "OpenAuditModel";
 
-/** Repository version. Kept in step with the root package manifest. */
-export const SERVER_VERSION = "0.2.0";
+/** Repository version. A test asserts this matches the root package manifest. */
+export const SERVER_VERSION = "0.3.0";
 
 const INSTRUCTIONS = `OpenAuditModel: a common, verifiable and backend-independent audit event model for business applications.
 

@@ -94,10 +94,10 @@ jobs:
             --public-key examples/integrity/keys/ed25519-test-public.pem
 
       - name: Confirm every tampered fixture fails verification
-        # The public key is supplied because two fixtures are signature cases:
-        # a tampered-but-declared signature and an unimplemented algorithm.
-        # Without a key, a declared signature is not checked at all, and the
-        # unimplemented-algorithm fixture verifies clean.
+        # The public key is supplied so the two signature fixtures are exercised
+        # through the full verification path. Since 0.3.0 the unimplemented-
+        # algorithm fixture fails without a key too; the key keeps the checked
+        # surface as wide as a verifying consumer's.
         run: |
           set -u
           status=0

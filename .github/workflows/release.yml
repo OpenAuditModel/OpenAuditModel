@@ -1,0 +1,58 @@
+name: Release checks
+
+# Tag-driven: pushing vX.Y.Z runs every gate a fresh clone can run, and two
+# guards encode a lesson this project already paid for once — 0.2.0 was tagged
+# and published while its changelog section still said "Unreleased". A tag
+# whose version or changelog entry does not match is refused here rather than
+# papered over afterwards.
+#
+# Publishing to npm is deliberately manual until 1.0: a maintainer runs
+# `npm publish` after this workflow is green. Automated publishing with
+# provenance moves into this workflow at the 1.0 milestone.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify the tagged release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24.x"
+          cache: npm
+
+      - name: Confirm the tag matches package.json
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version=$(node -p "require('./package.json').version")
+          if [ "$tag" != "$version" ]; then
+            echo "::error::tag v$tag does not match package.json version $version"
+            exit 1
+          fi
+
+      - name: Confirm the changelog section for this version is dated
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if ! grep -qE "^## $version - [0-9]{4}-[0-9]{2}-[0-9]{2}$" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no dated \"## $version - YYYY-MM-DD\" section"
+            exit 1
+          fi
+
+      - name: Install dependencies from the lock file
+        run: npm ci
+
+      - name: Run every gate a fresh clone can run
+        run: npm run verify

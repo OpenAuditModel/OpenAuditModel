@@ -417,7 +417,7 @@ describe("signatures", () => {
   });
 
   describe("verifyEventIntegrity with publicKey", () => {
-    test("without a public key, a declared signature is neither checked nor mentioned", () => {
+    test("without a public key, a declared signature is reported as not checked", () => {
       const event = sealEvent(baseEvent());
       const signed = withSignature(event, {
         algorithm: "Ed25519",
@@ -425,6 +425,8 @@ describe("signatures", () => {
         keyId: "test-key-a",
       });
       const result = verifyEventIntegrity(signed, "event", validator);
+      // The hash was verified, so the verdict stands — but the declared
+      // signature is named as unchecked, so silence never reads as a check.
       assert.equal(result.verified, true);
       assert.deepEqual(
         result.checks.map((check) => check.message),
@@ -433,7 +435,26 @@ describe("signatures", () => {
           "canonicalization: RFC8785",
           "hash algorithm: SHA-256",
           "integrity hash valid",
+          "signature declared (Ed25519), not checked: no public key was supplied",
         ],
+      );
+    });
+
+    test("without a public key, an unimplemented signature algorithm still fails verification", () => {
+      const event = sealEvent(baseEvent());
+      const signed = withSignature(event, {
+        algorithm: "RSA-PSS-SHA256",
+        value: signWithKeyA(event),
+        keyId: "test-key-a",
+      });
+      const result = verifyEventIntegrity(signed, "event", validator);
+      // This verifier can never check this signature, key or no key. Reporting
+      // the event as verified would let the signature's presence stand in for
+      // a check that cannot happen (specification/integrity.md §6.1).
+      assert.equal(result.verified, false);
+      assert.deepEqual(
+        result.findings.map((finding) => finding.kind),
+        ["unsupported-signature-algorithm"],
       );
     });
 

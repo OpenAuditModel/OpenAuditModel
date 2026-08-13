@@ -1,6 +1,6 @@
 {
   "name": "@openauditmodel/cli",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Conformance toolchain for OpenAuditModel: validate audit events against the canonical JSON Schema, verify tamper-evidence, lint for leaked secrets and check domain profiles. Offline and deterministic.",
   "keywords": [
     "audit",
@@ -19,6 +19,14 @@
   "bin": {
     "auditmodel": "dist/conformance/src/cli.js",
     "openauditmodel": "dist/conformance/src/cli.js"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    "./conformance/*": "./dist/conformance/src/*",
+    "./schemas/*": "./schemas/*",
+    "./profiles/*": "./profiles/*",
+    "./semantic-conventions/*": "./semantic-conventions/*",
+    "./specification/*": "./specification/*"
   },
   "files": [
     "dist/conformance/src",
@@ -44,7 +52,7 @@
     "check:profile": "npm run build && node dist/conformance/src/cli.js check-profile examples/profiles/identity-and-access-management/valid --profile identity-and-access-management && node dist/conformance/src/cli.js check-profile examples/profiles/document-management/valid --profile document-management && node dist/conformance/src/cli.js check-profile examples/profiles/incident-management/valid --profile incident-management && node dist/conformance/src/cli.js check-profile examples/profiles/message-broker-management/valid --profile message-broker-management && node dist/conformance/src/cli.js check-profile examples/profiles/deployment-and-change-management/valid --profile deployment-and-change-management && node dist/conformance/src/cli.js check-profile examples/profiles/financial-transaction-management/valid --profile financial-transaction-management && node dist/conformance/src/cli.js check-profile examples/profiles/secrets-and-key-management/valid --profile secrets-and-key-management && node dist/conformance/src/cli.js check-profile examples/profiles/customer-and-account-management/valid --profile customer-and-account-management && node dist/conformance/src/cli.js check-profile examples/profiles/backup-and-recovery/valid --profile backup-and-recovery && node dist/conformance/src/cli.js check-profile examples/profiles/api-and-integration-management/valid --profile api-and-integration-management",
     "fixtures:integrity": "npm run build && node dist/conformance/tools/generate-integrity-fixtures.js && prettier --write examples/integrity",
     "fixtures:check": "npm run build && node dist/conformance/tools/generate-integrity-fixtures.js --check",
-    "verify": "npm run format:check && npm run lint && npm run test && npm run validate:valid && npm run verify:integrity && npm run lint:privacy && npm run check:profile",
+    "verify": "npm run format:check && npm run lint && npm run test && npm run validate:valid && npm run verify:integrity && npm run lint:privacy && npm run check:profile && npm run fixtures:check && npm run mcp:check-generated && npm run package:verify && npm run package:smoke",
     "mcp:generate": "npm run generate --workspace mcp",
     "mcp:check-generated": "npm run generate:check --workspace mcp",
     "mcp:start": "npm run build && node dist/mcp/src/index.js",

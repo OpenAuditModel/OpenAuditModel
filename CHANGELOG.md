@@ -11,6 +11,90 @@ While the project is **Experimental**, breaking changes are possible in any rele
 as such. A change that alters the meaning of an existing field or event name is never acceptable — a
 new name is introduced instead.
 
+## 0.3.0 - Unreleased
+
+Specification `0.1`, unchanged. Repository `0.3.0`.
+
+### Changed behaviour — a declared signature is never silently passed over
+
+**Breaking** for pipelines that relied on the old silence. Two cases now speak
+(specification/integrity.md §6.1 already required the second):
+
+- `verify-integrity` without `--public-key` now reports an event's declared signature in an
+  implemented algorithm as declared but not checked among its checks. The verdict is unchanged —
+  the hash was verified, the signature was never claimed to be — but silence no longer reads as a
+  check. (`verify-chain` prints chain-level checks, not per-event ones, so this line appears in
+  `verify-integrity` output only.)
+- An event declaring a signature in an algorithm this verifier does not implement now **fails
+  verification with or without a key** (`[unsupported-signature-algorithm]`, exit `1`) — in
+  `verify-integrity`, and in `verify-chain`, where it breaks the event's chain. Previously it
+  failed only when a key was supplied; without one, the default invocation reported `verified` — a
+  signature that can never be checked was passing as if it had been.
+
+### Added — tag-driven release checks
+
+Pushing `vX.Y.Z` now runs every gate a fresh clone can run, plus two guards that encode a lesson
+this project paid for once: the workflow refuses a tag whose version does not match `package.json`,
+or whose changelog section is not dated — 0.2.0 was tagged and published while its changelog still
+said "Unreleased", and that class of mistake is now mechanical to catch. Publishing to npm remains
+deliberately manual until 1.0; automated publishing with provenance is planned to move into this
+workflow at that milestone.
+
+### Changed behaviour — MCP host validation is on by default
+
+**Breaking** for deployments that expose the server on a public name without setting
+`OAM_ALLOWED_HOSTS` — they now answer `403` until the variable lists their names. With
+`OAM_ALLOWED_HOSTS` unset, the MCP server used to answer on any host name; the documented
+posture existed only in the reference compose file. Unset now means **loopback only** —
+`localhost`, `127.0.0.1`, `[::1]` — so a bare `docker run` and a local start keep working with no
+configuration, and answering on a public name is something an operator states with
+`OAM_ALLOWED_HOSTS` rather than something the default hands out. Deployments that already set the
+variable, including the reference compose file, are unaffected. Also fixed while writing the first
+tests this check has had: a bracketed IPv6 `Host` such as `[::1]:8880` never had its port stripped,
+so it could never match an allowlist entry.
+
+### Changed — the package declares its import surface, and the analysis engines are browser-safe
+
+`package.json` gains an `exports` map. The analysis engines are importable as
+`@openauditmodel/cli/conformance/<module>` (for example
+`@openauditmodel/cli/conformance/privacy/lint-event.js`), and the schema, profile and specification
+documents keep their repository paths. **Breaking for deep-path importers:** the undeclared
+`@openauditmodel/cli/dist/…` paths that legacy resolution exposed no longer resolve. The surface is
+locked now, while the consumer set is plausibly empty, because adding `exports` later only gets more
+breaking.
+
+The three uses of Node's `Buffer` in the analysis engines are replaced with `TextEncoder`/`atob`
+equivalents that behave identically in Node. This matters more than it looks: both privacy-engine
+uses sat inside `try/catch`, so a browser bundle without `Buffer` did not fail — it silently
+downgraded a high-confidence JWT finding to a low-confidence entropy heuristic. A bundler can now
+take the engines as they are. `canonicalBytes` returns `Uint8Array` instead of `Buffer`; every Node
+crypto API this project feeds it to accepts either.
+
+### Changed behaviour — `--format` is refused where it is not supported
+
+**Breaking** for scripts that passed the flag to a command that ignored it. `--format` applies to
+`lint-privacy` and `check-profile`. `validate`, `verify-integrity` and
+`verify-chain` used to accept the flag and silently emit text anyway — so
+`auditmodel validate ./logs --format json` looked like a JSON pipeline and never was one. Those
+commands now refuse the flag with a usage error (exit `2`) naming the commands it applies to.
+
+### Changed behaviour — `verify-chain` exits `3` when no chain was checked
+
+**Breaking** for CI jobs that branch on the exit code. When no event in the input could be assigned
+to a chain — a missing `integrity.chainId`, `integrity.hash` or `sequence`, or a schema-invalid
+event — `verify-chain` used to exit `1`, reporting "nothing was checked" the same way as "a chain
+was checked and is broken". It now exits `3`, the documented no-verdict code, with a message
+pointing at the per-event findings that name why. A CI job that treats `1` as failure and `3` as
+not-applicable can now tell the two apart. The per-event findings themselves are unchanged.
+
+### Fixed — `npm run verify` covers every gate a fresh clone can run
+
+`verify` omitted four checks that existed and passed: `fixtures:check`, `mcp:check-generated`,
+`package:verify` and `package:smoke`. All four are now part of it, so the command CONTRIBUTING
+points a contributor at runs what CI runs. `site:check` is deliberately not included: it compares
+the built site against the untracked `site/` directory, which a fresh clone does not have; it runs
+in CI alongside `site:build` and belongs in the operator's pre-deploy checklist.
+
 ## 0.2.1 - 2026-08-12
 
 Specification `0.1`, unchanged. Repository `0.2.1`. Documentation only; no behaviour changes.

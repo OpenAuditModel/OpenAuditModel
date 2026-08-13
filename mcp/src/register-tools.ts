@@ -71,9 +71,10 @@ function requireProfile(name: string) {
 /**
  * Parses `publicKeyPem` into a key to verify `integrity.signature` against, or
  * `undefined` when the caller supplied none — in which case a declared
- * signature is neither checked nor reported on, exactly as the CLI behaves
- * without `--public-key`. The value is a PEM string, not a path: this server
- * touches no filesystem.
+ * signature in an implemented algorithm is reported as declared but not
+ * checked, and an unimplemented algorithm fails verification either way,
+ * exactly as the CLI behaves without `--public-key`. The value is a PEM
+ * string, not a path: this server touches no filesystem.
  *
  * On a parse failure the message is a fixed string, never `loadPublicKey`'s
  * own message: that message is Node's own OpenSSL decoder error, written by
@@ -164,7 +165,7 @@ export function registerTools(server: McpServer, limits: EventLimits = DEFAULT_E
     {
       title: "Verify an event's own digest",
       description:
-        "Recalculates an event's integrity digest and compares it with the declared hash. Tamper-evident, not tamper-proof: it detects modification of the event supplied, and proves nothing about deletion. Canonicalized content and digest input are never returned. Optionally accepts publicKeyPem, a PEM-encoded Ed25519 public key, to additionally verify integrity.signature over the same digest input; without it, a declared signature is neither checked nor mentioned. ECDSA-P256-SHA256 and RSA-PSS-SHA256 are not yet implemented.",
+        "Recalculates an event's integrity digest and compares it with the declared hash. Tamper-evident, not tamper-proof: it detects modification of the event supplied, and proves nothing about deletion. Canonicalized content and digest input are never returned. Optionally accepts publicKeyPem, a PEM-encoded Ed25519 public key, to additionally verify integrity.signature over the same digest input. Without it, a declared Ed25519 signature is reported as declared but not checked; a declared signature in an algorithm this verifier does not implement (such as ECDSA-P256-SHA256 or RSA-PSS-SHA256) fails verification whether or not a key is supplied.",
       inputSchema: z.object({ event: eventSchema, publicKeyPem: z.string().optional() }),
     },
     ({ event, publicKeyPem }) =>
@@ -194,7 +195,7 @@ export function registerTools(server: McpServer, limits: EventLimits = DEFAULT_E
     {
       title: "Verify previous-hash chains",
       description:
-        "Groups events by chain identifier, orders them by sequence and verifies every digest and link. Proves consistency of the supplied set only: an attacker who removes the end of a chain leaves something internally consistent. Optionally accepts publicKeyPem, a PEM-encoded Ed25519 public key, applied to every event's integrity.signature the same way verify_integrity applies it; without it, signatures are neither checked nor mentioned.",
+        "Groups events by chain identifier, orders them by sequence and verifies every digest and link. Proves consistency of the supplied set only: an attacker who removes the end of a chain leaves something internally consistent. Optionally accepts publicKeyPem, a PEM-encoded Ed25519 public key, applied to every event's integrity.signature the same way verify_integrity applies it; a declared signature in an unimplemented algorithm fails the event whether or not a key is supplied.",
       inputSchema: z.object({ events: z.array(eventSchema), publicKeyPem: z.string().optional() }),
     },
     ({ events, publicKeyPem }) =>

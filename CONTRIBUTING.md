@@ -43,7 +43,7 @@ npm run verify:integrity # verify the sealed examples and the published chain
 npm run lint:privacy     # privacy-lint every published example that should be clean
 npm run check:profile    # check the identity profile fixtures against their profile
 npm run mcp:check-generated # fail if the generated MCP artifacts are stale
-npm run verify           # everything above, in the order CI runs it
+npm run verify           # every check above, plus fixtures:check and the packaging checks
 ```
 
 Every published example outside `examples/privacy/findings` must produce **no** privacy findings. A
@@ -215,6 +215,19 @@ reason.
 6. Explain the reasoning in the pull request description. For a decision of consequence, add an ADR in
    [decisions/](decisions/) using the existing format: Status, Context, Decision, Consequences (with
    negatives stated honestly), Alternatives considered.
+
+## Releasing (maintainers)
+
+1. Date the version's section in `CHANGELOG.md` and bump `package.json` (and the lock file). The
+   release-checks workflow refuses a tag whose version or changelog entry does not match.
+2. Merge to `main` with CI green.
+3. Tag and push: `git tag -a vX.Y.Z -m "..." && git push origin vX.Y.Z`. The release-checks
+   workflow runs every gate a fresh clone can run against the tag.
+4. With the workflow green, publish by hand: `npm publish`. Publishing stays manual until 1.0;
+   automated publishing with provenance moves into the workflow at that milestone.
+5. Create the GitHub release from the tag, pasting the changelog section.
+6. Deploy the site and containers per [deploy/README.md](deploy/README.md); that step is manual and
+   operator-controlled by design.
 
 ## Licensing of contributions
 
