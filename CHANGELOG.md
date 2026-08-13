@@ -11,7 +11,7 @@ While the project is **Experimental**, breaking changes are possible in any rele
 as such. A change that alters the meaning of an existing field or event name is never acceptable — a
 new name is introduced instead.
 
-## 0.3.0 - Unreleased
+## 0.3.0 - 2026-08-13
 
 Specification `0.1`, unchanged. Repository `0.3.0`.
 
