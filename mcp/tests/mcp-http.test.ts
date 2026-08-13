@@ -8,6 +8,7 @@
 import assert from "node:assert/strict";
 import { generateKeyPairSync, sign as cryptoSign } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { request as httpRequest } from "node:http";
 import path from "node:path";
 import test, { after, before, describe } from "node:test";
 import { createHttpApplication } from "../src/http-server.js";
@@ -177,6 +178,60 @@ describe("origin validation", () => {
   });
 });
 
+describe("version coherence", () => {
+  test("the server's self-reported version matches the root package manifest", () => {
+    // Compiled tests run from dist/mcp/tests, so the repository root is three
+    // levels up, not two.
+    const rootManifest = JSON.parse(
+      readFileSync(path.join(import.meta.dirname, "..", "..", "..", "package.json"), "utf8"),
+    ) as { version: string };
+    assert.equal(SERVER_VERSION, rootManifest.version);
+  });
+});
+
+describe("host validation", () => {
+  /**
+   * `fetch` refuses to override the Host header, so these tests speak raw
+   * HTTP. The test server runs with no OAM_ALLOWED_HOSTS, which since 0.3.0
+   * means loopback names only — the request line below reaches 127.0.0.1
+   * either way; only the Host header differs.
+   */
+  function rawRequest(hostHeader: string): Promise<number> {
+    const url = new URL(origin);
+    return new Promise((resolve, reject) => {
+      const request = httpRequest(
+        {
+          host: url.hostname,
+          port: url.port,
+          method: "POST",
+          path: "/mcp",
+          headers: {
+            host: hostHeader,
+            "content-type": "application/json",
+            accept: "application/json, text/event-stream",
+          },
+        },
+        (response) => {
+          response.resume();
+          resolve(response.statusCode ?? 0);
+        },
+      );
+      request.on("error", reject);
+      request.end(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }));
+    });
+  }
+
+  test("a loopback Host is accepted with no allowlist configured", async () => {
+    const status = await rawRequest(`127.0.0.1:${new URL(origin).port}`);
+    assert.equal(status, 200);
+  });
+
+  test("a public Host is rejected with 403 when no allowlist is configured", async () => {
+    const status = await rawRequest("mcp.evil.example");
+    assert.equal(status, 403);
+  });
+});
+
 describe("protocol", () => {
   test("initialization reports the server identity", async () => {
     const result = await rpc("initialize", {
@@ -333,13 +388,15 @@ describe("tool parity with the conformance engines", () => {
     }
   });
 
-  test("verify_integrity: without publicKeyPem, a signed event verifies and the signature is not mentioned", async () => {
+  test("verify_integrity: without publicKeyPem, a signed event verifies and the signature is reported as not checked", async () => {
     const event = readEvent("examples/integrity/valid", "signed-event-ed25519.json");
     const actual = await callTool("verify_integrity", { event });
 
     assert.equal(actual["integrityValid"], true);
     assert.ok(
-      !(actual["checks"] as string[]).some((message) => message.includes("signature")),
+      (actual["checks"] as string[]).some((message) =>
+        message.includes("signature declared (Ed25519), not checked"),
+      ),
       JSON.stringify(actual["checks"]),
     );
   });

@@ -70,8 +70,17 @@ export function isOriginAllowed(origin: string | undefined, allowed: ReadonlySet
 }
 
 /**
+ * Host names a deployment answers on when `OAM_ALLOWED_HOSTS` is not set:
+ * loopback only. A bare `docker run` or a local `npm run mcp:start` works
+ * without configuration, and answering on a public name is something an
+ * operator states rather than something the default hands out.
+ */
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
+
+/**
  * Decides whether the request's host is one this deployment answers on.
  *
+ * With no `OAM_ALLOWED_HOSTS` configured, only loopback names are accepted.
  * `X-Forwarded-Host` is consulted **only** when the deployment declares itself
  * to be behind a trusted proxy. Believing a forwarded header by default would
  * let any client assert any host and defeat the check entirely; see the
@@ -81,9 +90,7 @@ export function isHostAllowed(
   headers: IncomingMessage["headers"],
   config: Pick<ServerConfig, "allowedHosts" | "trustProxy">,
 ): boolean {
-  if (config.allowedHosts.size === 0) {
-    return true;
-  }
+  const allowed = config.allowedHosts.size === 0 ? LOCAL_HOSTS : config.allowedHosts;
 
   const forwarded = config.trustProxy
     ? String(headers["x-forwarded-host"] ?? "")
@@ -98,8 +105,10 @@ export function isHostAllowed(
     return false;
   }
   // Compare without the port: a deployment is identified by its name.
-  const withoutPort = host.startsWith("[") ? host : (host.split(":")[0] ?? host);
-  return config.allowedHosts.has(withoutPort) || config.allowedHosts.has(host);
+  const withoutPort = host.startsWith("[")
+    ? host.replace(/\]:\d+$/, "]")
+    : (host.split(":")[0] ?? host);
+  return allowed.has(withoutPort) || allowed.has(host);
 }
 
 /** Reads a request body, refusing anything above the configured limit. */

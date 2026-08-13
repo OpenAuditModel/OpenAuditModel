@@ -14,7 +14,7 @@ export interface ServerConfig {
   readonly port: number;
   /** Origins a browser may use. Empty means no browser origin is accepted. */
   readonly allowedOrigins: ReadonlySet<string>;
-  /** Hostnames accepted in Host / X-Forwarded-Host. Empty disables the check. */
+  /** Hostnames accepted in Host / X-Forwarded-Host. Empty means loopback only. */
   readonly allowedHosts: ReadonlySet<string>;
   /** Whether X-Forwarded-Host may be believed. Only behind a trusted proxy. */
   readonly trustProxy: boolean;

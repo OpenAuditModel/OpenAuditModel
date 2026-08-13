@@ -15,7 +15,7 @@ import {
   isHexDigest,
   isSupportedHashAlgorithm,
 } from "./digest.js";
-import { verifyEventSignature } from "./signature.js";
+import { isSupportedSignatureAlgorithm, verifyEventSignature } from "./signature.js";
 import {
   SUPPORTED_CANONICALIZATIONS,
   SUPPORTED_HASH_ALGORITHMS,
@@ -29,9 +29,10 @@ export interface VerifyEventOptions {
   readonly validateSchema?: boolean;
   /**
    * Key to verify `integrity.signature` against, when present. Without it, a
-   * declared signature is neither checked nor reported on: v0.1 defines no
-   * key registry, so there is no key to try by default, and a signature this
-   * verifier was not asked to check is not evidence of anything.
+   * declared signature in an implemented algorithm is reported as declared
+   * but not checked — the verdict rests on the hash alone — and a declared
+   * signature in an unimplemented algorithm fails verification either way.
+   * v0.1 defines no key registry, so there is no key to try by default.
    */
   readonly publicKey?: KeyObject | undefined;
 }
@@ -277,10 +278,16 @@ export function verifyEventIntegrity(
 }
 
 /**
- * Checks `integrity.signature` when both a signature is declared and a public
- * key was supplied to verify it against. Returns `undefined` when there is
- * nothing to check — no signature, or no key to check it with — which the
- * caller treats as "does not change the verdict", not as a pass.
+ * Checks `integrity.signature`. Returns `undefined` only when no signature is
+ * declared. A declared signature is always reported on, one of three ways:
+ *
+ * - An algorithm this verifier does not implement fails verification with or
+ *   without a key: a signature that can never be checked here must not read as
+ *   verified (specification/integrity.md §6.1).
+ * - An implemented algorithm with no key supplied is reported as declared but
+ *   not checked, so silence never stands in for a check. The verdict is
+ *   unchanged: the hash was verified, the signature was not claimed to be.
+ * - An implemented algorithm with a key is verified.
  */
 function checkSignature(
   event: unknown,
@@ -291,8 +298,23 @@ function checkSignature(
   | { readonly ok: false; readonly kind: Finding["kind"]; readonly message: string }
   | undefined {
   const declared = readSignature(signature);
-  if (declared === undefined || publicKey === undefined) {
+  if (declared === undefined) {
     return undefined;
+  }
+
+  if (!isSupportedSignatureAlgorithm(declared.algorithm)) {
+    return {
+      ok: false,
+      kind: "unsupported-signature-algorithm",
+      message: `signature algorithm "${declared.algorithm}" is not implemented by this verifier`,
+    };
+  }
+
+  if (publicKey === undefined) {
+    return {
+      ok: true,
+      message: `signature declared (${declared.algorithm}), not checked: no public key was supplied`,
+    };
   }
 
   const result = verifyEventSignature(event, declared.algorithm, declared.value, publicKey);

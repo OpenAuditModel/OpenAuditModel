@@ -160,10 +160,22 @@ describe("verify-chain", () => {
     });
   }
 
-  test("exits 1 when events carry no chain identifier", () => {
+  test("exits 3 when events carry no chain identifier, because no chain was checked", () => {
     const result = auditmodel("verify-chain", VALID_EVENT);
-    assert.equal(result.status, 1);
+    assert.equal(result.status, 3);
     assert.match(result.stdout, /\[chain-id-missing\]/);
+    assert.match(result.stderr, /no chain was verified/);
+  });
+
+  test("exits 3 for schema-invalid events too — nothing was assignable, so nothing was checked", () => {
+    const result = auditmodel("verify-chain", "examples/invalid/missing-actor.json");
+    assert.equal(result.status, 3);
+    assert.match(result.stderr, /no chain was verified/);
+  });
+
+  test("a load failure keeps exit 2 precedence over the no-verdict exit 3", () => {
+    const result = auditmodel("verify-chain", VALID_EVENT, "examples/integrity/no-such-file.json");
+    assert.equal(result.status, 2);
   });
 
   test("exits 2 when the directory does not exist", () => {
@@ -173,11 +185,20 @@ describe("verify-chain", () => {
 });
 
 describe("--public-key", () => {
-  test("without it, a signed event verifies and the signature is not mentioned", () => {
+  test("without it, a signed event verifies and the signature is reported as not checked", () => {
     const result = auditmodel("verify-integrity", SIGNED_EVENT);
     assert.equal(result.status, 0);
     assert.match(result.stdout, /integrity hash valid/);
-    assert.doesNotMatch(result.stdout, /signature/);
+    assert.match(result.stdout, /signature declared \(Ed25519\), not checked/);
+  });
+
+  test("without it, an unimplemented signature algorithm still fails verification", () => {
+    const result = auditmodel(
+      "verify-integrity",
+      "examples/integrity/invalid/unsupported-signature-algorithm.json",
+    );
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /\[unsupported-signature-algorithm\]/);
   });
 
   test("with it, a genuinely signed event reports the signature as verified", () => {
@@ -314,10 +335,27 @@ describe("help and options", () => {
     assert.match(result.stdout, /auditmodel verify-chain <path\.\.\.>/);
   });
 
-  test("help documents --public-key and that it defaults to not checking signatures", () => {
+  const formatUnsupported = ["validate", "verify-integrity", "verify-chain"] as const;
+  for (const command of formatUnsupported) {
+    test(`--format is refused by ${command} rather than silently ignored`, () => {
+      const result = auditmodel(command, VALID_EVENT, "--format", "json");
+      assert.equal(result.status, 2);
+      assert.match(result.stderr, /--format is not supported by/);
+    });
+  }
+
+  test("an unknown command with --format gets the unknown-command diagnosis, not the format one", () => {
+    const result = auditmodel("no-such-command", "--format", "json");
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /unknown command/);
+    assert.doesNotMatch(result.stderr, /--format is not supported/);
+  });
+
+  test("help documents --public-key and what happens without it", () => {
     const result = auditmodel("--help");
     assert.match(result.stdout, /--public-key <path>/);
-    assert.match(result.stdout, /a declared signature is not checked/);
+    assert.match(result.stdout, /a declared signature is reported but not[\s\S]*checked/);
+    assert.match(result.stdout, /fails verification either way/);
   });
 
   test("help no longer lists the implemented commands as planned", () => {

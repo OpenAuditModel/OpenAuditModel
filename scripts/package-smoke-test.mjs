@@ -165,6 +165,33 @@ try {
     cli("check-profile event.json --profile no-such").status === 2,
     "check-profile: unknown profile exits 2",
   );
+
+  // The exports map is a published claim: a declared subpath must resolve
+  // through a real install, and the old undeclared deep path must not.
+  writeFileSync(
+    path.join(consumer, "imports.mjs"),
+    [
+      'import { lintEvent } from "@openauditmodel/cli/conformance/privacy/lint-event.js";',
+      'import { checkProfile } from "@openauditmodel/cli/conformance/profiles/check-profile.js";',
+      'import { readFileSync } from "node:fs";',
+      'if (typeof lintEvent !== "function" || typeof checkProfile !== "function") process.exit(1);',
+      'const schema = JSON.parse(readFileSync(new URL(import.meta.resolve("@openauditmodel/cli/schemas/v0.1/audit-event.schema.json")), "utf8"));',
+      'if (!schema["$id"].includes("audit-event")) process.exit(1);',
+      'console.log("exports resolve");',
+    ].join("\n"),
+  );
+  check(
+    /exports resolve/.test(run("node imports.mjs", consumer, true).output),
+    "exports: declared subpaths resolve for a consumer (engines and schema)",
+  );
+  writeFileSync(
+    path.join(consumer, "deep.mjs"),
+    'import("@openauditmodel/cli/dist/conformance/src/privacy/lint-event.js").then(() => process.exit(1), () => console.log("deep path refused"));',
+  );
+  check(
+    /deep path refused/.test(run("node deep.mjs", consumer, true).output),
+    "exports: the undeclared deep path is refused",
+  );
 } finally {
   rmSync(consumer, { recursive: true, force: true });
   if (tarball && existsSync(tarball)) rmSync(tarball, { force: true });

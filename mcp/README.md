@@ -76,8 +76,10 @@ Seven, all deterministic, read-only, stateless and offline. Each delegates to th
 
 `verify_integrity` and `verify_chain` accept an optional `publicKeyPem` argument — a PEM-encoded
 Ed25519 public key — to additionally verify `integrity.signature`, the same way the CLI's
-`--public-key` does. `ECDSA-P256-SHA256` and `RSA-PSS-SHA256` are not yet implemented. Without it, a
-declared signature is neither checked nor mentioned. The key is public by definition, so passing it as
+`--public-key` does. Without it, a declared Ed25519 signature is reported as declared but not
+checked, and a declared signature in an unimplemented algorithm — `ECDSA-P256-SHA256` and
+`RSA-PSS-SHA256` are not implemented — fails verification whether or not a key is supplied. The key
+is public by definition, so passing it as
 a tool argument carries no confidentiality concern; nothing about the key is persisted or logged
 either way, the same as every other tool input. See
 [ADR 0012](../decisions/0012-ed25519-signature-verification.md).
@@ -176,8 +178,11 @@ unlisted `Origin` gets 403. Comparison is on the parsed origin, so
 `https://openauditmodel.org.evil.example` cannot pass by prefix, and a wildcard entry fails startup
 rather than being quietly accepted.
 
-Host validation is available via `OAM_ALLOWED_HOSTS`. `X-Forwarded-Host` is consulted **only** when
-`OAM_TRUST_PROXY=true`: believing it by default would let any client assert any host.
+Host validation is on by default: with `OAM_ALLOWED_HOSTS` unset, the server answers on loopback
+names only (`localhost`, `127.0.0.1`, `[::1]`), so a bare `docker run` or a local start needs no
+configuration and a public deployment must state the names it serves. `X-Forwarded-Host` is
+consulted **only** when `OAM_TRUST_PROXY=true`: believing it by default would let any client assert
+any host.
 
 ## Logging
 

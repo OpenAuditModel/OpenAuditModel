@@ -102,11 +102,26 @@ export function isJwtStructured(value: string): boolean {
   return decodeJsonObject(payload) !== undefined;
 }
 
-/** Decodes a base64url segment to a JSON object, or `undefined`. Never returns content to a report. */
+/** Decodes a base64url segment to a JSON object, or `undefined`. Never returns content to a report.
+ *
+ * Decodes via `atob` + `TextDecoder` rather than Node's `Buffer` so the module
+ * runs identically in a browser bundle. The two places `atob`/`TextDecoder`
+ * are stricter than `Buffer.from(segment, "base64url")` are compensated for:
+ * a segment of length ≡ 1 (mod 4) has its dangling character discarded
+ * (Buffer drops it silently; padded, `atob` would throw), and invalid UTF-8
+ * decodes with U+FFFD replacement instead of throwing. Being stricter would
+ * mean a JWT this linter flags in Node passes silently in a browser. */
 function decodeJsonObject(segment: string): Record<string, unknown> | undefined {
   let text: string;
   try {
-    text = Buffer.from(segment, "base64url").toString("utf8");
+    let base64 = segment.replaceAll("-", "+").replaceAll("_", "/");
+    if (base64.length % 4 === 1) {
+      base64 = base64.slice(0, -1);
+    }
+    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+    const binary = atob(padded);
+    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    text = new TextDecoder("utf-8").decode(bytes);
   } catch {
     return undefined;
   }

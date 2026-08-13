@@ -4,7 +4,8 @@
 
 | Version | Status                                                                     |
 | ------- | -------------------------------------------------------------------------- |
-| 0.2.x   | Current release (conformance CLI and MCP server). Fixes applied to `main`. |
+| 0.3.x   | Current release (conformance CLI and MCP server). Fixes applied to `main`. |
+| 0.2.x   | Superseded. No fixes; upgrade to the current release.                      |
 | 0.1.x   | Superseded. No fixes; upgrade to the current release.                      |
 
 The repository version above is the tooling release. The **specification** version is `0.1` and is

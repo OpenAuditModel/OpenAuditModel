@@ -238,6 +238,22 @@ describe("JSON Web Tokens", () => {
     const payload = Buffer.from('{"sub":"a"}').toString("base64url");
     assert.equal(isJwtStructured(`${header}.${payload}.sig`), false);
   });
+
+  test("a segment with a dangling character decodes the way Buffer decodes it", () => {
+    // Buffer.from(segment, "base64url") silently drops a dangling character
+    // when the length is ≡ 1 (mod 4); the atob-based decoder compensates to
+    // match, so a JWT the Node path flags is flagged identically in a browser
+    // bundle. The compensation branch must not go dead again.
+    const [header, payload, signature] = SYNTHETIC_JWT.split(".") as [string, string, string];
+    const dangling = `${header}A`;
+    assert.equal(dangling.length % 4, 1, "the mutated segment must exercise the mod-4 branch");
+    assert.equal(
+      Buffer.from(dangling, "base64url").toString("utf8"),
+      Buffer.from(header, "base64url").toString("utf8"),
+      "Buffer must treat the dangling character as droppable for this fixture",
+    );
+    assert.equal(isJwtStructured(`${dangling}.${payload}.${signature}`), true);
+  });
 });
 
 describe("published credential formats", () => {
