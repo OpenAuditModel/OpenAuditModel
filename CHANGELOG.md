@@ -11,6 +11,24 @@ While the project is **Experimental**, breaking changes are possible in any rele
 as such. A change that alters the meaning of an existing field or event name is never acceptable — a
 new name is introduced instead.
 
+## Unreleased
+
+### Added — the site's landing page is served in five languages
+
+The landing page is generated from one template and one JSON strings file per locale
+(`scripts/site-locales/`), and is now also published at `/tr/`, `/de/`, `/fr/` and `/es/` as
+**informative translations**: the English page is authoritative, each translated page says so in a
+banner in its own language, and the specification, schemas and profiles remain published in English
+only. The pages cross-reference each other with `hreflang` links and a language switcher. The
+build refuses a locale whose keys do not exactly match English, so a copy change that forgets a
+language fails the build instead of shipping a page that silently mixes languages; `site:check`
+treats a stale localized page like any other stale file.
+
+### Fixed — the site's rule count is qualified
+
+The landing page said "127 rules" without qualification. It now computes and states the split the
+README already carries: 113 enforced as errors, 14 advisory.
+
 ## 0.3.0 - 2026-08-13
 
 Specification `0.1`, unchanged. Repository `0.3.0`.

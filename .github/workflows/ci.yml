@@ -313,6 +313,17 @@ jobs:
             --file Dockerfile \
             .
 
+      - name: Build the site image
+        # The site Dockerfile enumerates the generator's inputs one COPY at a
+        # time, so a new input the generator needs but the Dockerfile does not
+        # copy fails only inside this build. Building it here catches that on
+        # the pull request instead of on the operator's deploy.
+        run: |
+          docker build \
+            --tag openauditmodel-site:ci \
+            --file deploy/Dockerfile.site \
+            .
+
       - name: Start it with the hardening the deployment documentation prescribes
         run: |
           docker run -d --name mcp-ci \

@@ -12,9 +12,11 @@ FROM node:24-bookworm-slim AS build
 
 WORKDIR /build
 
-# The generator reads the canonical schema and every profile definition, so the
-# repository content it publishes must be present before it runs.
+# The generator reads the canonical schema, every profile definition and the
+# landing-page locale files, so the repository content it publishes must be
+# present before it runs.
 COPY scripts/build-site.mjs ./scripts/
+COPY scripts/site-locales ./scripts/site-locales
 COPY schemas ./schemas
 COPY profiles ./profiles
 COPY examples ./examples
