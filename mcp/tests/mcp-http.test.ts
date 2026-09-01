@@ -27,6 +27,7 @@ import { buildDigestInput, sealEvent } from "../../conformance/src/integrity/dig
 import { canonicalBytes } from "../../conformance/src/integrity/canonicalize.js";
 import { lintEvent } from "../../conformance/src/privacy/lint-event.js";
 import { checkProfile } from "../../conformance/src/profiles/check-profile.js";
+import { summariseCoverage } from "../../conformance/src/profiles/coverage.js";
 
 const schemaPath = resolveSchemaPath();
 const repoRoot = path.dirname(path.dirname(path.dirname(schemaPath)));
@@ -246,9 +247,9 @@ describe("protocol", () => {
     assert.equal(info["version"], SERVER_VERSION);
   });
 
-  test("exactly seven tools are listed", async () => {
+  test("exactly eight tools are listed", async () => {
     const tools = (await rpc("tools/list"))["tools"] as Array<{ name: string }>;
-    assert.equal(tools.length, 7);
+    assert.equal(tools.length, 8);
     assert.deepEqual(tools.map((tool) => tool.name).sort(), [...TOOL_NAMES].sort());
   });
 
@@ -564,6 +565,46 @@ describe("tool parity with the conformance engines", () => {
       assert.deepEqual(actual["matchedRules"], expected.matchedRules, name);
     }
   });
+
+  test("check_coverage matches the coverage engine, and reports reach rather than a verdict", async () => {
+    const base = "examples/profiles/identity-and-access-management";
+    const events = [
+      readEvent(`${base}/valid`, "role-assign-privileged.json"),
+      readEvent(`${base}/invalid`, "privileged-role-without-mfa.json"),
+      readEvent(`${base}/not-applicable`, "document-share.json"),
+    ];
+    const results = events.map((event, index) =>
+      checkProfile(event, `events[${index}]`, iamProfile, cliValidator),
+    );
+    const expected = summariseCoverage(events, results, iamProfile);
+
+    const actual = await callTool("check_coverage", {
+      events,
+      profile: "identity-and-access-management",
+    });
+
+    assert.deepEqual(actual["rules"], expected.rules);
+    assert.deepEqual(actual["nameTotals"], expected.nameTotals);
+    assert.deepEqual(actual["perRule"], expected.perRule);
+    assert.equal(actual["reachedNothing"], false);
+    // The set contains an event that fails the profile, and coverage still
+    // reports it without a pass or fail claim of its own.
+    assert.equal(expected.events.violations, 1);
+    assert.equal(actual["countsMeaning"] !== undefined, true, "the counts carry their own caveat");
+  });
+
+  test("check_coverage says plainly when a profile reached nothing", async () => {
+    const event = readEvent(
+      "examples/profiles/identity-and-access-management/not-applicable",
+      "document-share.json",
+    );
+    const actual = await callTool("check_coverage", {
+      events: [event],
+      profile: "identity-and-access-management",
+    });
+    assert.equal(actual["reachedNothing"], true);
+    assert.deepEqual((actual["nameTotals"] as Record<string, number>)["governed"], 0);
+  });
 });
 
 describe("guidance and template tools", () => {
@@ -722,6 +763,32 @@ describe("build artifacts", () => {
         resource.text,
         readFileSync(path.join(repoRoot, resource.source), "utf8"),
         resource.source,
+      );
+    }
+  });
+
+  test("every bundled profile is advertised under the version it declares", () => {
+    // The version is written into the resource URI and the human title by hand,
+    // in the allowlist at mcp/scripts/generate-resource-manifest.mjs. Nothing in
+    // the generator reads it back, so a profile version bump would otherwise
+    // leave the server serving the new rules under the old version's URI — the
+    // one thing a version segment exists to prevent.
+    const profileResources = BUNDLED_RESOURCES.filter((resource) =>
+      /^profiles\/[^/]+\/profile\.json$/.test(resource.source),
+    );
+    assert.ok(profileResources.length > 0, "no profile resources are bundled");
+
+    for (const resource of profileResources) {
+      const declared = (JSON.parse(resource.text) as { version: string }).version;
+      const name = resource.source.split("/")[1];
+      assert.equal(
+        resource.uri,
+        `openauditmodel://profiles/${name}/${declared}`,
+        `${resource.source} declares version ${declared}; update its allowlist entry in mcp/scripts/generate-resource-manifest.mjs`,
+      );
+      assert.ok(
+        resource.title.endsWith(` ${declared}`),
+        `${resource.source} title "${resource.title}" does not end in its declared version ${declared}`,
       );
     }
   });

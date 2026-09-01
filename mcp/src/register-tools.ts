@@ -1,5 +1,5 @@
 /**
- * The seven OpenAuditModel MCP tools.
+ * The eight OpenAuditModel MCP tools.
  *
  * Every tool is deterministic, read-only, stateless and offline. None calls a
  * model, opens a socket, touches a filesystem or keeps anything between
@@ -15,6 +15,7 @@ import { loadPublicKey } from "../../conformance/src/integrity/signature.js";
 import { lintEvent } from "../../conformance/src/privacy/lint-event.js";
 import { checkProfile } from "../../conformance/src/profiles/check-profile.js";
 import { selectRules } from "../../conformance/src/profiles/select-rules.js";
+import { summariseCoverage } from "../../conformance/src/profiles/coverage.js";
 import type { ProfileRule } from "../../conformance/src/profiles/types.js";
 import {
   ENFORCEABLE_PROFILES,
@@ -314,6 +315,40 @@ export function registerTools(server: McpServer, limits: EventLimits = DEFAULT_E
   );
 
   server.registerTool(
+    "check_coverage",
+    {
+      title: "Report how much of a profile a set of events reaches",
+      description:
+        "Reports what a profile reached across a set of events: which rules were selected, which were applied, and which event names the profile does not govern at all. It counts events, not obligations — the rule counts describe this set and are not a score, a percentage or a grade. It makes no pass or fail claim; check_profile is the tool that judges. A rule that was selected and never applied had a condition that never held, so it looked enforced and enforced nothing.",
+      inputSchema: z.object({
+        events: z.array(eventSchema),
+        profile: profileName.default(IAM_PROFILE_NAME),
+      }),
+    },
+    ({ events, profile }) =>
+      runTool(() => {
+        assertEventsWithinLimits(events, limits);
+        const definition = requireProfile(profile);
+        const results = events.map((event, index) =>
+          checkProfile(event, `events[${index}]`, definition, validator),
+        );
+        const coverage = summariseCoverage(events, results, definition);
+
+        return {
+          profile: coverage.profile,
+          events: coverage.events,
+          rules: coverage.rules,
+          perRule: coverage.perRule,
+          names: coverage.names,
+          nameTotals: coverage.nameTotals,
+          reachedNothing: coverage.nameTotals.governed === 0,
+          countsMeaning:
+            "Counts are events, not obligations. A low number of selected rules describes this event set, not the producer's conformance.",
+        };
+      }),
+  );
+
+  server.registerTool(
     "generate_event_template",
     {
       title: "Generate an audit event template",
@@ -563,6 +598,7 @@ export const TOOL_NAMES: readonly string[] = [
   "verify_chain",
   "lint_privacy",
   "check_profile",
+  "check_coverage",
   "generate_event_template",
   "get_event_guidance",
 ];

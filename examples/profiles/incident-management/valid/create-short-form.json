@@ -1,0 +1,64 @@
+{
+  "specVersion": "0.1",
+  "id": "018f1c1a-0011-7a2b-9c3d-4e5f60718311",
+  "time": "2026-03-16T21:04:07.512Z",
+  "event": {
+    "name": "incident.create",
+    "category": "workflow",
+    "type": "create",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Incident raised after the paging gateway stopped acknowledging deliveries."
+  },
+  "actor": {
+    "type": "service",
+    "id": "service-alert-router",
+    "tenantId": "tenant-4"
+  },
+  "resource": {
+    "type": "incident",
+    "id": "incident-2026-0512",
+    "name": "paging-gateway-unacknowledged",
+    "classification": "internal",
+    "tenantId": "tenant-4"
+  },
+  "relatedResources": [
+    {
+      "type": "service",
+      "id": "service-paging-gateway"
+    }
+  ],
+  "application": {
+    "name": "on-call-service",
+    "environment": "production",
+    "version": "2.9.1"
+  },
+  "organization": {
+    "tenantId": "tenant-4"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "incident-handling",
+    "policyVersion": "4",
+    "permissions": ["incident.create"]
+  },
+  "request": {
+    "correlationId": "correlation-incident-2026-0512"
+  },
+  "reason": {
+    "code": "delivery-unacknowledged",
+    "text": "No acknowledgement was received for any page dispatched in the preceding five minutes."
+  },
+  "controlCategories": ["incident-traceability"],
+  "metadata": {
+    "incident": {
+      "status": "open",
+      "priority": "p1",
+      "impact": "service-unavailable",
+      "urgency": "high",
+      "detectedAt": "2026-03-16T21:03:55Z",
+      "detectionSource": "monitoring",
+      "reportedBySource": "automated-detection"
+    }
+  }
+}

@@ -358,11 +358,22 @@ describe("help and options", () => {
     assert.match(result.stdout, /fails verification either way/);
   });
 
-  test("help no longer lists the implemented commands as planned", () => {
-    const planned = auditmodel("--help").stdout.split("Planned commands")[1] ?? "";
-    assert.doesNotMatch(planned, /verify-integrity/);
-    assert.doesNotMatch(planned, /verify-chain/);
-    assert.match(planned, /check-coverage/);
+  test("help advertises every command it implements, and none it does not", () => {
+    // The planned-commands section existed while check-coverage was unbuilt.
+    // Nothing is planned now, so the section is gone rather than empty: a
+    // heading with nothing under it invites a reader to wonder what is missing.
+    const help = auditmodel("--help").stdout;
+    assert.doesNotMatch(help, /Planned commands/);
+    for (const command of [
+      "validate",
+      "verify-integrity",
+      "verify-chain",
+      "lint-privacy",
+      "check-profile",
+      "check-coverage",
+    ]) {
+      assert.match(help, new RegExp(`auditmodel ${command} <path\\.\\.\\.>`), command);
+    }
   });
 
   test("help states that verification is tamper-evident, not tamper-proof", () => {
@@ -384,9 +395,12 @@ describe("help and options", () => {
     assert.match(result.stdout, /1 event checked: 1 verified, 0 failed/);
   });
 
-  test("a still-planned command reports that it is not implemented", () => {
-    const result = auditmodel("check-coverage", VALID_EVENT);
-    assert.equal(result.status, 2);
-    assert.match(result.stderr, /not implemented/);
+  test("no advertised command reports itself as unimplemented", () => {
+    // The inverse of the test this replaces: check-coverage was the last
+    // planned command, and running it must now produce a report rather than a
+    // refusal. Exit 3 is a real verdict here — the profile governed nothing.
+    const result = auditmodel("check-coverage", VALID_EVENT, "--profile", "incident-management");
+    assert.notEqual(result.status, 2, result.output);
+    assert.doesNotMatch(result.stderr, /not implemented/);
   });
 });

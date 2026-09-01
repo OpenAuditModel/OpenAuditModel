@@ -324,6 +324,7 @@ examples/integrity/    generated tamper-evidence fixtures, valid and invalid
 examples/privacy/      clean and finding fixtures for the privacy linter
 examples/profiles/     conforming, violating and out-of-scope profile fixtures
 conformance/           the `auditmodel` CLI and its test suite
+conformance-kit/       every fixture's expected verdict, as data, for any language
 mcp/                   the remote MCP server, distributed as a container image
 deploy/                Docker Compose and reverse-proxy examples
 decisions/             12 architecture decision records
@@ -349,7 +350,6 @@ All of it. Specifically, expect these to change:
   ones.
 - **Profiles.** Ten are implemented and enforceable, but none has production adoption evidence yet:
   their requirements are reasoned, not validated against real deployments.
-- **Planned commands.** `check-coverage` is documented as future work and does not exist.
 - **The profile rule vocabulary.** Six capabilities and one conditional operator. Profile inheritance,
   composition and multi-profile checking are not implemented.
 - **Privacy rule thresholds and vocabularies.** Hard-coded in v0.1, with no configuration and no
@@ -540,8 +540,9 @@ instrumentation can validate, privacy-lint and profile-check an event without cl
 claude mcp add --transport http openauditmodel https://mcp.openauditmodel.org/mcp
 ```
 
-Seven tools — `validate_event`, `verify_integrity`, `verify_chain`, `lint_privacy`,
-`check_profile`, `generate_event_template`, `get_event_guidance` — three prompts, and twenty-nine
+Eight tools — `validate_event`, `verify_integrity`, `verify_chain`, `lint_privacy`,
+`check_profile`, `check_coverage`, `generate_event_template`, `get_event_guidance` — three prompts,
+and thirty-four
 read-only resources covering the specification, both schemas, the semantic conventions and the IAM
 profile.
 
@@ -657,6 +658,61 @@ required by test to pass both.
 
 See [profiles/README.md](profiles/README.md), [ADR 0005](decisions/0005-core-and-profile-separation.md)
 and [ADR 0008](decisions/0008-declarative-profile-conformance.md).
+
+### Checking an implementation in another language
+
+[ADR 0001](decisions/0001-specification-first.md) promises that "an implementation in any language can
+be checked against the same fixtures". [conformance-kit/manifest.json](conformance-kit/manifest.json)
+is what makes that actionable: for all 320 published fixtures and 5 chains it records the verdict each
+engine returns — rule identifiers, JSON Pointers, statuses, severities and finding kinds.
+
+Human-readable messages are deliberately absent. An implementation that words an error differently is
+not wrong, and a kit that compared prose would fail every translation.
+
+**The kit confers nothing.** No badge, no "compatible" status, no listing. An implementation that
+reproduces every verdict has demonstrated that it answers the same as the reference implementation on
+the cases this project chose to publish — which is worth having, and is not a claim about the
+implementation in general. See [conformance-kit/README.md](conformance-kit/README.md).
+
+### How much of a profile is my instrumentation reaching?
+
+`check-profile` answers "does this event conform?". That is the second question. The first is whether
+the profile reaches your events at all, and a summary line that counts only failures cannot tell you:
+an export with no violations and an export the profile never governed look identical.
+
+```bash
+auditmodel check-coverage ./audit-export.jsonl --profile incident-management
+```
+
+```text
+204 events checked: 0 conforming, 15 with violations, 189 not applicable, 0 core-invalid
+
+rules: 15 in the profile, 6 selected, 6 applied
+  INC-CORE-001      error    selected    15   applied    15   failed    15
+  ...
+  never selected (9): INC-STATE-002, INC-ASSIGN-001, INC-CLOSE-001, ...
+
+event names: 30 distinct, 2 governed, 28 ungoverned
+```
+
+**It counts events, not obligations.** "6 of 15 rules selected" describes this event set. It is not a
+percentage of conformance, a maturity score or a grade, and a low number is the normal state of a
+narrow export rather than a defect. There is no threshold and no target, because a threshold would be
+policy and this is a measurement.
+
+Two lines in that report carry most of its value:
+
+- **The ungoverned names.** They are what tell a producer that its vocabulary and the profile's have
+  not met. No per-event verdict shows this, because every one of those events is individually
+  `not-applicable` and individually unremarkable.
+- **Selected but never applied.** A rule with a condition is selected by an event's name and then
+  contributes nothing, because the condition did not hold. A profile requiring an approval _when the
+  producer marks the closure as needing one_ is selected on every closure and applied on none against
+  a producer that never writes the flag. Nothing fails and nothing is checked; only this line says so.
+
+**It never exits `1`.** Coverage makes no pass or fail claim — `check-profile` is the command that
+judges. It exits `0` when the profile governed at least one event, `3` when it governed none, and `2`
+when it could not run.
 
 ## Legal and compliance limitations
 

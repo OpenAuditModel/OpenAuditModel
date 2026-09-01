@@ -141,8 +141,8 @@ docker run -d \
 ## Verifying a deployment
 
 `/health` says the process is up, not that MCP works. [smoke-test.mjs](smoke-test.mjs) checks what an
-operator actually needs after a deploy or an upgrade: that `initialize` succeeds, that all seven
-tools, three prompts and twenty-nine resources are published, that a tool really runs, and that the
+operator actually needs after a deploy or an upgrade: that `initialize` succeeds, that all eight
+tools, three prompts and thirty-four resources are published, that a tool really runs, and that the
 origin policy refuses a lookalike domain while accepting a request with no `Origin` at all.
 
 ```bash

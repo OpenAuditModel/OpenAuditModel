@@ -16,7 +16,7 @@
  * this repository.
  */
 
-const EXPECTED = { tools: 7, prompts: 3, resources: 29 };
+const EXPECTED = { tools: 8, prompts: 3, resources: 34 };
 
 const base = (process.argv[2] ?? "http://127.0.0.1:3000").replace(/\/+$/, "");
 const allowedOrigin = process.argv[3] ?? "https://openauditmodel.org";

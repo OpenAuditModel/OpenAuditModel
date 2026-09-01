@@ -15,7 +15,11 @@
  * dereference an identifier.
  *
  * Every published file is copied byte for byte from the repository. There is no
- * second, hand-edited copy to drift, and `--check` proves it.
+ * second, hand-edited copy to drift, and `--check` proves it. The one file that
+ * exists twice — a profile's current version, once as the working document and
+ * once as the filed copy the site publishes — is filed by a tool and held in
+ * step by a test, never edited by hand. See
+ * `conformance/tools/archive-profile-versions.ts`.
  *
  * The landing page is generated per locale from one template and one strings
  * table. Translations are informative — the English page is authoritative, and
@@ -54,7 +58,14 @@ const files = new Map();
 const copies = [];
 
 /** Publishes a repository file at a site path, verbatim. */
+// `files` is a Map, so a second publish at the same path would silently win.
+// Two sources claiming one URL is a bug in this script, not a preference to be
+// resolved by ordering, so it stops the build.
 function publish(sitePath, sourceRelative) {
+  const existing = copies.find(([published]) => published === sitePath);
+  if (existing !== undefined && existing[1] !== sourceRelative) {
+    throw new Error(`two sources claim ${sitePath}: ${existing[1]} and ${sourceRelative}`);
+  }
   copies.push([sitePath, sourceRelative]);
 }
 
@@ -67,16 +78,49 @@ publish("assets/logo.png", "assets/logo.png");
 // Profile definitions. These are addresses, not identities: a profile document
 // carries `name` and `version`, not an `$id`, so nothing should pin these URLs
 // as canonical identifiers. The site says so in prose.
+//
+// Every filed version is published, not only the current one. `deploy/Caddyfile`
+// serves everything under /profiles/ as `immutable` for a year, so publishing
+// only the current version would withdraw an address the moment a profile was
+// revised — one that answered yesterday, was declared permanent, and 404s
+// today. The archive under `profiles/<name>/<version>/` is append-only and is
+// held in step with the working document by
+// `conformance/tools/archive-profile-versions.ts`, so a revision adds an
+// address instead of replacing one.
 const profiles = readdirSync(path.join(root, "profiles"), { withFileTypes: true })
   .filter((e) => e.isDirectory() && existsSync(path.join(root, "profiles", e.name, "profile.json")))
   .map((e) => e.name)
   .sort();
 
+/** Version directory names, matching the `version` pattern the definition schema enforces. */
+const VERSION_DIRECTORY = /^[0-9]+(\.[0-9]+){0,2}$/;
+
 for (const name of profiles) {
   const definition = JSON.parse(
     readFileSync(path.join(root, "profiles", name, "profile.json"), "utf8"),
   );
-  publish(`profiles/${name}/${definition.version}/profile.json`, `profiles/${name}/profile.json`);
+  const versions = readdirSync(path.join(root, "profiles", name), { withFileTypes: true })
+    .filter(
+      (e) =>
+        e.isDirectory() &&
+        VERSION_DIRECTORY.test(e.name) &&
+        existsSync(path.join(root, "profiles", name, e.name, "profile.json")),
+    )
+    .map((e) => e.name)
+    .sort();
+
+  // The landing page links the current version, so a build that could not
+  // publish it would ship a page pointing at a 404. Fail here instead.
+  if (!versions.includes(definition.version)) {
+    throw new Error(
+      `profiles/${name} declares version ${definition.version} with no filed copy; ` +
+        'run "npm run profiles:archive"',
+    );
+  }
+
+  for (const version of versions) {
+    publish(`profiles/${name}/${version}/profile.json`, `profiles/${name}/${version}/profile.json`);
+  }
 }
 
 for (const [sitePath, sourceRelative] of copies) {

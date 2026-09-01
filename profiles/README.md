@@ -75,6 +75,48 @@ documents**; it is not part of the canonical audit event schema and never constr
 `coreVersions` lists the core versions the profile applies to; an event declaring any other
 `specVersion` is **not applicable** rather than in violation.
 
+### Versions are filed, and a filed version never changes
+
+**Changing a profile's rules MUST bump its `version`.** [ADR 0008](../decisions/0008-declarative-profile-conformance.md)
+records why: adding a rule is a breaking change for producers, in the same sense as adding a required
+core field, because events that conformed may stop conforming.
+
+Each version is filed at `profiles/<name>/<version>/profile.json` when it is published, and a filed
+copy is never edited afterwards. The site publishes every filed version, so revising a profile adds
+an address rather than withdrawing the one consumers already have — the site serves these documents
+with a year-long `immutable` cache lifetime, and a URL that answered yesterday must not 404 today.
+
+The archive is what enforces the bump. Change a rule without changing `version` and the working
+document no longer matches the copy filed under that version, which fails `npm run verify`. There are
+two ways to make it pass: bump the version, or revert the change.
+
+```bash
+npm run profiles:archive        # file the current version of every profile
+npm run profiles:check-archive  # compare each profile with its filed copy
+npm run profiles:lint           # report defects the definition schema cannot express
+```
+
+### What the lint checks
+
+The definition schema decides whether a profile document is well formed. It cannot decide whether the
+document says what its author meant, and three of the ways it can fail to are silent:
+
+|                                        |                                                                                                                                         |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| A rule id declared twice               | Selection deduplicates by id, so the later rule is never evaluated and its requirements vanish. The event is reported **conforming**    |
+| A rule that states no requirement      | An event is `not-applicable` only while no rule selects it. One requirement-free rule makes it governed and satisfied                   |
+| A condition on a path no rule requires | An absent condition path means the condition does not hold, so a producer that never writes the flag escapes the requirement in silence |
+
+The lint also rejects pointers that can never resolve — an empty reference token, and a
+`requiredMetadata` path beginning with `/metadata`, which is concatenated into `/metadata/metadata/…`
+— and requirements that contradict each other. Those are errors. Redundant selectors and unreachable
+prefixes are warnings, and warnings never fail the build.
+
+A version bump is not complete until three things move together: `version` in `profile.json`, a filed
+copy under the new version, and the profile's allowlist entry in
+`mcp/scripts/generate-resource-manifest.mjs`, which carries the version in the resource URI it serves.
+A test holds each of them in place.
+
 ### Rules
 
 Each rule has an `id` and a `description`, and MAY have a `rationale` and a `severity`.

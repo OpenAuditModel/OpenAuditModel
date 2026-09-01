@@ -10,7 +10,7 @@ import test, { describe } from "node:test";
 import { createValidator, resolveSchemaPath } from "../src/validate.js";
 import { lintEvent } from "../src/privacy/lint-event.js";
 import { RULES } from "../src/privacy/rules.js";
-import { summarise } from "../src/privacy/types.js";
+import { summarise, UNCATEGORISED } from "../src/privacy/types.js";
 
 const schemaPath = resolveSchemaPath();
 const repoRoot = path.dirname(path.dirname(path.dirname(schemaPath)));
@@ -472,5 +472,45 @@ describe("summaries", () => {
     assert.equal(summary.findings, 1);
     assert.equal(summary.bySeverity.critical, 1);
     assert.equal(summary.bySeverity.medium, 0);
+  });
+
+  test("counts are also grouped by category, and the two groupings agree", () => {
+    const results = fixtureNames("findings").map((name) =>
+      lintEvent(readFixture("findings", name), name, validator),
+    );
+    const summary = summarise(results);
+
+    const categorised = summary.byCategory.reduce((total, entry) => total + entry.findings, 0);
+    assert.equal(
+      categorised,
+      summary.findings,
+      "every finding is counted under exactly one category",
+    );
+
+    const severities = Object.values(summary.bySeverity).reduce((total, count) => total + count, 0);
+    assert.equal(severities, summary.findings);
+
+    // Most findings first, then alphabetically, so a report is reproducible.
+    const sorted = [...summary.byCategory].sort(
+      (left, right) =>
+        right.findings - left.findings || left.category.localeCompare(right.category, "en"),
+    );
+    assert.deepEqual(summary.byCategory, sorted);
+  });
+
+  test("a finding whose rule declares no category is counted, never dropped", () => {
+    const uncategorised = {
+      ruleId: "OAM-PRIV-000",
+      severity: "low",
+      confidence: "low",
+      path: "/metadata/thing",
+      message: "A synthetic finding with no category.",
+    } as const;
+    const summary = summarise([
+      { label: "a", status: "findings", findings: [uncategorised], schemaIssues: [] },
+    ]);
+
+    assert.equal(summary.findings, 1);
+    assert.deepEqual(summary.byCategory, [{ category: UNCATEGORISED, findings: 1 }]);
   });
 });

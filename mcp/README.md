@@ -61,7 +61,7 @@ and no claim is made about one that has not been tried.
 
 ## Tools
 
-Seven, all deterministic, read-only, stateless and offline. Each delegates to the same engine the
+Eight, all deterministic, read-only, stateless and offline. Each delegates to the same engine the
 `auditmodel` CLI uses; parity is asserted by test rather than assumed.
 
 | Tool                      | Purpose                                                                    |
@@ -71,6 +71,7 @@ Seven, all deterministic, read-only, stateless and offline. Each delegates to th
 | `verify_chain`            | Verify previous-hash chains across a set of events                         |
 | `lint_privacy`            | Report values shaped like credentials or unminimized payloads              |
 | `check_profile`           | Check against any of the ten bundled domain profiles                       |
+| `check_coverage`          | Report how much of a profile a set of events reaches, and what it misses   |
 | `generate_event_template` | Produce a placeholder skeleton for an event name                           |
 | `get_event_guidance`      | Explain what an event name requires, from schema, conventions and profile  |
 
@@ -95,8 +96,8 @@ contributed no requirements.
 
 ## Resources
 
-Twenty-nine read-only documents under `openauditmodel://`: seven specification chapters, both
-canonical schemas, the semantic conventions index and seven convention documents, the profile index,
+Thirty-four read-only documents under `openauditmodel://`: seven specification chapters, both
+canonical schemas, the semantic conventions index and twelve convention documents, the profile index,
 all ten profile definitions and the examples index.
 
 Content is compiled in at build time from an allowlist in
@@ -189,7 +190,7 @@ any host.
 Application logs carry a generated request identifier, the route, the tool name, a result category, a
 status code and a duration — and nothing else. There is no parameter through which a request body, an
 event identifier, an actor, a resource, a digest or a privacy finding could be logged. `toolName` is
-one of seven published names and says which analysis ran; an _event_ name is excluded, because that
+one of eight published names and says which analysis ran; an _event_ name is excluded, because that
 would describe the caller's business operations.
 
 Set `OAM_LOG_LEVEL=error` or `silent` to reduce or disable output.

@@ -63,6 +63,20 @@ describe("exit codes", () => {
     assert.match(result.stdout, /OAM-PRIV-001/);
   });
 
+  test("findings are broken down by category as well as severity", () => {
+    // Severity says how bad one finding would be; category says what kind of
+    // instrumentation mistake produced it, which is what a fix is organised
+    // around.
+    const result = auditmodel("lint-privacy", PASSWORD);
+    assert.match(result.stdout, /privacy finding.*critical/);
+    assert.match(result.stdout, /^by category: credential-field-name 1$/m);
+  });
+
+  test("--quiet drops the category breakdown with the rest of the detail", () => {
+    const result = auditmodel("lint-privacy", "--quiet", PASSWORD);
+    assert.doesNotMatch(result.stdout, /by category:/);
+  });
+
   test("a missing file exits 2", () => {
     assert.equal(auditmodel("lint-privacy", "examples/privacy/no-such-file.json").status, 2);
   });
@@ -354,15 +368,12 @@ describe("output safety", () => {
 });
 
 describe("help", () => {
-  test("lint-privacy is documented and no longer listed as planned", () => {
+  test("lint-privacy is documented, and nothing is listed as planned", () => {
     const result = auditmodel("--help");
     assert.equal(result.status, 0);
     assert.match(result.stdout, /auditmodel lint-privacy <path\.\.\.>/);
     assert.match(result.stdout, /--format <text\|json>/);
-
-    const planned = result.stdout.split("Planned commands")[1] ?? "";
-    assert.doesNotMatch(planned, /lint-privacy/);
-    assert.match(planned, /check-coverage/);
+    assert.doesNotMatch(result.stdout, /Planned commands/);
   });
 
   test("help states that findings are suspicions, not proof", () => {
