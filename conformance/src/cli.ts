@@ -2,10 +2,13 @@
 /**
  * `auditmodel` — the OpenAuditModel conformance command line interface.
  *
- * v0.1 implements three commands:
+ * v0.1 implements six commands:
  *   validate          check events against the canonical schema
  *   verify-integrity  recalculate and compare each event's own digest
  *   verify-chain      verify previous-hash chains across a set of events
+ *   lint-privacy      report suspected privacy and secret-exposure risks
+ *   check-profile     check events against a domain profile
+ *   check-coverage    report how much of a profile a set of events reaches
  *
  * Exit codes:
  *   0  a verdict was produced and it passed
@@ -38,6 +41,7 @@ import { summarise } from "./privacy/types.js";
 import { availableProfiles, loadProfile } from "./profiles/load-profile.js";
 import { checkProfile } from "./profiles/check-profile.js";
 import { summariseProfileResults, type ProfileFinding } from "./profiles/types.js";
+import { summariseCoverage } from "./profiles/coverage.js";
 
 export const EXIT_OK = 0;
 export const EXIT_INVALID = 1;
@@ -60,7 +64,7 @@ export const EXIT_NO_VERDICT = 3;
 export const EXIT_NOT_APPLICABLE = EXIT_NO_VERDICT;
 
 /** Commands that are specified as future work and deliberately not implemented in v0.1. */
-const PLANNED_COMMANDS = new Set(["check-coverage"]);
+const PLANNED_COMMANDS = new Set<string>([]);
 
 const OUTPUT_FORMATS = new Set(["text", "json"]);
 
@@ -71,10 +75,11 @@ const IMPLEMENTED_COMMANDS = new Set([
   "verify-chain",
   "lint-privacy",
   "check-profile",
+  "check-coverage",
 ]);
 
 /** The commands --format applies to; every other implemented command refuses the flag. */
-const FORMAT_COMMANDS = new Set(["lint-privacy", "check-profile"]);
+const FORMAT_COMMANDS = new Set(["lint-privacy", "check-profile", "check-coverage"]);
 
 const USAGE = `auditmodel — OpenAuditModel conformance tooling (specification ${SPEC_VERSION}, experimental)
 
@@ -84,6 +89,7 @@ Usage:
   auditmodel verify-chain <path...>      Verify previous-hash chains across a set of events
   auditmodel lint-privacy <path...>      Report suspected privacy and secret-exposure risks
   auditmodel check-profile <path...>     Check events against a domain profile
+  auditmodel check-coverage <path...>    Report how much of a profile a set of events reaches
   auditmodel --help                      Show this help
   auditmodel --version                   Show the tool version
 
@@ -93,8 +99,10 @@ those files.
 
 Options:
   -q, --quiet                            Only report failures
-      --format <text|json>               Output format for lint-privacy and check-profile
-      --profile <name>                   Profile to check against (check-profile)
+      --format <text|json>               Output format for lint-privacy, check-profile and
+                                          check-coverage
+      --profile <name>                   Profile to check against (check-profile,
+                                          check-coverage)
       --public-key <path>                PEM public key to verify integrity.signature against
                                           (verify-integrity, verify-chain). Ed25519 only in v0.1.
                                           Without it, a declared signature is reported but not
@@ -111,6 +119,12 @@ Exit codes:
        lint-privacy   the input is not an audit event and was NOT scanned
        verify-chain   no event could be assigned to a chain, so no chain
                       was checked
+       check-coverage no event in the set is governed by the profile, so the
+                      profile reached nothing
+
+check-coverage never exits 1. It reports what a profile reached; it makes no
+pass or fail claim, and it counts events rather than obligations. "4 of 15 rules
+selected" describes this event set, and is not a score, a percentage or a grade.
 
 Verification is tamper-evident, not tamper-proof: it detects modification of the
 events supplied to it. It cannot prove that events were never deleted, and it
@@ -125,8 +139,6 @@ A profile only ever adds requirements to the core model. Profile conformance is
 not regulatory or legal compliance, and an event the profile does not govern is
 reported as not-applicable rather than as conforming.
 
-Planned commands (not implemented in v0.1):
-  check-coverage
 `;
 
 function toolVersion(schemaPath: string): string {
@@ -492,6 +504,18 @@ function runLintPrivacy(inputs: readonly string[], quiet: boolean, format: strin
       `${summary.findings} privacy ${findingNoun}: ${critical} critical, ${high} high, ${medium} medium, ${low} low, ${info} info\n`,
     );
 
+    // Severity says how bad one finding would be. Category says what kind of
+    // mistake produced it, which is what an instrumentation fix is organised
+    // around — and fifty findings in one category is a different afternoon from
+    // fifty spread across nine.
+    if (!quiet && summary.byCategory.length > 0) {
+      write(
+        `by category: ${summary.byCategory
+          .map((entry) => `${entry.category} ${entry.findings}`)
+          .join(", ")}\n`,
+      );
+    }
+
     if (summary.schemaInvalid > 0) {
       const noun = summary.schemaInvalid === 1 ? "input" : "inputs";
       write(
@@ -624,6 +648,131 @@ function runCheckProfile(
   return summary.conforming === 0 && summary.notApplicable > 0 ? EXIT_NOT_APPLICABLE : EXIT_OK;
 }
 
+/** Longest ungoverned-name list printed in text mode before it is summarised. */
+const COVERAGE_NAME_LIMIT = 20;
+
+function runCheckCoverage(
+  inputs: readonly string[],
+  quiet: boolean,
+  format: string,
+  profileName: string | undefined,
+): number {
+  if (profileName === undefined || profileName === "") {
+    process.stderr.write(
+      `auditmodel: check-coverage requires --profile <name>; available profiles: ${availableProfiles().join(", ")}\n`,
+    );
+    return EXIT_ERROR;
+  }
+
+  const loaded = loadProfile(profileName);
+  if (!loaded.ok) {
+    process.stderr.write(`auditmodel: ${loaded.error}\n`);
+    for (const issue of loaded.issues ?? []) {
+      process.stderr.write(`    ${issue}\n`);
+    }
+    return EXIT_ERROR;
+  }
+
+  const input = loadInput(inputs, "check-coverage", quiet || format === "json");
+  if (typeof input === "number") {
+    return input;
+  }
+
+  const { profile } = loaded;
+  const events = input.documents.map((document) => document.event);
+  const results = input.documents.map((document) =>
+    checkProfile(document.event, displayLabel(document), profile, input.validator),
+  );
+  const coverage = summariseCoverage(events, results, profile);
+
+  if (format === "json") {
+    write(
+      `${JSON.stringify(
+        {
+          tool: "auditmodel check-coverage",
+          specVersion: SPEC_VERSION,
+          schemaId: input.validator.schemaId,
+          coverage,
+          unreadable: input.failures.map((failure) => ({
+            file: displayPath(failure.file),
+            error: failure.error,
+          })),
+        },
+        null,
+        2,
+      )}\n`,
+    );
+  } else {
+    reportLoadFailures(input.failures);
+
+    write(`profile: ${profile.name} ${profile.version} (${profile.status})\n\n`);
+
+    const summary = coverage.events;
+    const noun = summary.events === 1 ? "event" : "events";
+    write(
+      `${summary.events} ${noun} checked: ${summary.conforming} conforming, ${summary.violations} with violations, ${summary.notApplicable} not applicable, ${summary.coreInvalid} core-invalid, ${input.failures.length} unreadable\n\n`,
+    );
+
+    write(
+      `rules: ${coverage.rules.total} in the profile, ${coverage.rules.selected} selected, ${coverage.rules.applied} applied\n`,
+    );
+    if (!quiet) {
+      for (const rule of coverage.perRule) {
+        if (rule.selected === 0) {
+          continue;
+        }
+        write(
+          `  ${rule.ruleId.padEnd(18)}${rule.severity.padEnd(9)}selected ${String(rule.selected).padStart(5)}   applied ${String(rule.applied).padStart(5)}   failed ${String(rule.failed).padStart(5)}\n`,
+        );
+      }
+      if (coverage.rules.neverSelected.length > 0) {
+        write(
+          `  never selected (${coverage.rules.neverSelected.length}): ${coverage.rules.neverSelected.join(", ")}\n`,
+        );
+      }
+    }
+
+    // The quiet half of the report, and the half worth reading: a rule that was
+    // selected and never applied looked enforced and enforced nothing.
+    if (coverage.rules.selectedButNeverApplied.length > 0) {
+      write(
+        `  selected but never applied (${coverage.rules.selectedButNeverApplied.length}): ${coverage.rules.selectedButNeverApplied.join(", ")}\n`,
+      );
+      write("        a condition on these rules never held, so they contributed no requirement\n");
+    }
+
+    write(
+      `\nevent names: ${coverage.nameTotals.distinct} distinct, ${coverage.nameTotals.governed} governed, ${coverage.nameTotals.ungoverned} ungoverned\n`,
+    );
+    if (!quiet) {
+      for (const kind of ["governed", "ungoverned"] as const) {
+        const entries = coverage.names.filter((entry) => entry.governed === (kind === "governed"));
+        if (entries.length === 0) {
+          continue;
+        }
+        write(`  ${kind}\n`);
+        for (const entry of entries.slice(0, COVERAGE_NAME_LIMIT)) {
+          write(`    ${String(entry.events).padStart(7)}  ${entry.name}\n`);
+        }
+        if (entries.length > COVERAGE_NAME_LIMIT) {
+          write(`    and ${entries.length - COVERAGE_NAME_LIMIT} more\n`);
+        }
+      }
+    }
+
+    if (coverage.nameTotals.governed === 0) {
+      write("\nthis profile governs no event in this set, so it checked nothing\n");
+    }
+  }
+
+  if (input.failures.length > 0) {
+    return EXIT_ERROR;
+  }
+  // Never EXIT_INVALID: coverage reports reach, and makes no pass or fail claim.
+  // `check-profile` is the command that judges.
+  return coverage.nameTotals.governed === 0 ? EXIT_NO_VERDICT : EXIT_OK;
+}
+
 export function run(argv: readonly string[]): number {
   let parsed;
   try {
@@ -729,6 +878,14 @@ export function run(argv: readonly string[]): number {
   }
   if (command === "check-profile") {
     return runCheckProfile(
+      rest,
+      quiet,
+      format,
+      typeof values.profile === "string" ? values.profile : undefined,
+    );
+  }
+  if (command === "check-coverage") {
+    return runCheckCoverage(
       rest,
       quiet,
       format,

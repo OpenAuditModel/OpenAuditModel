@@ -21,16 +21,21 @@ The vocabularies here are **open**. The core schema constrains their form, not t
 
 ## Documents
 
-| Document                                                   | Covers                                            |
-| ---------------------------------------------------------- | ------------------------------------------------- |
-| [event-naming.md](event-naming.md)                         | The naming rule, categories, activity types       |
-| [authentication.md](authentication.md)                     | Sign-in, sign-out, sessions, credentials, factors |
-| [identity-and-access.md](identity-and-access.md)           | Users, roles, permissions, service accounts       |
-| [data-access.md](data-access.md)                           | Reading, exporting, sharing and modifying data    |
-| [configuration-and-change.md](configuration-and-change.md) | Settings, secrets, deployments, releases          |
-| [workflow-and-approval.md](workflow-and-approval.md)       | Requests, approvals, workflow state, incidents    |
-| [privileged-operations.md](privileged-operations.md)       | Administrative and break-glass operations         |
-| [correlation-and-tracing.md](correlation-and-tracing.md)   | Request, trace, span and correlation identifiers  |
+| Document                                                   | Covers                                              |
+| ---------------------------------------------------------- | --------------------------------------------------- |
+| [event-naming.md](event-naming.md)                         | The naming rule, categories, activity types         |
+| [authentication.md](authentication.md)                     | Sign-in, sign-out, sessions, credentials, factors   |
+| [identity-and-access.md](identity-and-access.md)           | Users, roles, permissions, service accounts         |
+| [data-access.md](data-access.md)                           | Reading, exporting, sharing and modifying data      |
+| [configuration-and-change.md](configuration-and-change.md) | Settings, secrets, deployments, releases            |
+| [workflow-and-approval.md](workflow-and-approval.md)       | Requests, approvals, workflow state, incidents      |
+| [privileged-operations.md](privileged-operations.md)       | Administrative and break-glass operations           |
+| [message-brokers.md](message-brokers.md)                   | Broker control plane: destinations, access, offsets |
+| [secrets-and-keys.md](secrets-and-keys.md)                 | Secret, key and certificate lifecycle and access    |
+| [financial-transactions.md](financial-transactions.md)     | Movements of money, limits and reconciliation       |
+| [backup-and-recovery.md](backup-and-recovery.md)           | Backup, restore, recovery and retention policy      |
+| [customer-and-account.md](customer-and-account.md)         | Business parties and business accounts              |
+| [correlation-and-tracing.md](correlation-and-tracing.md)   | Request, trace, span and correlation identifiers    |
 
 ## Relationship to profiles
 

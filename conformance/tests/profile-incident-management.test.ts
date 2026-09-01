@@ -150,6 +150,46 @@ describe("high-volume monitoring, timeline and read events are deliberately ungo
       assert.ok(selectRules(profile, name).length > 0, `${name} should be governed`);
     }
   });
+
+  test("the two-segment form of a case operation selects exactly the same rules", () => {
+    // A system that models an incident directly rather than as a separate case
+    // record emits `incident.create`, not `incident.case.create`. Both name the
+    // same operation, so both must carry the same obligations: a profile that
+    // governed one and not the other would report `not-applicable` — which is
+    // not conformance — for half the producers in the domain.
+    const cases = [
+      ...new Set(
+        profile.rules
+          .flatMap((rule) => rule.events ?? [])
+          .filter((name) => name.split(".")[1] === "case"),
+      ),
+    ];
+    assert.ok(cases.length > 0, "the profile no longer selects any case operation");
+
+    for (const name of cases) {
+      const [domain, , action] = name.split(".");
+      const short = `${domain}.${action}`;
+      assert.deepEqual(
+        selectRules(profile, short).map((rule) => rule.id),
+        selectRules(profile, name).map((rule) => rule.id),
+        `${short} and ${name} are the same operation and must carry the same rules`,
+      );
+    }
+  });
+
+  test("widening to two segments governs no read and no sub-resource", () => {
+    // The twins are exact names, never prefixes, so nothing below them is swept
+    // in. `incident.note.create` is the case that would break first.
+    for (const name of [
+      "incident.view",
+      "incident.list",
+      "incident.note.create",
+      "incident.timeline.append",
+      "problem.view",
+    ]) {
+      assert.deepEqual(selectRules(profile, name), [], `${name} must stay ungoverned`);
+    }
+  });
 });
 
 describe("published incident-management fixtures", () => {
@@ -162,6 +202,7 @@ describe("published incident-management fixtures", () => {
       "case-resolve.json",
       "corrective-action-open.json",
       "corrective-action-verify.json",
+      "create-short-form.json",
       "major-declare.json",
       "priority-change.json",
       "problem-case-close.json",

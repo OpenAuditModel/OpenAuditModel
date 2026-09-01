@@ -31,22 +31,22 @@ cannot be reconstructed at all.
 
 ### Event families
 
-| Family                                        | Governed | Notes                                             |
-| --------------------------------------------- | -------- | ------------------------------------------------- |
-| `incident.case.create`                        | yes      | Raising a case                                    |
-| `incident.priority.change`                    | yes      | Reassessment of priority                          |
-| `incident.assignment.change`                  | yes      | Change of accountable owner                       |
-| `incident.major.declare`                      | yes      | Escalation to major                               |
-| `incident.case.resolve`                       | yes      | Service restored                                  |
-| `incident.case.close`, `incident.case.cancel` | yes      | Terminal transitions                              |
-| `incident.case.reopen`                        | yes      | A new lifecycle transition, governed on its own   |
-| `incident.rca.*`                              | yes      | Root cause analysis, including approval           |
-| `incident.sla.breach`                         | yes      | A missed commitment; excluded from `INC-CORE-001` |
-| `problem.case.create`, `problem.case.close`   | yes      | Problem management, where it is a separate record |
-| `corrective-action.*`                         | yes      | Opening, verifying and closing an action          |
-| `monitoring.alert.*`                          | **no**   | Alert observations                                |
-| `incident.note.*`, `incident.timeline.*`      | **no**   | Working notes and timeline chatter                |
-| `incident.case.view` and other reads          | **no**   | Reading a case record                             |
+| Family                                                         | Governed | Notes                                             |
+| -------------------------------------------------------------- | -------- | ------------------------------------------------- |
+| `incident.case.create`, `incident.create`                      | yes      | Raising a case                                    |
+| `incident.priority.change`                                     | yes      | Reassessment of priority                          |
+| `incident.assignment.change`                                   | yes      | Change of accountable owner                       |
+| `incident.major.declare`                                       | yes      | Escalation to major                               |
+| `incident.case.resolve`, `incident.resolve`                    | yes      | Service restored                                  |
+| `incident.case.close`, `incident.case.cancel`, and their twins | yes      | Terminal transitions                              |
+| `incident.case.reopen`, `incident.reopen`                      | yes      | A new lifecycle transition, governed on its own   |
+| `incident.rca.*`                                               | yes      | Root cause analysis, including approval           |
+| `incident.sla.breach`                                          | yes      | A missed commitment; excluded from `INC-CORE-001` |
+| `problem.case.create`, `problem.case.close`, and their twins   | yes      | Problem management, where it is a separate record |
+| `corrective-action.*`                                          | yes      | Opening, verifying and closing an action          |
+| `monitoring.alert.*`                                           | **no**   | Alert observations                                |
+| `incident.note.*`, `incident.timeline.*`                       | **no**   | Working notes and timeline chatter                |
+| `incident.case.view`, `incident.view` and other reads          | **no**   | Reading a case record                             |
 
 The names come from
 [workflow-and-approval.md](../../semantic-conventions/workflow-and-approval.md), which already
@@ -55,6 +55,22 @@ incident: `problem.case.*` for organizations that keep a problem record separate
 that revealed it, and `corrective-action.*` for the remediation that outlives both. Both follow the
 core naming rules; `corrective-action.open` uses the two-segment form permitted where a resource
 segment would be artificial, exactly as `authentication.login` does.
+
+### Both segment forms of a case operation are governed
+
+Every `<domain>.case.<action>` selector is accompanied by its two-segment twin, `<domain>.<action>`.
+Not every incident system models the incident as a separate _case_ record: a system that manages the
+incident directly emits `incident.create`, and only "at least two segments" is normative
+([event-model.md](../../specification/event-model.md) §7). Both names describe the same operation, so
+both carry the same rules, and a test asserts the two selections are identical rather than merely
+overlapping.
+
+The alternative was to govern one spelling and leave the other `not-applicable`. That would have been
+worse than silence: `not-applicable` is not conformance, and a producer whose only difference from a
+governed system is a redundant middle segment would have been told nothing at all.
+
+The twins are exact names, never prefixes, so nothing beneath them is drawn in — `incident.note.create`
+and `incident.view` stay ungoverned, and a test names each of them.
 
 ### Explicit exclusions
 
@@ -88,14 +104,14 @@ event.
 | ------------------ | ------------------------------------------------------ | ---------------------------------------------------------- |
 | `INC-CORE-001`     | every governed event except `incident.sla.breach`      | `/authorization`, `/metadata/incident/status`              |
 | `INC-CORE-002`     | every governed event                                   | _recommends_ `/request/correlationId`, `/relatedResources` |
-| `INC-CREATE-001`   | `incident.case.create`, `problem.case.create`          | _recommends_ `/reason`, detection time, impact, urgency    |
+| `INC-CREATE-001`   | `incident.case.create`, `problem.case.create`, twins   | _recommends_ `/reason`, detection time, impact, urgency    |
 | `INC-STATE-001`    | every state transition except reopen                   | `/change`                                                  |
 | `INC-STATE-002`    | reprioritisation, escalation, closure, cancellation    | `/reason`                                                  |
 | `INC-PRIORITY-001` | creation, reprioritisation, escalation, breach         | `/metadata/incident/priority`                              |
 | `INC-ASSIGN-001`   | `incident.assignment.change`, `corrective-action.open` | `/metadata/incident/assigneeId`; recommends `/reason`      |
-| `INC-RESOLVE-001`  | `incident.case.resolve`                                | `/metadata/incident/resolutionType`                        |
+| `INC-RESOLVE-001`  | `incident.case.resolve`, `incident.resolve`            | `/metadata/incident/resolutionType`                        |
 | `INC-CLOSE-001`    | closure or cancellation **declared to need approval**  | `/approval/status`                                         |
-| `INC-REOPEN-001`   | `incident.case.reopen`                                 | `/change`, `/reason`; recommends `/evidence`               |
+| `INC-REOPEN-001`   | `incident.case.reopen`, `incident.reopen`              | `/change`, `/reason`; recommends `/evidence`               |
 | `INC-RCA-001`      | `incident.rca.*`                                       | `/metadata/incident/rca/method`                            |
 | `INC-RCA-002`      | `incident.rca.approve`                                 | `/approval/status`                                         |
 | `INC-CAPA-001`     | `corrective-action.verify`                             | `/metadata/incident/correctiveAction/verificationMethod`   |
@@ -260,7 +276,7 @@ possible without collision.
 
 ## Fixture matrix
 
-[examples/profiles/incident-management/](../../examples/profiles/incident-management/) — thirteen
+[examples/profiles/incident-management/](../../examples/profiles/incident-management/) — fourteen
 valid, fourteen invalid, three not-applicable. Every fixture is core-conforming and privacy-clean;
 every invalid fixture is core-**valid** and fails exactly one profile rule with exactly one error.
 There is one invalid fixture per _requirement_, not per rule, so the two rules that require two
@@ -286,7 +302,9 @@ things each carry two fixtures; a test derives that obligation from `profile.jso
 
 `problem-case-close.json` and `major-declare.json` exercise the problem domain and the escalation
 path; `problem-case-close.json` is also the fixture that proves the closure-approval condition stays
-quiet when the producer declares approval was not required.
+quiet when the producer declares approval was not required. `create-short-form.json` is
+`incident.create` rather than `incident.case.create` — the same operation as `case-create.json` under
+the two-segment name, so a reader of the fixture corpus alone sees that both spellings conform.
 
 ## Not-applicable rationale
 

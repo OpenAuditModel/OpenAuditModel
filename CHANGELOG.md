@@ -11,7 +11,232 @@ While the project is **Experimental**, breaking changes are possible in any rele
 as such. A change that alters the meaning of an existing field or event name is never acceptable — a
 new name is introduced instead.
 
-## Unreleased
+## 0.4.0 - 2026-08-27
+
+Specification `0.1`, unchanged. Repository `0.4.0`.
+
+### Added — `check-coverage`, and the question `check-profile` cannot answer
+
+`check-profile` reports whether each event conforms. It cannot report whether the profile reached the
+events at all, and the two are indistinguishable in a line that counts failures: an export with no
+violations and an export the profile never governed both read as quiet.
+
+`auditmodel check-coverage <path...> --profile <name>` reports what a profile reached across a set —
+which rules were selected, which were applied, and every event name the profile does not govern. Text
+and `--format json`. An eighth MCP tool, `check_coverage`, ships with it, so the agent surface still
+matches the command line.
+
+**It counts events, not obligations.** "6 of 15 rules selected" describes an event set. It is not a
+percentage of conformance, a maturity score or a grade, there is no threshold, and a low number is
+the normal state of a narrow export. A threshold would be policy; this is a measurement.
+
+Two of its lines are the reason it exists:
+
+- **Ungoverned event names** are what tell a producer that its vocabulary and the profile's have not
+  met. Nothing else surfaces this: every one of those events is individually `not-applicable` and
+  individually unremarkable.
+- **Selected but never applied** names a rule whose condition never held. Such a rule is selected on
+  every matching event, contributes no requirement to any of them, and fails nothing — it looked
+  enforced and enforced nothing. Counting it as coverage would be the same mistake as reading
+  `not-applicable` as conformance.
+
+**It never exits `1`.** Coverage makes no pass or fail claim: `0` when the profile governed at least
+one event, `3` when it governed none, `2` when the tool could not run. A test asserts that an input
+which fails `check-profile` with `1` is still a successful coverage report.
+
+`check-coverage` was the one command the README listed as planned and unimplemented; that line is
+gone, and `PLANNED_COMMANDS` is now empty.
+
+### Added — five semantic conventions for vocabularies the profiles already enforced
+
+Ten profiles enforce ten vocabularies; seven convention documents published eight of them. Five
+domains had rules with real requirements behind names no document described, which left a producer
+with the profile as its only source and no statement of what the names mean.
+
+| Document                                                                    | Names published |
+| --------------------------------------------------------------------------- | --------------- |
+| [message-brokers.md](semantic-conventions/message-brokers.md)               | 32              |
+| [secrets-and-keys.md](semantic-conventions/secrets-and-keys.md)             | 18              |
+| [financial-transactions.md](semantic-conventions/financial-transactions.md) | 18              |
+| [backup-and-recovery.md](semantic-conventions/backup-and-recovery.md)       | 13              |
+| [customer-and-account.md](semantic-conventions/customer-and-account.md)     | 14              |
+
+**No vocabulary was invented.** Every one of the 95 names published is one its profile already
+selects or one that falls under a prefix the profile selects, checked mechanically rather than by
+reading. A convention describes what exists; extending a vocabulary is a profile change with a
+version bump behind it.
+
+Each document carries the passage its domain most needs: broker message payloads, key and secret
+material, primary account numbers and counterparty data, backed-up content, and customer personal
+data are each named as things an event must never carry. Each also resolves the
+actor/resource/subject question for its domain, because `subject` misused as a generic target is what
+[actor-model.md](specification/actor-model.md) §5.2 calls the single most common modelling mistake.
+
+Two conflicts are recorded rather than resolved, because a convention may not decide either on its
+own:
+
+- **`secret.reveal` and `configuration.secret.access` name what is arguably one operation.** The
+  older document publishes one, the secrets profile enforces the other, and `event-model.md` §7.2
+  makes name stability a MUST — so neither can be withdrawn by a convention. The overlap is stated,
+  interim guidance is given, and reconciling them is left to a specification change.
+- **The `key.policy.` prefix has no name behind it.** `secret.policy.update` and
+  `backup.policy.update` exist; the key equivalent was never written. The gap is named as an open
+  item rather than filled with an invented name — which is also the finding `npm run profiles:lint`
+  reports, reached from the other direction.
+
+The five documents are published through the MCP server alongside the other seven, taking its
+read-only resource count from 29 to 34.
+
+### Added — a language-neutral conformance kit, with no badge
+
+ADR 0001 has promised since v0.1 that "an implementation in any language can be checked against the
+same fixtures". The fixtures were always published; what they are supposed to _produce_ lived in
+twenty-two Node test files, which is not a contract an implementer in another language can read.
+
+[conformance-kit/manifest.json](conformance-kit/manifest.json) is that contract as data: for all 320
+published fixtures and 5 chains it records the verdict each engine returns — `validate` for every
+fixture, `lintPrivacy` for every fixture, `verifyIntegrity` where the fixture declares integrity
+material, and `checkProfile` for the fixtures under a profile.
+
+**Human-readable messages are deliberately absent.** Rule identifiers, JSON Pointers, statuses,
+severities, confidences and finding kinds are the contract; wording is not. An implementation that
+words an error differently is not wrong, and a kit that compared prose would fail every translation
+and every improvement to a sentence. A test asserts that no message, recommendation or detail string
+appears anywhere in the manifest.
+
+**The kit confers nothing** — no badge, no "compatible" status, no listing, no certification.
+`overview.md` §3.4 says conformance MUST NOT be presented as a compliance statement, and a status this
+project handed out would be read as exactly that by people with no way to see it withdrawn. The
+manifest carries its own limits in a `claims` array, and a test asserts that neither the manifest nor
+the kit's README ever says "certified", "compliant" or "approved".
+
+The manifest **names** fixture paths rather than embedding fixture content, so there remains exactly
+one copy of every event in the repository. It is generated from the same engines the CLI uses;
+`npm run kit:check` is part of `npm run verify` and is asserted from the test suite, so a change that
+moves a verdict updates this file in the same commit or fails the build.
+
+It is not published to npm, and that is deliberate: the package does not carry `examples/` because
+eleven privacy fixtures hold synthetic credential-shaped values, and a manifest without the fixtures
+it names would be useless. The kit is a repository artifact, taken from a checkout or a release
+archive pinned to a tag.
+
+### Added — a profile lint, and the first checks that run over all ten profiles
+
+`npm run profiles:lint` reads every shipped profile and reports defects the definition schema cannot
+express. Seven checks, and the severity of each follows its consequence rather than its tidiness: an
+`error` changes a verdict, a `warning` is something a reviewer should see that changes no verdict
+today. Warnings do not fail the build — a lint that flagged house style would be silenced rather than
+heeded.
+
+Three of the checks exist because the failure they catch is silent:
+
+- **A duplicated rule id loses requirements.** Rule selection deduplicates by id, so a second rule
+  sharing one is never evaluated and everything it required disappears — and the event is then
+  reported _conforming_. The schema permits it: `rules` carries no uniqueness constraint.
+- **A rule that requires nothing turns silence into approval.** An event is `not-applicable` only
+  while no rule selects it. One requirement-free rule makes it governed, satisfied and conforming,
+  which is the exact reading the status vocabulary exists to prevent.
+- **A condition nothing guarantees never fires.** An absent condition path means the condition does
+  not hold, so a producer that never writes the flag escapes the requirement in silence. The rule
+  looks enforced and enforces nothing.
+
+The lint also rejects pointers the schema accepts and nothing can resolve — an empty reference token
+(`/metadata/`), and a `requiredMetadata` path beginning with `/metadata`, which is concatenated into
+`/metadata/metadata/…` — and contradictory requirements that fail on every event a rule applies to.
+
+**On the shipped corpus: 0 errors, 17 warnings.** Twelve are conditions no unconditional rule in
+their own profile guarantees, one per profile in seven profiles and three in
+`customer-and-account-management`; five are the `key.policy.` prefix in `secrets-and-key-management`,
+which selects nothing — no event name in that profile and no fixture of it falls under it. Both
+findings are recorded in the test as a pinned list rather than a count, so fixing one is a visible
+change rather than a silently shrinking number.
+
+`INC-CLOSE-001` appears in that list, and it is the same rule `check-coverage` reports as selected
+but never applied against a real fixture. The two checks reach it from opposite ends — one from the
+profile document at review time, one from a producer's events at run time.
+
+The suite that asserts this is also the first test in the repository to iterate every profile. Nine
+of the ten profile test files assert unique rule ids, a rationale per rule and `coreVersions` by hand;
+`identity-and-access-management` has no profile-definition block at all, and a new profile inherited
+none of them. Those assertions now run for all ten.
+
+### Added — `lint-privacy` breaks its findings down by category
+
+Severity already said how bad one finding would be if the suspicion is correct. It never said what
+kind of mistake produced it, and that is what an instrumentation fix is organised around: fifty
+findings in one category are an afternoon's work, fifty spread across nine are a different problem.
+
+`by category: credential-field-name 2, credential-shaped-value 2, minimization 2, url 2, …` now
+follows the severity line, and `byCategory` is in the JSON report. The `category` field already
+existed on every rule; only the rollup is new. A finding whose rule declares no category is counted
+under `uncategorised` rather than dropped, so the category counts always sum to the finding count —
+a test asserts that against the published fixture corpus. `--quiet` drops the line with the rest of
+the detail.
+
+### Changed behaviour — `incident-management` governs both segment forms of a case operation (profile 0.1 → 0.2)
+
+**Breaking for producers**, in the sense ADR 0008 gives that phrase: events that were reported
+`not-applicable` may now be reported as violations. Nothing about the core model changes, and no rule
+was added, removed or altered — only the names the existing rules select.
+
+Every `<domain>.case.<action>` selector is now accompanied by its two-segment twin: `incident.create`
+beside `incident.case.create`, `incident.resolve` beside `incident.case.resolve`, and the same for
+`close`, `cancel`, `reopen` and the two `problem.case.*` operations. Ten distinct two-segment
+selectors, thirty selector entries, fifteen rules unchanged.
+
+The profile presumed a system that models an incident as a separate _case_ record. A system that
+manages the incident directly emits `incident.create`, and only "at least two segments" is normative —
+so half the domain was being told nothing at all. `not-applicable` is not conformance, and the
+previous behaviour was the worse kind of silence: it read as an absence of findings.
+
+**Measured, so that the consequence is stated rather than discovered.** Run against a real 204-event
+export from a production incident-management application, `check-profile` moves from
+`204 not applicable, exit 3` to `0 conforming, 15 with violations, 189 not applicable, exit 1` —
+45 violations and 84 recommendations, on `/authorization`, `/metadata/incident/status`,
+`/metadata/incident/priority` and `/metadata/incident/resolutionType`. Not one event becomes
+conforming. That is the profile finally saying something about a real system, and what it says is
+that the system does not record the decisions the domain expects.
+
+Only the imperative spellings are added. A producer that emitted `incident.created` before switching
+to `incident.create` keeps its historical rows ungoverned: past-tense names are what
+`semantic-conventions/event-naming.md` recommends against, and one product's superseded spelling does
+not belong in a vendor-neutral profile.
+
+The twins are exact names, never prefixes, so `incident.note.create`, `incident.timeline.append`,
+`incident.view` and `problem.view` stay ungoverned. A test asserts that each two-segment form selects
+_exactly_ the same rules as the three-segment form it twins, and another names the reads that must
+stay outside. `/profiles/incident-management/0.1/profile.json` remains served alongside the new
+`/0.2/`.
+
+### Fixed — revising a profile no longer withdraws the previous version's URL
+
+The site published only each profile's current version, and wiped `site/` on every build, so the
+first bump of any profile would have stopped serving the address that version had been published at.
+`deploy/Caddyfile` serves everything under `/profiles/` with a year-long `immutable` cache lifetime,
+so that address had been declared permanent to every cache that holds it.
+
+Every published version is now filed at `profiles/<name>/<version>/profile.json`, and the site
+publishes all of them. Revising a profile adds an address instead of replacing one — the
+`incident-management` bump in this same release is the first to exercise it, and
+`/profiles/incident-management/0.1/profile.json` is still served beside the new `/0.2/`. A build
+whose current version has no filed copy fails rather than shipping a landing page that links a 404.
+
+### Added — a profile's rules cannot change without its version changing
+
+ADR 0008 already recorded that adding a rule to a profile is a breaking change for producers and that
+profile versions "are expected to move". Nothing enforced it: no test read `profile.version`, and a
+rule could be added, removed or retargeted with the version left alone.
+
+The archive above is append-only, so a rules change that leaves `version` untouched makes the working
+document disagree with the copy already filed under that version, and `npm run verify` fails. Bumping
+the version or reverting the change are the only ways to make it pass; the filed copy cannot be
+re-pointed at the new content. `npm run profiles:archive` files a version, `npm run
+profiles:check-archive` compares, and the check is also asserted from the test suite.
+
+Two adjacent couplings are now held in place by tests rather than by memory: every filed copy must
+declare the version it is filed under, and the MCP server must advertise each profile under the
+version that profile declares — its resource URIs carry the version and are written by hand, so a
+bump would otherwise have served new rules at the old version's URI.
 
 ### Added — the site's landing page is served in five languages
 

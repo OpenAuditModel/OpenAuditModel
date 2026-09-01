@@ -59,7 +59,28 @@ export interface LintSummary {
   readonly schemaInvalid: number;
   readonly findings: number;
   readonly bySeverity: Readonly<Record<Severity, number>>;
+  /**
+   * Findings per rule category, most findings first.
+   *
+   * Severity says how bad one finding would be; category says what kind of
+   * mistake produced it, which is what an instrumentation fix is organised
+   * around. Fifty findings that are all one category are one afternoon's work;
+   * fifty spread across nine are a different problem.
+   *
+   * A rule that declares no category is counted under `uncategorised` rather
+   * than dropped, so the category counts always sum to `findings`.
+   */
+  readonly byCategory: readonly CategoryCount[];
 }
+
+/** Findings attributed to one rule category. */
+export interface CategoryCount {
+  readonly category: string;
+  readonly findings: number;
+}
+
+/** Category recorded for a finding whose rule declares none. */
+export const UNCATEGORISED = "uncategorised";
 
 export function emptySeverityCounts(): Record<Severity, number> {
   return { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
@@ -68,11 +89,14 @@ export function emptySeverityCounts(): Record<Severity, number> {
 /** Summarises a set of results. */
 export function summarise(results: readonly EventLintResult[]): LintSummary {
   const bySeverity = emptySeverityCounts();
+  const categories = new Map<string, number>();
   let findings = 0;
 
   for (const result of results) {
     for (const finding of result.findings) {
       bySeverity[finding.severity] += 1;
+      const category = finding.category ?? UNCATEGORISED;
+      categories.set(category, (categories.get(category) ?? 0) + 1);
       findings += 1;
     }
   }
@@ -84,5 +108,11 @@ export function summarise(results: readonly EventLintResult[]): LintSummary {
     schemaInvalid: results.filter((result) => result.status === "schema-invalid").length,
     findings,
     bySeverity,
+    byCategory: [...categories.entries()]
+      .map(([category, count]) => ({ category, findings: count }))
+      .sort(
+        (left, right) =>
+          right.findings - left.findings || left.category.localeCompare(right.category, "en"),
+      ),
   };
 }
