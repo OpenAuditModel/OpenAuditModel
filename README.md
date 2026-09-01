@@ -12,7 +12,7 @@
 |                           |                                                                  |
 | ------------------------- | ---------------------------------------------------------------- |
 | **Specification version** | 0.1                                                              |
-| **Tooling release**       | 0.3.0 — the CLI and MCP server, versioned in `package.json`      |
+| **Tooling release**       | 0.4.0 — the CLI and MCP server, versioned in `package.json`      |
 | **Project status**        | **Experimental**                                                 |
 | **Production readiness**  | **Not production-ready**                                         |
 | **Compliance**            | **No compliance guarantee**                                      |
