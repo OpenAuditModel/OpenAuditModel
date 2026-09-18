@@ -11,6 +11,82 @@ While the project is **Experimental**, breaking changes are possible in any rele
 as such. A change that alters the meaning of an existing field or event name is never acceptable — a
 new name is introduced instead.
 
+## 0.4.1 - 2026-09-18
+
+Specification `0.1`, unchanged. Repository `0.4.1`.
+
+### Fixed — every dependency finding with a fix available, in three layers
+
+The container scan gate — the one that fails only on findings that have a fix available — went red
+without a line of this repository changing:
+
+| Package        | Installed | Fixed in        | Findings                                                                                                                                  |
+| -------------- | --------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `libpcre2-8-0` | 10.42-1   | 10.42-1+deb12u1 | CVE-2026-86145, CVE-2026-89157, CVE-2026-89161 — out-of-bounds writes in the regex engine                                                 |
+| `fast-uri`     | 3.1.5     | 3.1.8           | CVE-2026-75899, CVE-2026-75931, CVE-2026-75975, CVE-2026-76172 — server-side request forgery, and host confusion via skipped IDN handling |
+
+`fast-uri` is reached through `ajv`, and is the first Node-level finding against this image that sat
+in `/app/node_modules` rather than in the package-manager trees the runtime stage deletes.
+
+Debian published the pcre2 fix before the base image was rebuilt around it, so a fresher tag was not
+a remedy: an image built the same day still carried the vulnerable package. The runtime stage now
+upgrades every package that has a fix — the same predicate the gate uses — which keeps this a
+property of the image rather than a list of package names maintained by hand. The apt lists are
+removed in the same layer, so nothing new is shipped and the runtime still carries no package
+manager a running server could reach.
+
+**A consumer installing from npm was never exposed to the `fast-uri` finding**: the package carries
+no lockfile, and `ajv`'s own dependency range resolves a fixed version today. What was exposed is
+this repository's own builds and the published image.
+
+**A third finding the gate could not have reported**: `hono` 4.13.1, reached through
+`@modelcontextprotocol/node` and `@hono/node-server`, carries three moderate advisories fixed in
+4.13.5 — an incomplete fix for a `toSSG()` path traversal (GHSA-gqvv-2mrq-wpjv), memory exhaustion
+through unbounded dot-notation nesting in `parseBody()` (GHSA-g6gw-c38x-mqfc), and a query parser
+that reads parameters after the URL fragment, which produces cache-key and proxy interpretation
+differentials (GHSA-crvj-82cr-hjcx). Now 4.13.8.
+
+None of the three is on a path this server uses — it generates no static site, and it reaches HTTP
+through `toNodeHandler` rather than through `parseBody()` or hono's query parser — but the server is
+public and unauthenticated, which is not where a dependency is left a release behind on the argument
+that its vulnerable paths look unreachable.
+
+It was invisible by configuration rather than by accident: the image scan is set to
+`CRITICAL,HIGH`, and these are moderate, while nothing else in this repository looked at the
+dependency tree at all. The threshold, not an absence of findings, is why the report was quiet —
+which is the reason the CI job below exists. `npm audit` now reports zero vulnerabilities at every
+severity.
+
+### Fixed — the README described the MCP server's resources as covering one profile
+
+`README.md` said the thirty-four read-only resources cover "the specification, both schemas, the
+semantic conventions and the IAM profile". Nine of the ten bundled profiles went unmentioned, and
+"the specification" is seven of its fifteen documents. The sentence was also split mid-phrase across
+a line break, which is how a claim about a generated manifest survives three releases without being
+read as a whole. [mcp/README.md](mcp/README.md) has carried the correct breakdown throughout; the
+root page, which is also the page npm renders, did not.
+
+A test now reads that paragraph and checks it against the generated resource manifest and the
+registered tool and prompt names, so the claim moves with the surface it describes. It reads a count
+written as a word or as digits, because the README writes both.
+
+### Added — CI runs weekly, and reads the dependency tree
+
+Two gaps, and every finding above sat in one of them.
+
+**Nothing re-ran between releases.** CI ran on push, on pull request and on demand, so the seventeen
+days after 0.4.0 passed with no run at all, while the image accumulated findings the scan gate would
+have failed on any of those days. CI now also runs on Mondays, which turns that into a failing check.
+GitHub disables a schedule after sixty days without activity, so it supplements pushing rather than
+replacing it.
+
+**Nothing read the dependency tree.** A new `advisories` job runs `npm audit --audit-level=moderate`
+against the lock file, which is what the image scan's `CRITICAL,HIGH` threshold cannot report. It is
+deliberately a CI job rather than a step in `npm run verify`: verify is offline and deterministic by
+design, and an advisory database is neither — a developer on a plane must still be able to run every
+gate. The weekly schedule re-runs it whether or not anyone pushed, so an advisory published against
+a dependency already in the lock file surfaces without a commit.
+
 ## 0.4.0 - 2026-09-01
 
 Specification `0.1`, unchanged. Repository `0.4.0`.

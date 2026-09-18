@@ -5,6 +5,15 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    # Mondays, 06:17 UTC. The container job scans the image against a
+    # vulnerability database it fetches on every run, so a weekly run is what
+    # turns a new CVE in the published image into a failing check rather than
+    # something nobody re-runs: nothing pushed here between 2026-09-01 and
+    # 2026-09-18, and nothing re-ran in that time either, while seven findings
+    # with fixes available accumulated. GitHub disables a schedule after sixty
+    # days without activity, so this supplements pushing rather than replacing it.
+    - cron: "17 6 * * 1"
   workflow_dispatch:
 
 permissions:
@@ -259,6 +268,35 @@ jobs:
         run: |
           npm ci
           npm run verify
+
+  advisories:
+    name: Dependencies carry no known advisory
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22.x"
+          cache: npm
+
+      - name: Install dependencies from the lock file
+        run: npm ci
+
+      # The image scan reports what Trivy's database knows about the built
+      # image, at CRITICAL and HIGH. That left a gap this job closes: three
+      # moderate advisories against `hono`, a transitive dependency of the MCP
+      # server, were below the scan's threshold and nothing else in this
+      # repository looked at the dependency tree at all. `npm run verify` is not
+      # the place for it — verify is offline and deterministic by design, and an
+      # advisory database is neither — so the check lives here, where the weekly
+      # schedule re-runs it whether or not anyone pushed.
+      - name: Fail on a moderate or worse advisory with a fix available
+        run: npm audit --audit-level=moderate
 
   package:
     name: Published CLI works for a consumer
