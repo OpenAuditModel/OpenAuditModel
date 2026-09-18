@@ -11,6 +11,36 @@ While the project is **Experimental**, breaking changes are possible in any rele
 as such. A change that alters the meaning of an existing field or event name is never acceptable — a
 new name is introduced instead.
 
+## 0.4.2 - 2026-09-18
+
+Specification `0.1`, unchanged. Repository `0.4.2`.
+
+### Changed — the published package carries the fixture corpus and the conformance kit
+
+[ADR 0001](decisions/0001-specification-first.md) promises that "an implementation in any language
+can be checked against the same fixtures", and 0.4.0 turned the expected verdicts into data. Both
+were true only for someone holding a git checkout: `files` stopped at the schema, the profiles, the
+conventions and the specification, so the corpus that proves an implementation and the manifest that
+says what it should produce were the two things a consumer could not install.
+
+`examples/` and `conformance-kit/` now ship, and the `exports` map declares both, so a consumer
+resolves them through the package rather than by guessing at a path inside `node_modules`. The
+tarball goes from 156 files to 493: the 335 files under `examples/` — 320 of them the fixtures the
+manifest names — plus the manifest and the kit's README. Pinning one version pins both halves, which
+is what the manifest needs: it names fixture paths rather than embedding fixture content, so a
+manifest and a corpus from different releases would describe each other wrongly.
+
+**This reverses a decision 0.4.0 stated and enforced**, and the reason it gave was not wrong. Eleven
+privacy fixtures hold synthetic credential-shaped values, and they now land in every consumer's
+`node_modules`, where a secret scanner will find them. They are inert, each one says what it is, and
+they are what the privacy linter has to be checked against — a conformance kit nobody can install is
+not a conformance kit. The trade is stated here rather than discovered by whoever runs the scanner.
+
+[scripts/verify-package.mjs](scripts/verify-package.mjs) changes sides with it: `examples/` moves out
+of the forbidden list, `conformance-kit/manifest.json` joins the required list, and a new check fails
+the build when any file under `examples/` is missing from the tarball. The corpus ships whole or not
+at all, because a manifest naming files the tarball does not carry is worse than shipping neither.
+
 ## 0.4.1 - 2026-09-18
 
 Specification `0.1`, unchanged. Repository `0.4.1`.

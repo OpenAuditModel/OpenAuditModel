@@ -16,7 +16,7 @@
  *   node scripts/package-smoke-test.mjs
  */
 import { execSync } from "node:child_process";
-import { mkdtempSync, readdirSync, rmSync, writeFileSync, existsSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -100,12 +100,35 @@ try {
   );
   check(profiles.includes(PROFILE), `${PROFILE} is available to a consumer`);
 
+  // The corpus and the verdicts that describe it ship together, or a consumer
+  // holds a manifest naming files it does not have. No in-repo test can see
+  // this: every one of them reads the repository.
+  const kitPath = path.join(installed, "conformance-kit", "manifest.json");
+  check(existsSync(kitPath), "conformance kit shipped");
+  if (existsSync(kitPath)) {
+    const kit = JSON.parse(readFileSync(kitPath, "utf8"));
+    const named = kit.fixtures.map((entry) => entry.fixture);
+    const missing = named.filter((fixture) => !existsSync(path.join(installed, fixture)));
+    check(
+      named.length > 0 && missing.length === 0,
+      `every fixture the kit names is installed (${named.length})`,
+      missing.length > 0 ? `first missing: ${missing[0]}` : "the manifest names no fixture",
+    );
+
+    // And the corpus is usable where it landed, not merely present.
+    const valid = kit.fixtures.find((entry) => entry.validate?.valid === true);
+    if (valid !== undefined) {
+      const result = cli(`validate "${path.join(installed, valid.fixture)}"`);
+      check(
+        result.status === 0,
+        "a shipped fixture validates through the installed CLI",
+        `${valid.fixture} exited ${result.status}`,
+      );
+    }
+  }
+
   // Nothing that must never ship.
-  for (const forbidden of [
-    "examples",
-    path.join("dist", "mcp"),
-    path.join("dist", "conformance", "tests"),
-  ]) {
+  for (const forbidden of [path.join("dist", "mcp"), path.join("dist", "conformance", "tests")]) {
     check(!existsSync(path.join(installed, forbidden)), `${forbidden} is not shipped`);
   }
 
@@ -177,12 +200,16 @@ try {
       'if (typeof lintEvent !== "function" || typeof checkProfile !== "function") process.exit(1);',
       'const schema = JSON.parse(readFileSync(new URL(import.meta.resolve("@openauditmodel/cli/schemas/v0.1/audit-event.schema.json")), "utf8"));',
       'if (!schema["$id"].includes("audit-event")) process.exit(1);',
+      'const kit = JSON.parse(readFileSync(new URL(import.meta.resolve("@openauditmodel/cli/conformance-kit/manifest.json")), "utf8"));',
+      "if (!Array.isArray(kit.fixtures) || kit.fixtures.length === 0) process.exit(1);",
+      'const fixture = readFileSync(new URL(import.meta.resolve("@openauditmodel/cli/" + kit.fixtures[0].fixture)), "utf8");',
+      'if (!fixture.includes("specVersion")) process.exit(1);',
       'console.log("exports resolve");',
     ].join("\n"),
   );
   check(
     /exports resolve/.test(run("node imports.mjs", consumer, true).output),
-    "exports: declared subpaths resolve for a consumer (engines and schema)",
+    "exports: declared subpaths resolve for a consumer (engines, schema, kit and corpus)",
   );
   writeFileSync(
     path.join(consumer, "deep.mjs"),

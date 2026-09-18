@@ -71,14 +71,29 @@ relative to the repository root, so the kit and the fixtures travel together.
 The kit **references** fixture paths rather than embedding fixture content. There is exactly one copy
 of every event in this repository, so the kit cannot drift from what it describes.
 
-## Why it is not on npm
+## Where to get it
 
-The published package deliberately does not carry `examples/`: eleven privacy fixtures hold synthetic
-credential-shaped values, and shipping those into every consumer's `node_modules` would put
-secret-shaped strings where secret scanners look.
-[scripts/verify-package.mjs](../scripts/verify-package.mjs) enforces that. A manifest without the
-fixtures it names would be useless, so the kit is a repository artifact: take it from a git checkout
-or a release archive, pinned to a tag.
+From the published package, alongside the corpus it names:
+
+```text
+node_modules/@openauditmodel/cli/conformance-kit/manifest.json
+node_modules/@openauditmodel/cli/examples/
+```
+
+Pinning one version pins both halves, which is what the manifest needs: it names fixture paths
+rather than embedding fixture content, so a manifest and a corpus from different releases would
+describe each other wrongly. [scripts/verify-package.mjs](../scripts/verify-package.mjs) fails the
+build if any fixture the manifest names is missing from the tarball.
+
+A git checkout or a release archive pinned to a tag carries the same two directories, and is the
+route for an implementation in a language with no npm at hand.
+
+**Before installing this into a scanned environment:** eleven privacy fixtures hold synthetic
+credential-shaped values — a fake PEM block, a fake bearer token, a password field — because that is
+what the privacy linter has to be checked against. They are inert and each one says what it is, but
+a secret scanner pointed at `node_modules` will find secret-shaped strings there. Releases before
+0.4.2 left the corpus out for exactly that reason; the reversal is deliberate, because a conformance
+kit nobody can install is not a conformance kit.
 
 ## How it stays true
 

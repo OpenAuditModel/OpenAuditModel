@@ -11,10 +11,15 @@
  * failure instead.
  *
  * It also refuses to pack anything that must never reach a consumer: tests, the
- * fixture generators, the synthetic privacy fixtures and the MCP server.
+ * fixture generators and the MCP server.
+ *
+ * The example corpus does ship, and ships whole. `conformance-kit/manifest.json`
+ * names fixture paths rather than embedding fixture content, so a tarball
+ * carrying the manifest and only part of the corpus would describe files that
+ * are not there — which is worse than shipping neither.
  */
 import { execSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -28,15 +33,26 @@ const REQUIRED = [
   "dist/conformance/src/cli.js",
   "schemas/v0.1/audit-event.schema.json",
   "profiles/profile-definition.schema.json",
+  "conformance-kit/manifest.json",
 ];
 
 /** Nothing matching these may be packed. */
-const FORBIDDEN = [
-  /(^|\/)tests?\//,
-  /(^|\/)dist\/mcp\//,
-  /(^|\/)examples\//,
-  /(^|\/)conformance\/tools\//,
-];
+const FORBIDDEN = [/(^|\/)tests?\//, /(^|\/)dist\/mcp\//, /(^|\/)conformance\/tools\//];
+
+/**
+ * Every file under `directory`, as tarball-relative paths. Dot-files are left
+ * out because npm never packs them, so a stray `.DS_Store` would otherwise
+ * fail the build for a file that is not supposed to be there in the first place.
+ */
+function filesUnder(directory) {
+  const entries = readdirSync(path.join(root, directory), { withFileTypes: true });
+  return entries
+    .filter((entry) => !entry.name.startsWith("."))
+    .flatMap((entry) => {
+      const relative = `${directory}/${entry.name}`;
+      return entry.isDirectory() ? filesUnder(relative) : [relative];
+    });
+}
 
 for (const relative of REQUIRED) {
   if (!existsSync(path.join(root, relative))) {
@@ -74,6 +90,15 @@ if (packed.length > 0) {
     problems.push("no profile definition is packed — check-profile would have nothing to load");
   }
 
+  // The corpus ships whole or not at all: the kit manifest names these paths.
+  const missingFixtures = filesUnder("examples").filter((file) => !packed.includes(file));
+  if (missingFixtures.length > 0) {
+    problems.push(
+      `${missingFixtures.length} of the example corpus is not packed, starting with ` +
+        `${missingFixtures[0]} — conformance-kit/manifest.json names files the tarball does not carry`,
+    );
+  }
+
   for (const file of packed) {
     for (const pattern of FORBIDDEN) {
       if (pattern.test(file)) {
@@ -85,6 +110,7 @@ if (packed.length > 0) {
   console.error(`package: ${manifest.name}`);
   console.error(`files:   ${packed.length}`);
   console.error(`profiles shipped: ${advertised.length}`);
+  console.error(`example files shipped: ${packed.filter((f) => f.startsWith("examples/")).length}`);
 }
 
 if (problems.length > 0) {
