@@ -67,6 +67,18 @@ ENV NODE_ENV=production \
     PORT=3000 \
     HOST=0.0.0.0
 
+# Debian publishes security updates faster than the base image is rebuilt, so a
+# freshly built image can still carry a package whose fix has been available for
+# days — pcre2 was three HIGH out-of-bounds writes behind (CVE-2026-86145,
+# CVE-2026-89157, CVE-2026-89161) on an image built today. Upgrading every
+# package that has a fix keeps the scan gate meaningful: the CI job fails only on
+# fixable findings, and this is what makes that a property of the image rather
+# than a list of package names to maintain by hand. The apt lists go in the same
+# layer, so nothing here is shipped.
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Compiled output, production dependencies and the licence. Nothing else: no
