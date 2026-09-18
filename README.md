@@ -12,7 +12,7 @@
 |                           |                                                                  |
 | ------------------------- | ---------------------------------------------------------------- |
 | **Specification version** | 0.1                                                              |
-| **Tooling release**       | 0.4.0 — the CLI and MCP server, versioned in `package.json`      |
+| **Tooling release**       | 0.4.1 — the CLI and MCP server, versioned in `package.json`      |
 | **Project status**        | **Experimental**                                                 |
 | **Production readiness**  | **Not production-ready**                                         |
 | **Compliance**            | **No compliance guarantee**                                      |
@@ -541,10 +541,10 @@ claude mcp add --transport http openauditmodel https://mcp.openauditmodel.org/mc
 ```
 
 Eight tools — `validate_event`, `verify_integrity`, `verify_chain`, `lint_privacy`,
-`check_profile`, `check_coverage`, `generate_event_template`, `get_event_guidance` — three prompts,
-and thirty-four
-read-only resources covering the specification, both schemas, the semantic conventions and the IAM
-profile.
+`check_profile`, `check_coverage`, `generate_event_template`, `get_event_guidance` —
+three prompts, and thirty-four read-only resources: seven specification chapters, both canonical
+schemas, the semantic-conventions index and twelve convention documents, the profile index and
+all ten profile definitions, and the examples index.
 
 **It is a remote service, and this matters.** MCP tool inputs are processed ephemerally by the
 OpenAuditModel MCP service. The service does not intentionally persist audit event content or
