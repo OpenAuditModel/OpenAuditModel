@@ -1,6 +1,6 @@
 {
   "name": "@openauditmodel/cli",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Conformance toolchain for OpenAuditModel: validate audit events against the canonical JSON Schema, verify tamper-evidence, lint for leaked secrets and check domain profiles. Offline and deterministic.",
   "keywords": [
     "audit",
@@ -26,7 +26,9 @@
     "./schemas/*": "./schemas/*",
     "./profiles/*": "./profiles/*",
     "./semantic-conventions/*": "./semantic-conventions/*",
-    "./specification/*": "./specification/*"
+    "./specification/*": "./specification/*",
+    "./examples/*": "./examples/*",
+    "./conformance-kit/*": "./conformance-kit/*"
   },
   "files": [
     "dist/conformance/src",
@@ -34,6 +36,8 @@
     "profiles",
     "semantic-conventions",
     "specification",
+    "examples",
+    "conformance-kit",
     "LICENSE",
     "README.md"
   ],
