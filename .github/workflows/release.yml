@@ -116,25 +116,45 @@ jobs:
       - name: Publish to npm
         # `prepack` builds and runs scripts/verify-package.mjs, so the tarball
         # is checked against its own allowlist before it leaves the runner.
-        # Skipped when the version is already on the registry, so re-running a
-        # dispatch that failed at the GitHub-release step is safe.
+        #
+        # Re-runnable on purpose: a version npm has already accepted makes
+        # `npm publish` fail with a conflict, and that is a finished job rather
+        # than a broken one — a dispatch re-run exists to finish the steps after
+        # this one. Any other failure is real and fails the job.
+        shell: bash
         run: |
+          set -o pipefail
           version="${TAG#v}"
-          if npm view "@openauditmodel/cli@$version" version >/dev/null 2>&1; then
-            echo "@openauditmodel/cli@$version is already published; skipping"
+          if npm publish 2>&1 | tee publish.log; then
+            echo "npm accepted $version"
+          elif grep -qiE "cannot publish over|already exists|EPUBLISHCONFLICT" publish.log; then
+            echo "::notice::npm already has $version; continuing to the release"
           else
-            npm publish
-          fi
-
-      - name: Confirm the registry serves the version it was told to publish
-        run: |
-          version="${TAG#v}"
-          published=$(npm view "@openauditmodel/cli" version)
-          echo "registry serves $published"
-          if [ "$published" != "$version" ]; then
-            echo "::error::published $version but the registry serves $published"
             exit 1
           fi
+          if grep -qiE "staged" publish.log; then
+            echo "::warning::npm staged $version rather than publishing it. It stays unavailable until it is promoted on npmjs.com — enable \"Allow npm publish\" on the trusted publisher connection to publish directly."
+          fi
+
+      - name: Read the registry back
+        # 0.4.0 was reported as published while the registry still served 0.3.0,
+        # so the registry is read rather than trusted. It is a report, not a
+        # gate: npm runs an automated review before a new version becomes
+        # available, and a version still in review is indistinguishable from an
+        # absent one from out here. `npm publish` failing above is what catches
+        # a publish that did not happen; this says whether it has landed yet.
+        shell: bash
+        run: |
+          version="${TAG#v}"
+          for attempt in $(seq 1 20); do
+            published=$(npm view "@openauditmodel/cli" version --prefer-online 2>/dev/null || true)
+            if [ "$published" = "$version" ]; then
+              echo "registry serves $version"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::warning::the registry still serves ${published:-nothing} ten minutes after publishing $version. npm's automated review has not finished, or the version was staged rather than published. Check https://www.npmjs.com/package/@openauditmodel/cli?activeTab=versions before announcing the release."
 
       - name: Open the GitHub release from the changelog section
         env:
