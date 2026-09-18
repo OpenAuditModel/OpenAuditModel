@@ -5,6 +5,13 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    # Mondays, 06:17 UTC. The container job runs two Trivy scans against a
+    # vulnerability database it fetches on every run, so a weekly run is what
+    # turns a new CVE in the published image into a failing check rather than
+    # something nobody re-runs. Nothing here pushed between 2026-09-01 and
+    # 2026-09-18, and nothing re-ran in that time either.
+    - cron: "17 6 * * 1"
   workflow_dispatch:
 
 permissions:
