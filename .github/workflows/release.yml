@@ -1,19 +1,33 @@
-name: Release checks
+name: Release
 
-# Tag-driven: pushing vX.Y.Z runs every gate a fresh clone can run, and two
-# guards encode a lesson this project already paid for once — 0.2.0 was tagged
-# and published while its changelog section still said "Unreleased". A tag
-# whose version or changelog entry does not match is refused here rather than
-# papered over afterwards.
+# Tag-driven: pushing vX.Y.Z runs every gate a fresh clone can run and then
+# publishes. Two guards encode a lesson this project already paid for once —
+# 0.2.0 was tagged and published while its changelog section still said
+# "Unreleased". A tag whose version or changelog entry does not match is
+# refused here rather than papered over afterwards.
 #
-# Publishing to npm is deliberately manual until 1.0: a maintainer runs
-# `npm publish` after this workflow is green. Automated publishing with
-# provenance moves into this workflow at the 1.0 milestone.
+# Publishing is no longer a maintainer typing `npm publish`. The package is
+# published from this workflow through npm trusted publishing, which exchanges
+# the run's OIDC identity for a short-lived credential: there is no npm token
+# to expire, to store as a repository secret, or to paste into a chat window,
+# and npm attaches build provenance on its own. The registry is then read back
+# and compared, because 0.4.0 was reported as published while the registry
+# still served 0.3.0.
+#
+# `workflow_dispatch` releases an existing tag. That is how a tag pushed before
+# this workflow existed reaches the registry without being moved, and how a run
+# that failed after publishing can be finished without a new version.
 
 on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to release, for example v0.4.1"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -23,10 +37,14 @@ jobs:
     name: Verify the tagged release
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
 
     steps:
-      - name: Check out the repository
+      - name: Check out the tag
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -36,7 +54,7 @@ jobs:
 
       - name: Confirm the tag matches package.json
         run: |
-          tag="${GITHUB_REF_NAME#v}"
+          tag="${TAG#v}"
           version=$(node -p "require('./package.json').version")
           if [ "$tag" != "$version" ]; then
             echo "::error::tag v$tag does not match package.json version $version"
@@ -45,7 +63,7 @@ jobs:
 
       - name: Confirm the changelog section for this version is dated
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          version="${TAG#v}"
           if ! grep -qE "^## $version - [0-9]{4}-[0-9]{2}-[0-9]{2}$" CHANGELOG.md; then
             echo "::error::CHANGELOG.md has no dated \"## $version - YYYY-MM-DD\" section"
             exit 1
@@ -56,3 +74,84 @@ jobs:
 
       - name: Run every gate a fresh clone can run
         run: npm run verify
+
+  publish:
+    name: Publish to npm and open the GitHub release
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    permissions:
+      # `id-token` mints the OIDC credential npm trusted publishing verifies;
+      # `contents` writes the GitHub release. Nothing here needs a secret.
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Check out the tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24.x"
+          registry-url: "https://registry.npmjs.org"
+          cache: npm
+
+      - name: Use an npm that supports trusted publishing
+        # Trusted publishing needs npm 11.5.1 or newer. Whatever ships with the
+        # runner's Node is not guaranteed to be, and an npm that does not
+        # understand OIDC falls back to looking for a token that does not
+        # exist — which fails late and reads like a credential problem.
+        run: |
+          npm install -g npm@^11
+          npm --version
+
+      - name: Install dependencies from the lock file
+        run: npm ci
+
+      - name: Publish to npm
+        # `prepack` builds and runs scripts/verify-package.mjs, so the tarball
+        # is checked against its own allowlist before it leaves the runner.
+        # Skipped when the version is already on the registry, so re-running a
+        # dispatch that failed at the GitHub-release step is safe.
+        run: |
+          version="${TAG#v}"
+          if npm view "@openauditmodel/cli@$version" version >/dev/null 2>&1; then
+            echo "@openauditmodel/cli@$version is already published; skipping"
+          else
+            npm publish
+          fi
+
+      - name: Confirm the registry serves the version it was told to publish
+        run: |
+          version="${TAG#v}"
+          published=$(npm view "@openauditmodel/cli" version)
+          echo "registry serves $published"
+          if [ "$published" != "$version" ]; then
+            echo "::error::published $version but the registry serves $published"
+            exit 1
+          fi
+
+      - name: Open the GitHub release from the changelog section
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${TAG#v}"
+          awk -v v="$version" '
+            $0 ~ "^## " v " - " { inside = 1; next }
+            inside && /^## [0-9]+\.[0-9]+\.[0-9]+ - / { exit }
+            inside { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "::error::no changelog body found for $version"
+            exit 1
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "release $TAG already exists; leaving it alone"
+          else
+            gh release create "$TAG" --verify-tag --title "$TAG" --notes-file release-notes.md
+          fi
