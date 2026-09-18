@@ -223,10 +223,13 @@ reason.
 2. Merge to `main` with CI green.
 3. Tag and push: `git tag -a vX.Y.Z -m "..." && git push origin vX.Y.Z`. The release-checks
    workflow runs every gate a fresh clone can run against the tag.
-4. With the workflow green, publish by hand: `npm publish`. Publishing stays manual until 1.0;
-   automated publishing with provenance moves into the workflow at that milestone.
-5. Create the GitHub release from the tag, pasting the changelog section.
-6. Deploy the site and containers per [deploy/README.md](deploy/README.md); that step is manual and
+4. Nothing else is typed. The same workflow publishes to npm through trusted publishing — the run's
+   OIDC identity is exchanged for a short-lived credential, so no npm token exists to store or leak,
+   and npm attaches build provenance — then reads the registry back and fails if it does not serve
+   the version it just published. It opens the GitHub release from the changelog section in the same
+   run. A tag pushed before any of this existed, or a run that failed after publishing, is finished
+   with **Actions → Release → Run workflow**, which takes the tag as its input rather than moving it.
+5. Deploy the site and containers per [deploy/README.md](deploy/README.md); that step is manual and
    operator-controlled by design.
 
 ## Licensing of contributions
