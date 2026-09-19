@@ -196,7 +196,7 @@ export function registerTools(server: McpServer, limits: EventLimits = DEFAULT_E
     {
       title: "Verify previous-hash chains",
       description:
-        "Groups events by chain identifier, orders them by sequence and verifies every digest and link. Proves consistency of the supplied set only: an attacker who removes the end of a chain leaves something internally consistent. Optionally accepts publicKeyPem, a PEM-encoded public key for the declared algorithm (Ed25519, ECDSA-P256-SHA256 or RSA-PSS-SHA256), applied to every event's integrity.signature the same way verify_integrity applies it; a declared signature in an unimplemented algorithm fails the event whether or not a key is supplied.",
+        "Groups events by chain identifier, orders them by sequence and verifies every digest and link. Proves consistency of the supplied set only: an attacker who removes the end of a chain leaves something internally consistent. Optionally accepts publicKeyPem, a PEM-encoded public key for the declared algorithm (Ed25519, ECDSA-P256-SHA256 or RSA-PSS-SHA256), applied to every event's integrity.signature the same way verify_integrity applies it; a declared signature in an unimplemented algorithm fails the event whether or not a key is supplied. Each chain's headHash is the declared hash of its highest-sequence event, the value a published chain head or checkpoint would name. The sealing batches events declare (integrity.batchId) are listed in the notes; a batch is reported, not judged, and never changes the verdict.",
       inputSchema: z.object({ events: z.array(eventSchema), publicKeyPem: z.string().optional() }),
     },
     ({ events, publicKeyPem }) =>
@@ -221,6 +221,7 @@ export function registerTools(server: McpServer, limits: EventLimits = DEFAULT_E
             eventCount: chain.eventCount,
             firstSequence: chain.firstSequence ?? null,
             lastSequence: chain.lastSequence ?? null,
+            headHash: chain.headHash ?? null,
             intact: chain.intact,
             findings: chain.findings.map((finding) => ({
               kind: finding.kind,

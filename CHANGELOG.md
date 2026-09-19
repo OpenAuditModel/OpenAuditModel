@@ -39,6 +39,21 @@ regenerating it — every other field is still compared exactly.
 `SIGNATURE_BYTE_LENGTHS` is replaced by `SIGNATURE_ALGORITHMS`, which records what each algorithm
 requires of a key and a value. Breaking for a deep importer of that constant; none is known.
 
+### Added — `verify-chain` reports the chain head and the sealing batches it sees
+
+Each chain's result now carries `headHash`, the declared `integrity.hash` of its highest-sequence
+event: the value integrity.md §10 asks producers to publish somewhere they do not control, and the
+value a checkpoint will be compared against. The CLI prints it as `head:`; `verify_chain` returns it
+per chain. It is reported for a broken chain too, with `intact` beside it saying what it is worth,
+and omitted when the highest sequence is declared by more than one event.
+
+`integrity.batchId`, which no command read until now, is listed per chain as a note: identifier,
+event count and sequence span, with a batch that also appears in another chain of the set stated as
+such. Batches are reported, not judged — no verdict, exit code or finding depends on them — and
+ADR 0013 records why the alternatives were refused. `examples/integrity/valid/chain-in-two-batches/`
+is added to show the note; the conformance kit gains its chain record, and nothing recorded for an
+existing fixture changes.
+
 ## 0.4.2 - 2026-09-18
 
 Specification `0.1`, unchanged. Repository `0.4.2`.

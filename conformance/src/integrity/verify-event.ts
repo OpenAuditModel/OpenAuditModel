@@ -44,6 +44,7 @@ interface IntegrityObject {
   readonly hash?: unknown;
   readonly previousHash?: unknown;
   readonly chainId?: unknown;
+  readonly batchId?: unknown;
   readonly signature?: unknown;
 }
 

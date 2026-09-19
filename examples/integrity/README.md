@@ -57,11 +57,19 @@ deep equality would.
 | [signed-event-ecdsa-p256.json](valid/signed-event-ecdsa-p256.json)   | The same content signed with ECDSA-P256-SHA256 (IEEE P1363 encoding)       |
 | [signed-event-rsa-pss.json](valid/signed-event-rsa-pss.json)         | The same content signed with RSA-PSS-SHA256 (2048-bit key, zero salt)      |
 | [three-event-chain/](valid/three-event-chain/)                       | A genesis event and two linked successors, sequences 1 to 3                |
+| [chain-in-two-batches/](valid/chain-in-two-batches/)                 | The same three events from a second instance, sealed in two batches        |
 
 `unicode-and-number-event.json` deliberately stores its members out of sorted order, mixes upper and
 lower case keys, digit keys, Latin-1 and CJK keys, a non-BMP character, combining marks, control
 character escapes, and numbers that exercise the ECMAScript number-to-string forms (`1e+21`, `1e-7`,
 `0.000001`). Canonicalization has to normalise all of it before the digest is stable.
+
+**`chain-in-two-batches` carries `integrity.batchId`**, the one integrity field no command used to
+read. `verify-chain` lists the batches as a note and does nothing else with them: a batch is the group
+sealed together, not a verification scope, so the chain is intact exactly as `three-event-chain` is.
+Because `batchId` is inside the digest, its three events are different events with different hashes,
+not the other chain relabelled — relabelling one after sealing is a `hash-mismatch`. See
+[ADR 0013](../../decisions/0013-batch-id-reported-not-judged.md).
 
 ## Invalid fixtures
 

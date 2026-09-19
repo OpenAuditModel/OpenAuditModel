@@ -386,7 +386,27 @@ describe("tool parity with the conformance engines", () => {
       assert.equal(actual["valid"], expected.intact, directory);
       assert.equal(actual["chainCount"], expected.chains.length, directory);
       assert.equal(actual["eventCount"], events.length, directory);
+
+      const chains = actual["chains"] as Array<Record<string, unknown>>;
+      assert.equal(chains[0]?.["headHash"], expected.chains[0]?.headHash ?? null, directory);
     }
+  });
+
+  test("verify_chain reports the head hash and lists sealing batches as notes", async () => {
+    const directory = "examples/integrity/valid/chain-in-two-batches";
+    const events = ["001.json", "002.json", "003.json"].map((file) => readEvent(directory, file));
+    const head = (events[2]?.["integrity"] as Json)["hash"];
+
+    const actual = await callTool("verify_chain", { events });
+    const chains = actual["chains"] as Array<Record<string, unknown>>;
+
+    assert.equal(actual["valid"], true);
+    assert.equal(chains[0]?.["headHash"], head);
+    assert.deepEqual(chains[0]?.["findings"], []);
+    assert.ok(
+      (chains[0]?.["notes"] as string[]).includes("events declare 2 sealing batches"),
+      "the batch note is returned as a note, never as a finding",
+    );
   });
 
   test("verify_integrity: without publicKeyPem, a signed event verifies and the signature is reported as not checked", async () => {

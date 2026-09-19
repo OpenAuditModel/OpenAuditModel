@@ -523,8 +523,10 @@ describe("published integrity fixtures", () => {
     const files = [
       path.join(integrityValid, "single-event-sha256.json"),
       path.join(integrityValid, "unicode-and-number-event.json"),
-      ...readdirSync(path.join(integrityValid, "three-event-chain")).map((entry) =>
-        path.join(integrityValid, "three-event-chain", entry),
+      ...["three-event-chain", "chain-in-two-batches"].flatMap((directory) =>
+        readdirSync(path.join(integrityValid, directory)).map((entry) =>
+          path.join(integrityValid, directory, entry),
+        ),
       ),
     ];
 

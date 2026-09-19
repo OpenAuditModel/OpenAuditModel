@@ -91,10 +91,13 @@ jobs:
         run: |
           node dist/conformance/src/cli.js verify-integrity examples/integrity/valid
           node dist/conformance/src/cli.js verify-integrity examples/integrity/valid/three-event-chain
+          node dist/conformance/src/cli.js verify-integrity examples/integrity/valid/chain-in-two-batches
           node dist/conformance/src/cli.js verify-integrity examples/valid/privileged-configuration-change.json
 
-      - name: Verify a well-formed chain
-        run: node dist/conformance/src/cli.js verify-chain examples/integrity/valid/three-event-chain
+      - name: Verify the well-formed chains
+        run: |
+          node dist/conformance/src/cli.js verify-chain examples/integrity/valid/three-event-chain
+          node dist/conformance/src/cli.js verify-chain examples/integrity/valid/chain-in-two-batches
 
       - name: Verify an Ed25519-signed event with the test public key
         run: |
@@ -148,6 +151,7 @@ jobs:
           node dist/conformance/src/cli.js lint-privacy examples/valid
           node dist/conformance/src/cli.js lint-privacy examples/integrity/valid
           node dist/conformance/src/cli.js lint-privacy examples/integrity/valid/three-event-chain
+          node dist/conformance/src/cli.js lint-privacy examples/integrity/valid/chain-in-two-batches
           node dist/conformance/src/cli.js lint-privacy examples/privacy/clean
 
       - name: Confirm every privacy finding fixture is reported

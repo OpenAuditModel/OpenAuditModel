@@ -153,6 +153,13 @@ export interface ChainVerificationResult {
   readonly eventCount: number;
   readonly firstSequence?: number;
   readonly lastSequence?: number;
+  /**
+   * The declared `integrity.hash` of the event at `lastSequence`: the value a
+   * published chain head or checkpoint would name. Present when exactly one
+   * event declares that sequence and it declares a hash, whether or not the
+   * chain is intact; `intact` says whether the chain leading to it verified.
+   */
+  readonly headHash?: string;
   readonly intact: boolean;
   readonly checks: readonly PassedCheck[];
   readonly findings: readonly Finding[];

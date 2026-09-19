@@ -307,6 +307,51 @@
       }
     },
     {
+      "fixture": "examples/integrity/valid/chain-in-two-batches/001.json",
+      "validate": {
+        "valid": true,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/integrity/valid/chain-in-two-batches/002.json",
+      "validate": {
+        "valid": true,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/integrity/valid/chain-in-two-batches/003.json",
+      "validate": {
+        "valid": true,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
       "fixture": "examples/integrity/valid/signed-event-ecdsa-p256.json",
       "validate": {
         "valid": true,
@@ -7989,6 +8034,18 @@
     }
   ],
   "chains": [
+    {
+      "fixtures": "examples/integrity/valid/chain-in-two-batches",
+      "intact": true,
+      "eventCount": 3,
+      "chains": [
+        {
+          "eventCount": 3,
+          "intact": true,
+          "findings": []
+        }
+      ]
+    },
     {
       "fixtures": "examples/integrity/valid/three-event-chain",
       "intact": true,

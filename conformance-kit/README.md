@@ -22,7 +22,7 @@ same as the reference implementation, on the cases this project chose to publish
 having and it is not a claim about the implementation's fitness, completeness or correctness in
 general.
 
-**The corpus is not the world.** 320 fixtures and 5 chains, chosen to cover the behaviour this
+**The corpus is not the world.** 325 fixtures and 6 chains, chosen to cover the behaviour this
 repository decided to pin. An implementation can pass all of them and still differ on an input nobody
 here thought to write down.
 

@@ -48,6 +48,7 @@ function writeScratch(name: string, contents: string): string {
 
 const VALID_EVENT = "examples/integrity/valid/single-event-sha256.json";
 const VALID_CHAIN = "examples/integrity/valid/three-event-chain";
+const BATCHED_CHAIN = "examples/integrity/valid/chain-in-two-batches";
 const SIGNED_EVENT = "examples/integrity/valid/signed-event-ed25519.json";
 const TEST_PUBLIC_KEY = "examples/integrity/keys/ed25519-test-public.pem";
 
@@ -142,6 +143,29 @@ describe("verify-chain", () => {
     assert.match(result.stdout, /all 2 previous-hash links valid/);
     assert.match(result.stdout, /chain starts at a genesis event/);
     assert.match(result.stdout, /1 chain checked: 1 intact, 0 broken \(3 events\)/);
+  });
+
+  test("reports the chain head as the declared hash of the last event", () => {
+    const last = JSON.parse(readFileSync(path.join(repoRoot, VALID_CHAIN, "003.json"), "utf8")) as {
+      integrity: { hash: string };
+    };
+    const result = auditmodel("verify-chain", VALID_CHAIN);
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, new RegExp(`^  head:      ${last.integrity.hash}$`, "m"));
+  });
+
+  test("lists sealing batches as a note that does not change the verdict", () => {
+    const result = auditmodel("verify-chain", BATCHED_CHAIN);
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /note: events declare 2 sealing batches/);
+    assert.match(result.stdout, /batch-2026-04-03-08-instance-9e4b: 2 events, sequences 1\.\.2/);
+    assert.match(result.stdout, /batch-2026-04-03-09-instance-9e4b: 1 event, sequence 3/);
+    assert.match(result.stdout, /reported, not judged/);
+    assert.match(result.stdout, /1 chain checked: 1 intact, 0 broken \(3 events\)/);
+
+    const quiet = auditmodel("verify-chain", BATCHED_CHAIN, "--quiet");
+    assert.equal(quiet.status, 0);
+    assert.doesNotMatch(quiet.stdout, /sealing batch/);
   });
 
   const brokenChains: ReadonlyArray<readonly [string, RegExp]> = [
