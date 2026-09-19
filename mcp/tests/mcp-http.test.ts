@@ -414,6 +414,22 @@ describe("tool parity with the conformance engines", () => {
     assert.ok((actual["checks"] as string[]).includes("signature valid (Ed25519)"));
   });
 
+  test("verify_integrity: the algorithms added in 0.5.0 verify with their test keys", async () => {
+    for (const [file, key, algorithm] of [
+      ["signed-event-ecdsa-p256.json", "ecdsa-p256-test-public.pem", "ECDSA-P256-SHA256"],
+      ["signed-event-rsa-pss.json", "rsa-pss-test-public.pem", "RSA-PSS-SHA256"],
+    ] as const) {
+      const event = readEvent("examples/integrity/valid", file);
+      const publicKeyPem = readFileSync(
+        path.join(repoRoot, "examples", "integrity", "keys", key),
+        "utf8",
+      );
+      const actual = await callTool("verify_integrity", { event, publicKeyPem });
+      assert.equal(actual["integrityValid"], true, file);
+      assert.ok((actual["checks"] as string[]).includes(`signature valid (${algorithm})`), file);
+    }
+  });
+
   test("verify_integrity: with the wrong publicKeyPem, only the signature fails", async () => {
     const event = readEvent("examples/integrity/valid", "signed-event-ed25519.json");
     // A genuine, freshly generated Ed25519 public key — not the one this event

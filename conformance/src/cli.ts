@@ -104,9 +104,11 @@ Options:
       --profile <name>                   Profile to check against (check-profile,
                                           check-coverage)
       --public-key <path>                PEM public key to verify integrity.signature against
-                                          (verify-integrity, verify-chain). Ed25519 only in v0.1.
-                                          Without it, a declared signature is reported but not
-                                          checked; an algorithm this verifier does not implement
+                                          (verify-integrity, verify-chain): Ed25519,
+                                          ECDSA-P256-SHA256 or RSA-PSS-SHA256; the key must be
+                                          of the declared algorithm's type. Without it,
+                                          a declared signature is reported but not checked;
+                                          an algorithm this verifier does not implement
                                           fails verification either way.
 
 Exit codes:

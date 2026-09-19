@@ -332,7 +332,7 @@ describe("signatures in chains", () => {
     const events = buildChain(2);
     const signed = events[1] as Event;
     integrityOf(signed)["signature"] = {
-      algorithm: "RSA-PSS-SHA256",
+      algorithm: "ECDSA-P384-SHA384",
       value: "c2lnbmF0dXJlLXZhbHVlLW5vdC1jaGVja2FibGU=",
     };
 

@@ -467,9 +467,11 @@ keeps the vocabulary open so a future algorithm needs no schema change — but a
 is not support, and an event declaring anything else is reported as unverifiable rather than verified.
 
 **Signature verification.** `integrity.signature` can additionally be checked with `--public-key
-<path>`, a PEM-encoded Ed25519 public key — `ECDSA-P256-SHA256` and `RSA-PSS-SHA256` are
-schema-recommended but not yet implemented. It verifies over the same digest input as the hash, so a
-signed chain is exactly as tamper-evident as a hashed one. Without the flag, a declared signature is
+<path>`, a PEM-encoded public key for the declared algorithm — `Ed25519`, `ECDSA-P256-SHA256` or
+`RSA-PSS-SHA256`, the three the schema's own description recommends; the key's type, curve and size
+must match the algorithm, and a mismatch is reported as such rather than as a signature that "does
+not match". It verifies over the same digest input as the hash, so a signed chain is exactly as
+tamper-evident as a hashed one. Without the flag, a declared signature is
 reported as present but not checked — never silently passed over — and an algorithm this verifier
 does not implement fails verification whether or not a key is supplied. A signature currently
 requires an accompanying `hash` to be checked at all. There is no key registry: `keyId` is never

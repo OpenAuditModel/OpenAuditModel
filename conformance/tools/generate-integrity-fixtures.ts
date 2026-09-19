@@ -17,14 +17,18 @@
  * `--check`; nothing writes fixtures during a normal test run.
  */
 import { deepStrictEqual } from "node:assert";
-import { createPrivateKey, createPublicKey, sign as cryptoSign } from "node:crypto";
+import { constants, createPrivateKey, createPublicKey, sign as cryptoSign } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { resolveSchemaPath } from "../src/validate.js";
 import { buildDigestInput, calculateDigest, sealEvent } from "../src/integrity/digest.js";
 import { canonicalBytes } from "../src/integrity/canonicalize.js";
-import { CANONICALIZATION_RFC8785 } from "../src/integrity/types.js";
+import {
+  CANONICALIZATION_RFC8785,
+  type SupportedSignatureAlgorithm,
+} from "../src/integrity/types.js";
+import { verifyEventSignature } from "../src/integrity/signature.js";
 
 type Event = Record<string, unknown>;
 
@@ -36,12 +40,12 @@ const CHAIN_ID = "chain-platform-control-service-instance-7c1a";
 // ---------------------------------------------------------------------------
 // Signature fixtures
 //
-// TEST-ONLY Ed25519 key pair. The private key is committed and public,
-// deliberately: it exists only to make the signed fixtures below
-// reproducible by this generator, the same way their hashes are. Anyone can
-// therefore forge a "validly signed" event under this key, which is exactly
-// why a real key must never be generated this way or checked into a
-// repository — see the caution note in examples/integrity/README.md.
+// TEST-ONLY key pairs, one per implemented algorithm. The private keys are
+// committed and public, deliberately: they exist only to make the signed
+// fixtures below reproducible by this generator, the same way their hashes
+// are. Anyone can therefore forge a "validly signed" event under these keys,
+// which is exactly why a real key must never be generated this way or checked
+// into a repository — see the caution note in examples/integrity/README.md.
 // ---------------------------------------------------------------------------
 
 const TEST_SIGNING_KEY_PEM = `-----BEGIN PRIVATE KEY-----
@@ -49,33 +53,113 @@ MC4CAQAwBQYDK2VwBCIEINSFExEuYKx62r0fQ6EQuZZunDj34W2McAZ3OAf8qz9S
 -----END PRIVATE KEY-----
 `;
 
+const TEST_ECDSA_KEY_PEM = `-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgauNuEj0i2ZzY8GpR
+CCWhDBrZoV55rbJf9MM7zvZ8TfWhRANCAATlF03PjiYCSbeiO411xL6C7dqmJ7UY
+bZ8hupz6XshhuKZcmMKD414AielbtRk+iFeHjz0fYuYcZBcJ9RFnWFZG
+-----END PRIVATE KEY-----
+`;
+
+const TEST_RSA_KEY_PEM = `-----BEGIN PRIVATE KEY-----
+MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQC2NUA4VrIWelT4
+ajcFKS8kaFiEht/mySuiKF4VHAEcsCs2dLXaB0IdhUeWfwa+8k4Qung4V+rB1wXv
+BdzyXPVZ2b1NrPNMtvbITs3IWubMgdr1zU7K2ZRt/+Hupom/T5LfU83G49K7Q2N/
++Y22Bvd3U5BuEMQSkzrgMIM4SqY5tvOLnQxOYkDmiawUjzYWRDyQovDtvA1VQSze
+ZeIXVNqBWCfdxRV1hA4XVJpiQjwSfSGWAwb/OYJeyWWFBZLZYjCPabEE8lBoZhIr
+Xdz6Y+y8fwQobOGGmMvqm7NZxPfxPprFAlySSBIPZEIvFoVvw5AWktt1NLkNRDc8
+i1NR2LgzAgMBAAECggEAQEZXoagfiWNc/waE4yqsiRTQCOwFJsXXQQwpaBvpXoPc
+soiIL+G4lm5SGwozSH90P11wFDwbQYbG/pLcZpiZKjlvmGuGpgyy0GVQHTnHyeOS
+6HukrFUFkaoeuo9/7v80idhnsh3i1BFJE7dmIIyjljHhtJnweLb8IWKrn1th+OBx
+W9zAqWNpiY/4bOipkiScEhTfwImsFEWmm/5MuAfkaG9XhVW/jaRIgovteqOQxXGU
+hLfQGQHY1Tj2Sk6YGGsGgEjxMp6vOEWxZpp64X/nDLlAhKPGw8hbphQTzmcLOfN2
+XHGymRgx078wcHKPP4slEdLbd/kTXrxIENnHVJhoaQKBgQD5wA7RgAeWqiQASCJC
+sWdVgh91traIVo78LZ6Gk7MGam/8l6z6TxC+I4isNFUOliwXPgqf0vDhZ6ouvMug
+4sXZJGBh3nuvxCMFvEP4QAP0aDohn+E6MJInIznnNDd63hKglNuUdQDljc2UWz4f
+LnKhnVUPMqVTaxNwnCbUgcvmKQKBgQC6xIGSk+LJDa2v3SJk1mEzDoZ5FChpEvDx
+wkf+nxfIZ0fBRZqc1lvExG+6Qtf2Sky7uCT/YO1bsevM1aYIlgs/ckMq9MocjDj5
+tKNFIKmAlfP65syEXZq05Zfeu8xKMsMWNdex9AsEwN9vQuq5RWobCe1Rn8lVrcye
+jO1h7HNe+wKBgB+iOP5GNi/aOxciC9zgtZL6GVwCmZopRJEighrPqHRelPKsj4dg
+7mD3BT+ynTdsxAbpn9Tglgwm4kJrPWuSbbb0SZT75jS8Jid60i0mhpm1fe92XcPO
+FSUJ7DKhxYk1iax3Tly+eS+aR3jMGdE/Q9u+nuB+7LvlKyAvVyfBjP8JAoGAFNZ3
+3nLBis0L4+M4QyfoEFo+hqPJHnAOkeqrPa1iaemcB+RMK9N+yaVhEdcDYWdIyGjz
+N8sIsIJZXLE5pRuYhaup8tD8+9JpSPLuhHfwcXhJkGTPzLTk3en/18n8MQsY2RGI
+z0H7OLyMMU22ApXMENg6sjCxte1+NvJiSdqnxKECgYAs+nAeZaFEy5oFSjbHKATO
+oGgDOV0+OyHrtH+EBriVU2M5QtEuyGDmPTHLlthceLarqy2d92XL6qP/MEJkcQF9
+ypgHxYxkP3ZJ6ZUaH4McLWvfDvNrES7DgkKSUAh6l7gXmgZ2TbrXhf5R6Jx/UUb0
+BFaSiplGTYPY6RwVDzFCpw==
+-----END PRIVATE KEY-----
+`;
+
 const TEST_SIGNING_KEY_ID = "example-fixture-key-2026";
+const TEST_ECDSA_KEY_ID = "example-fixture-ecdsa-key-2026";
+const TEST_RSA_KEY_ID = "example-fixture-rsa-key-2026";
 
 const testPrivateKey = createPrivateKey(TEST_SIGNING_KEY_PEM);
-const testPublicKeyPem = createPublicKey(testPrivateKey).export({
-  type: "spki",
-  format: "pem",
-}) as string;
+const testEcdsaKey = createPrivateKey(TEST_ECDSA_KEY_PEM);
+const testRsaKey = createPrivateKey(TEST_RSA_KEY_PEM);
+
+function publicPem(key: ReturnType<typeof createPrivateKey>): string {
+  return createPublicKey(key).export({ type: "spki", format: "pem" }) as string;
+}
+const testPublicKeyPem = publicPem(testPrivateKey);
+const testEcdsaPublicKeyPem = publicPem(testEcdsaKey);
+const testRsaPublicKeyPem = publicPem(testRsaKey);
 
 /**
- * Returns a copy of `event` with `integrity.signature` set to an Ed25519
- * signature over the same canonicalized input `sealEvent` hashes — computed
+ * Returns a copy of `event` with `integrity.signature` set to a signature in
+ * `algorithm` over the same canonicalized input `sealEvent` hashes — computed
  * with the same `buildDigestInput`/canonicalization code the verifier uses,
  * so a fixture cannot encode a signing procedure the implementation does not
  * follow.
+ *
+ * Two of the three schemes are not deterministic in Node — ECDSA draws a nonce
+ * and RSA-PSS a salt — and this generator's check compares regenerated
+ * fixtures with the committed ones. RSA-PSS is therefore signed with a
+ * zero-length salt, which makes it deterministic and still verifies under
+ * `RSA_PSS_SALTLEN_AUTO`. ECDSA has no such switch, so its fixture is checked
+ * by verifying the committed signature rather than by regenerating it.
  */
-function signEvent<T>(event: T): T {
+function signEventWith<T>(event: T, algorithm: SupportedSignatureAlgorithm): T {
   const data = canonicalBytes(buildDigestInput(event));
-  const signature = cryptoSign(null, data, testPrivateKey).toString("base64");
+  const [value, keyId] = ((): [string, string] => {
+    switch (algorithm) {
+      case "Ed25519":
+        return [cryptoSign(null, data, testPrivateKey).toString("base64"), TEST_SIGNING_KEY_ID];
+      case "ECDSA-P256-SHA256":
+        return [
+          cryptoSign("sha256", data, { key: testEcdsaKey, dsaEncoding: "ieee-p1363" }).toString(
+            "base64",
+          ),
+          TEST_ECDSA_KEY_ID,
+        ];
+      case "RSA-PSS-SHA256":
+        return [
+          cryptoSign("sha256", data, {
+            key: testRsaKey,
+            padding: constants.RSA_PKCS1_PSS_PADDING,
+            saltLength: 0,
+          }).toString("base64"),
+          TEST_RSA_KEY_ID,
+        ];
+    }
+  })();
   const record = event as Record<string, unknown>;
   const integrityRecord = record["integrity"] as Record<string, unknown>;
   return {
     ...record,
-    integrity: {
-      ...integrityRecord,
-      signature: { algorithm: "Ed25519", value: signature, keyId: TEST_SIGNING_KEY_ID },
-    },
+    integrity: { ...integrityRecord, signature: { algorithm, value, keyId } },
   } as T;
+}
+
+function signEvent<T>(event: T): T {
+  return signEventWith(event, "Ed25519");
+}
+
+/** The sealed event without its signature, so another key can sign the same content. */
+function unsigned(event: Event): Event {
+  const integrityRecord = { ...(event["integrity"] as Event) };
+  delete integrityRecord["signature"];
+  return { ...event, integrity: integrityRecord };
 }
 
 /** An unsealed integrity object. `hash` is a placeholder so that key order is stable. */
@@ -372,10 +456,14 @@ const unsupportedSignatureAlgorithm: Event = {
     ...(structuredClone(signedEvent)["integrity"] as Event),
     signature: {
       ...((structuredClone(signedEvent)["integrity"] as Event)["signature"] as Event),
-      algorithm: "ECDSA-P256-SHA256",
+      algorithm: "ECDSA-P384-SHA384",
     },
   },
 };
+
+/** The same sealed content signed under each of the other two implemented algorithms. */
+const signedEventEcdsa: Event = signEventWith(unsigned(signedEvent), "ECDSA-P256-SHA256");
+const signedEventRsaPss: Event = signEventWith(unsigned(signedEvent), "RSA-PSS-SHA256");
 
 /** Event 3 re-linked past event 2 and re-sealed: every digest holds, the link does not. */
 const brokenPreviousHash = [
@@ -431,6 +519,12 @@ const reorderedChain = [
 interface Fixture {
   readonly relativePath: string;
   readonly content: Event;
+  /**
+   * A fixture whose signature cannot be regenerated byte-for-byte is checked
+   * by verifying the committed signature with the algorithm's test key. Every
+   * other field is still compared exactly.
+   */
+  readonly checkedByVerifying?: SupportedSignatureAlgorithm;
 }
 
 function chainFixtures(directory: string, events: readonly Event[]): Fixture[] {
@@ -447,6 +541,12 @@ const FIXTURES: readonly Fixture[] = [
     content: unicodeAndNumberEvent,
   },
   { relativePath: path.join("valid", "signed-event-ed25519.json"), content: signedEvent },
+  {
+    relativePath: path.join("valid", "signed-event-ecdsa-p256.json"),
+    content: signedEventEcdsa,
+    checkedByVerifying: "ECDSA-P256-SHA256",
+  },
+  { relativePath: path.join("valid", "signed-event-rsa-pss.json"), content: signedEventRsaPss },
   ...chainFixtures(path.join("valid", "three-event-chain"), [chain001, chain002, chain003]),
   { relativePath: path.join("invalid", "tampered-event.json"), content: tamperedEvent },
   { relativePath: path.join("invalid", "wrong-declared-hash.json"), content: wrongDeclaredHash },
@@ -468,9 +568,52 @@ const FIXTURES: readonly Fixture[] = [
   ...chainFixtures(path.join("invalid", "reordered-chain"), reorderedChain),
 ];
 
-/** Not a JSON fixture: the public half of the TEST-ONLY signing key, for
+/** Not JSON fixtures: the public halves of the TEST-ONLY signing keys, for
  * `--public-key` in docs, tests and manual verification. */
-const PUBLIC_KEY_PATH = path.join(fixtureRoot, "keys", "ed25519-test-public.pem");
+const PUBLIC_KEYS: readonly { readonly file: string; readonly pem: string }[] = [
+  { file: path.join(fixtureRoot, "keys", "ed25519-test-public.pem"), pem: testPublicKeyPem },
+  {
+    file: path.join(fixtureRoot, "keys", "ecdsa-p256-test-public.pem"),
+    pem: testEcdsaPublicKeyPem,
+  },
+  { file: path.join(fixtureRoot, "keys", "rsa-pss-test-public.pem"), pem: testRsaPublicKeyPem },
+];
+
+/** A copy of `event` with `integrity.signature.value` blanked, for comparing everything else. */
+function withoutSignatureValue(event: Event): Event {
+  const integrityRecord = { ...(event["integrity"] as Event) };
+  const signature = integrityRecord["signature"] as Event | undefined;
+  if (signature !== undefined) {
+    integrityRecord["signature"] = { ...signature, value: "" };
+  }
+  return { ...event, integrity: integrityRecord };
+}
+
+/**
+ * True when the committed copy of a verification-checked fixture is the
+ * generated content in every field but the signature value, and that value
+ * verifies under the algorithm's test key.
+ */
+function committedCopyVerifies(fixture: Fixture, onDisk: Event): boolean {
+  const algorithm = fixture.checkedByVerifying;
+  if (algorithm === undefined) {
+    return false;
+  }
+  try {
+    deepStrictEqual(withoutSignatureValue(onDisk), withoutSignatureValue(fixture.content));
+  } catch {
+    return false;
+  }
+  const signature = (onDisk["integrity"] as Event)["signature"] as Event;
+  const publicKey = createPublicKey(
+    algorithm === "ECDSA-P256-SHA256"
+      ? testEcdsaKey
+      : algorithm === "RSA-PSS-SHA256"
+        ? testRsaKey
+        : testPrivateKey,
+  );
+  return verifyEventSignature(onDisk, algorithm, signature["value"] as string, publicKey).ok;
+}
 
 /** Compares the generated fixtures with what is on disk. Returns the drifted paths. */
 export function checkFixtures(): string[] {
@@ -482,17 +625,26 @@ export function checkFixtures(): string[] {
       drifted.push(`${fixture.relativePath} (missing)`);
       continue;
     }
+    const onDisk = JSON.parse(readFileSync(absolute, "utf8")) as Event;
+    if (fixture.checkedByVerifying !== undefined) {
+      if (!committedCopyVerifies(fixture, onDisk)) {
+        drifted.push(fixture.relativePath);
+      }
+      continue;
+    }
     try {
-      deepStrictEqual(JSON.parse(readFileSync(absolute, "utf8")), fixture.content);
+      deepStrictEqual(onDisk, fixture.content);
     } catch {
       drifted.push(fixture.relativePath);
     }
   }
 
-  if (!existsSync(PUBLIC_KEY_PATH)) {
-    drifted.push(`${path.relative(fixtureRoot, PUBLIC_KEY_PATH)} (missing)`);
-  } else if (readFileSync(PUBLIC_KEY_PATH, "utf8") !== testPublicKeyPem) {
-    drifted.push(path.relative(fixtureRoot, PUBLIC_KEY_PATH));
+  for (const key of PUBLIC_KEYS) {
+    if (!existsSync(key.file)) {
+      drifted.push(`${path.relative(fixtureRoot, key.file)} (missing)`);
+    } else if (readFileSync(key.file, "utf8") !== key.pem) {
+      drifted.push(path.relative(fixtureRoot, key.file));
+    }
   }
 
   return drifted;
@@ -502,13 +654,25 @@ function writeFixtures(): void {
   for (const fixture of FIXTURES) {
     const absolute = path.join(fixtureRoot, fixture.relativePath);
     mkdirSync(path.dirname(absolute), { recursive: true });
+    // A verification-checked fixture that already verifies is left alone:
+    // rewriting it would replace a good signature with a different good one
+    // and churn the repository for nothing.
+    if (fixture.checkedByVerifying !== undefined && existsSync(absolute)) {
+      const onDisk = JSON.parse(readFileSync(absolute, "utf8")) as Event;
+      if (committedCopyVerifies(fixture, onDisk)) {
+        process.stdout.write(`kept  ${fixture.relativePath} (committed signature verifies)\n`);
+        continue;
+      }
+    }
     writeFileSync(absolute, `${JSON.stringify(fixture.content, null, 2)}\n`, "utf8");
     process.stdout.write(`wrote ${fixture.relativePath}\n`);
   }
 
-  mkdirSync(path.dirname(PUBLIC_KEY_PATH), { recursive: true });
-  writeFileSync(PUBLIC_KEY_PATH, testPublicKeyPem, "utf8");
-  process.stdout.write(`wrote ${path.relative(fixtureRoot, PUBLIC_KEY_PATH)}\n`);
+  for (const key of PUBLIC_KEYS) {
+    mkdirSync(path.dirname(key.file), { recursive: true });
+    writeFileSync(key.file, key.pem, "utf8");
+    process.stdout.write(`wrote ${path.relative(fixtureRoot, key.file)}\n`);
+  }
 
   process.stdout.write(
     `\n${FIXTURES.length} fixtures written. Run "npm run format" to normalise formatting.\n`,

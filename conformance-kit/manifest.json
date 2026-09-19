@@ -307,7 +307,37 @@
       }
     },
     {
+      "fixture": "examples/integrity/valid/signed-event-ecdsa-p256.json",
+      "validate": {
+        "valid": true,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
       "fixture": "examples/integrity/valid/signed-event-ed25519.json",
+      "validate": {
+        "valid": true,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/integrity/valid/signed-event-rsa-pss.json",
       "validate": {
         "valid": true,
         "issues": []

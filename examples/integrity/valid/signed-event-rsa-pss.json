@@ -38,9 +38,9 @@
     "hashAlgorithm": "SHA-256",
     "hash": "bc9808880ddcc485638beec9b17c7996c4640c4627f9a78c9586f2065a8b8065",
     "signature": {
-      "algorithm": "ECDSA-P384-SHA384",
-      "value": "BLfdwtWE2r1YaIwE3tQOSQ3UkEm2Az0MMLaK60uWU/VZb/kMyCSxZGrbTNJTl/9G6qUqQSGtaLDNobR3PH9xBg==",
-      "keyId": "example-fixture-key-2026"
+      "algorithm": "RSA-PSS-SHA256",
+      "value": "bxPLlDrqhOrMUrydVU8hbgjLX/0WYwj5X9bVubiCikFS2FiBzM/XEkIIUmxsGrhp4TaoQWk4HEU7HhC3S7jGdLbEm15uM+6LX7WmQefNWypu6IUyHi70+Qc9I+PPn3L7WT20b4JxDbd3SajGDVfZ53tbV2nYMnTO1AYt/c7UKYJuIN/aAb6Dbayvtz7IMKUyW7l4fovk/RBEpNwLGk7OKw+ohcquGgJp67afl5LbhAmIsh14ZXd+gIYjyp4TSqaTQoRxtggE2BCSI1TRXn5Q+BxH2TXrBRvEK8cStd6mJ2IbcWZ7s/yOrDMtB4o/GcV4ewbAhyM3MWrhMb6rf80XZw==",
+      "keyId": "example-fixture-rsa-key-2026"
     }
   }
 }

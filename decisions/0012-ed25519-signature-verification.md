@@ -4,6 +4,10 @@
 
 Accepted — 2026-08-04. Applies to specification version 0.1; no schema change.
 
+**Amended — 2026-09-19 (tooling 0.5.0).** Decision 1 is superseded: `ECDSA-P256-SHA256` and
+`RSA-PSS-SHA256` are implemented alongside Ed25519, under the rules in the amendment at the end of
+this document. Decisions 2 to 6 stand unchanged and apply to all three algorithms.
+
 ## Context
 
 `integrity.signature` has been part of the schema since v0.1: an object with `algorithm`, `value` and
@@ -150,3 +154,36 @@ in this change establishes trust, it only checks a signature against a key the c
 Key distribution, custody and rotation remain entirely out of scope, as integrity.md §8 already states
 for signatures generally. `--public-key` reads a local file only: no URL, no key-server lookup and no
 network access are introduced by this change, keeping both commands offline exactly as they were.
+
+## Amendment — 2026-09-19: two more algorithms
+
+Decision 1 chose Ed25519 first and named `ECDSA-P256-SHA256` and `RSA-PSS-SHA256` as the schema's
+other recommended identifiers, unimplemented. Tooling 0.5.0 implements both, for the reason the
+schema recommends them: they are what HSMs, cloud key vaults and existing PKI issue, and a verifier
+that could only check the one algorithm those systems rarely produce was complete in principle and
+narrow in practice.
+
+The rules, in the order the verifier applies them:
+
+1. **The key must be of the declared algorithm's type** — `ed25519`, `ec` on `prime256v1`, or `rsa`
+   / `rsa-pss` with a modulus of at least 2048 bits. A mismatch is reported as `signature-invalid`
+   with both the supplied and the required type named, not as "signature does not match": the latter
+   would send a reader looking at the signature when the problem is the key.
+2. **ECDSA signatures are IEEE P1363** (`r ‖ s`, 64 bytes), not DER. A fixed length keeps the
+   malformed-length check meaningful; DER makes the same signature 70 to 72 bytes.
+3. **RSA-PSS is verified with the salt length recovered from the signature.** A signer's salt is the
+   signer's choice; the verifier does not constrain it.
+4. **Everything else is unchanged.** All three are verified over the same canonical bytes as the hash
+   (decision 2); no key is ever resolved from `keyId` (decision 3); a declared signature in an
+   implemented algorithm without a key is reported as declared and not checked (decision 4); an
+   algorithm outside the three still fails verification with or without a key.
+
+**Consequence for fixtures.** ECDSA and RSA-PSS are not deterministic in Node. The RSA-PSS fixture is
+signed with a zero-length salt, which is deterministic and verifies under rule 3. The ECDSA fixture
+is generated once and its check verifies the committed signature rather than regenerating it; the
+generator says so, and so does `examples/integrity/README.md`.
+
+**Consequence for the viewer.** OpenAuditViewer carries its own integrity engine and mirrors the
+algorithm list; its parity suite compares it against the conformance kit and fails the moment the
+kit records the new fixtures as verified — which is the intended signal to widen its list in the
+same change that bumps its pin.

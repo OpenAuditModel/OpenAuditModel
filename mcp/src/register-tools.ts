@@ -93,7 +93,7 @@ function resolvePublicKey(publicKeyPem: string | undefined): KeyObject | undefin
   } catch {
     throw new InputLimitError(
       "invalid-public-key",
-      "publicKeyPem could not be parsed as an Ed25519 public key",
+      "publicKeyPem could not be parsed as a public key",
     );
   }
 }
@@ -166,7 +166,7 @@ export function registerTools(server: McpServer, limits: EventLimits = DEFAULT_E
     {
       title: "Verify an event's own digest",
       description:
-        "Recalculates an event's integrity digest and compares it with the declared hash. Tamper-evident, not tamper-proof: it detects modification of the event supplied, and proves nothing about deletion. Canonicalized content and digest input are never returned. Optionally accepts publicKeyPem, a PEM-encoded Ed25519 public key, to additionally verify integrity.signature over the same digest input. Without it, a declared Ed25519 signature is reported as declared but not checked; a declared signature in an algorithm this verifier does not implement (such as ECDSA-P256-SHA256 or RSA-PSS-SHA256) fails verification whether or not a key is supplied.",
+        "Recalculates an event's integrity digest and compares it with the declared hash. Tamper-evident, not tamper-proof: it detects modification of the event supplied, and proves nothing about deletion. Canonicalized content and digest input are never returned. Optionally accepts publicKeyPem, a PEM-encoded public key for the declared algorithm — Ed25519, ECDSA-P256-SHA256 or RSA-PSS-SHA256 — to additionally verify integrity.signature over the same digest input. Without it, a declared signature in an implemented algorithm is reported as declared but not checked; a declared signature in an algorithm this verifier does not implement fails verification whether or not a key is supplied.",
       inputSchema: z.object({ event: eventSchema, publicKeyPem: z.string().optional() }),
     },
     ({ event, publicKeyPem }) =>
@@ -196,7 +196,7 @@ export function registerTools(server: McpServer, limits: EventLimits = DEFAULT_E
     {
       title: "Verify previous-hash chains",
       description:
-        "Groups events by chain identifier, orders them by sequence and verifies every digest and link. Proves consistency of the supplied set only: an attacker who removes the end of a chain leaves something internally consistent. Optionally accepts publicKeyPem, a PEM-encoded Ed25519 public key, applied to every event's integrity.signature the same way verify_integrity applies it; a declared signature in an unimplemented algorithm fails the event whether or not a key is supplied.",
+        "Groups events by chain identifier, orders them by sequence and verifies every digest and link. Proves consistency of the supplied set only: an attacker who removes the end of a chain leaves something internally consistent. Optionally accepts publicKeyPem, a PEM-encoded public key for the declared algorithm (Ed25519, ECDSA-P256-SHA256 or RSA-PSS-SHA256), applied to every event's integrity.signature the same way verify_integrity applies it; a declared signature in an unimplemented algorithm fails the event whether or not a key is supplied.",
       inputSchema: z.object({ events: z.array(eventSchema), publicKeyPem: z.string().optional() }),
     },
     ({ events, publicKeyPem }) =>

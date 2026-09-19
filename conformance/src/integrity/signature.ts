@@ -3,15 +3,18 @@
  *
  * Verifies `integrity.signature.value` against the same canonicalized digest
  * input used for `integrity.hash` (specification/integrity.md §4), using a
- * public key supplied out of band. v0.1 defines no key registry or trust
- * store: `integrity.signature.keyId` identifies a key for a human or an
- * external system to resolve, and is never dereferenced by this verifier.
+ * public key supplied out of band, for the three algorithms the schema's own
+ * description recommends: Ed25519, ECDSA-P256-SHA256 and RSA-PSS-SHA256. The
+ * key's type, curve and size must match the declared algorithm and are checked
+ * before the primitive runs. No key registry or trust store exists:
+ * `integrity.signature.keyId` identifies a key for a human or an external
+ * system to resolve, and is never dereferenced by this verifier.
  */
-import { createPublicKey, verify as cryptoVerify, type KeyObject } from "node:crypto";
+import { constants, createPublicKey, verify as cryptoVerify, type KeyObject } from "node:crypto";
 import { canonicalBytes } from "./canonicalize.js";
 import { buildDigestInput } from "./digest.js";
 import {
-  SIGNATURE_BYTE_LENGTHS,
+  SIGNATURE_ALGORITHMS,
   SUPPORTED_SIGNATURE_ALGORITHMS,
   type SupportedSignatureAlgorithm,
 } from "./types.js";
@@ -82,11 +85,32 @@ export function verifyEventSignature(
     };
   }
 
-  if (publicKey.asymmetricKeyType !== "ed25519") {
+  const spec = SIGNATURE_ALGORITHMS[algorithm];
+  const keyType = publicKey.asymmetricKeyType ?? "of an unrecognised type";
+  if (!spec.keyTypes.includes(keyType)) {
     return {
       ok: false,
       kind: "signature-invalid",
-      message: `the supplied public key is ${publicKey.asymmetricKeyType ?? "of an unrecognised type"}, not ed25519`,
+      message: `the supplied public key is ${keyType}, but ${algorithm} needs ${spec.keyTypes.join(" or ")}`,
+    };
+  }
+  const details = publicKey.asymmetricKeyDetails ?? {};
+  if (spec.namedCurve !== undefined && details.namedCurve !== spec.namedCurve) {
+    return {
+      ok: false,
+      kind: "signature-invalid",
+      message: `the supplied public key is on curve ${details.namedCurve ?? "unknown"}, but ${algorithm} needs ${spec.namedCurve}`,
+    };
+  }
+  const modulusBits = details.modulusLength;
+  if (
+    spec.minimumModulusBits !== undefined &&
+    (modulusBits === undefined || modulusBits < spec.minimumModulusBits)
+  ) {
+    return {
+      ok: false,
+      kind: "signature-invalid",
+      message: `the supplied public key has a ${modulusBits ?? "unknown"}-bit modulus, but ${algorithm} needs at least ${spec.minimumModulusBits}`,
     };
   }
 
@@ -99,7 +123,8 @@ export function verifyEventSignature(
   }
 
   const signatureBytes = Buffer.from(value, "base64");
-  const expectedLength = SIGNATURE_BYTE_LENGTHS[algorithm];
+  // Two schemes fix their length; an RSA signature is exactly one modulus long.
+  const expectedLength = spec.signatureBytes ?? (modulusBits as number) / 8;
   if (signatureBytes.length !== expectedLength) {
     return {
       ok: false,
@@ -112,10 +137,7 @@ export function verifyEventSignature(
 
   let valid: boolean;
   try {
-    // The algorithm argument must be null for Ed25519/Ed448: the digest
-    // algorithm is fixed by the signature scheme itself, not selectable per
-    // call, and Node rejects a non-null value here.
-    valid = cryptoVerify(null, data, publicKey, signatureBytes);
+    valid = verifyWithPrimitive(algorithm, data, publicKey, signatureBytes);
   } catch {
     // A degenerate or non-canonical encoded point can make the underlying
     // primitive fail rather than cleanly return false. The message is fixed,
@@ -132,6 +154,39 @@ export function verifyEventSignature(
   return valid
     ? { ok: true }
     : { ok: false, kind: "signature-invalid", message: "signature does not match" };
+}
+
+/**
+ * The one place each scheme's primitive is named. Ed25519 fixes its own digest
+ * and Node rejects a non-null algorithm argument for it. ECDSA is verified
+ * over SHA-256 with the fixed-length IEEE P1363 encoding this verifier
+ * requires. RSA-PSS is verified over SHA-256 with the salt length recovered
+ * from the signature itself (`RSA_PSS_SALTLEN_AUTO`): a signer's salt choice
+ * is the signer's.
+ */
+function verifyWithPrimitive(
+  algorithm: SupportedSignatureAlgorithm,
+  data: Uint8Array,
+  publicKey: KeyObject,
+  signature: Uint8Array,
+): boolean {
+  switch (algorithm) {
+    case "Ed25519":
+      return cryptoVerify(null, data, publicKey, signature);
+    case "ECDSA-P256-SHA256":
+      return cryptoVerify("sha256", data, { key: publicKey, dsaEncoding: "ieee-p1363" }, signature);
+    case "RSA-PSS-SHA256":
+      return cryptoVerify(
+        "sha256",
+        data,
+        {
+          key: publicKey,
+          padding: constants.RSA_PKCS1_PSS_PADDING,
+          saltLength: constants.RSA_PSS_SALTLEN_AUTO,
+        },
+        signature,
+      );
+  }
 }
 
 export { SUPPORTED_SIGNATURE_ALGORITHMS, type SupportedSignatureAlgorithm };
