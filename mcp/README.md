@@ -86,6 +86,11 @@ a tool argument carries no confidentiality concern; nothing about the key is per
 either way, the same as every other tool input. See
 [ADR 0012](../decisions/0012-ed25519-signature-verification.md).
 
+`verify_chain` returns each chain's `headHash` — the declared hash of its highest-sequence event, the
+value a published chain head or checkpoint names — and lists the sealing batches the events declare
+in `notes`. A batch is reported, not judged, and never changes `valid`; see
+[ADR 0013](../decisions/0013-batch-id-reported-not-judged.md).
+
 No tool returns the event it was given. `lint_privacy` never returns a matched value, a preview, a
 prefix, a suffix or a decoded token claim. `verify_integrity` never returns canonicalized content or
 digest input.

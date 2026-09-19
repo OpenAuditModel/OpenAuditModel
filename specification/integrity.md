@@ -31,8 +31,9 @@ without it is fully conforming. When the object is present it MUST contain at le
 | `signature`        | Digital signature over the canonicalized event.                                |
 
 `signature` is an object requiring `algorithm` and `value`, and optionally `keyId`. `keyId` MUST NOT
-contain key material. v0.1 tooling verifies Ed25519 signatures when a public key is supplied out of
-band; signing and key management are not part of v0.1. See §6.1 and §9.
+contain key material. v0.1 tooling verifies Ed25519, ECDSA-P256-SHA256 and RSA-PSS-SHA256 signatures
+when a public key is supplied out of band; signing and key management are not part of v0.1. See §6.1
+and §9.
 
 ### 2.1 What `batchId` is not
 
@@ -47,6 +48,10 @@ other way, and events from one job run may be sealed across several batches.
 `request.correlationId` is the field for job runs, processing batches and logical operations. See
 [event-model.md §10.1](event-model.md) and
 [semantic-conventions/correlation-and-tracing.md](../semantic-conventions/correlation-and-tracing.md).
+
+Tooling reads `batchId` and reports it: `verify-chain` lists the batches present in each chain as an
+informational note. A batch is not a verification scope, and no verdict depends on it. See
+[ADR 0013](../decisions/0013-batch-id-reported-not-judged.md).
 
 Likewise `chainId` identifies a tamper-evidence chain, not a business grouping.
 
@@ -281,7 +286,10 @@ canonicalization and algorithm are implemented, recalculates the digest and comp
 
 `verify-chain` additionally groups events by `chainId`, orders them by `sequence`, and checks every
 link. It detects broken links, modified events, reordering, duplicate sequences, missing sequences,
-mixed algorithms and unsupported algorithms.
+mixed algorithms and unsupported algorithms. It also reports each chain's head — the declared hash
+of its highest-sequence event, the value §10 asks producers to publish — and lists the sealing
+batches the events declare as a note. Batches are reported, not judged
+([ADR 0013](../decisions/0013-batch-id-reported-not-judged.md)).
 
 Both commands accept `--public-key <path>`, a PEM-encoded public key for the declared algorithm —
 `Ed25519`, `ECDSA-P256-SHA256` or `RSA-PSS-SHA256`. When it is supplied and

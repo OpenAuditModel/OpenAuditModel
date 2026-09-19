@@ -384,6 +384,9 @@ function runVerifyChain(
     write(`chain ${chain.chainId}\n`);
     write(`  events:    ${chain.eventCount}\n`);
     write(`  sequences: ${range}\n`);
+    if (chain.headHash !== undefined) {
+      write(`  head:      ${chain.headHash}\n`);
+    }
 
     if (!quiet) {
       writeChecks(

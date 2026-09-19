@@ -442,6 +442,7 @@ describe("dogfooding", () => {
       path.join(repoRoot, "examples", "valid"),
       path.join(repoRoot, "examples", "integrity", "valid"),
       path.join(repoRoot, "examples", "integrity", "valid", "three-event-chain"),
+      path.join(repoRoot, "examples", "integrity", "valid", "chain-in-two-batches"),
     ];
 
     for (const directory of directories) {

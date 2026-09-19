@@ -327,7 +327,7 @@ conformance/           the `auditmodel` CLI and its test suite
 conformance-kit/       every fixture's expected verdict, as data, for any language
 mcp/                   the remote MCP server, distributed as a container image
 deploy/                Docker Compose and reverse-proxy examples
-decisions/             12 architecture decision records
+decisions/             13 architecture decision records
 ```
 
 The core model requires seven fields — `specVersion`, `id`, `time`, `event`, `actor`, `resource`,
@@ -428,6 +428,7 @@ ok    examples/integrity/valid/single-event-sha256.json
 chain chain-platform-control-service-instance-7c1a
   events:    3
   sequences: 1..3
+  head:      a7da7bab810f1386942e86d11b3277cbe56a5cc71f6bdc01da0eded57c829c00
   ok    all 3 event digests valid
   ok    all 2 previous-hash links valid
   ok    chain starts at a genesis event
@@ -446,6 +447,13 @@ FAIL  examples/integrity/invalid/tampered-event.json
 canonicalization and hash algorithm are ones the verifier implements; that recalculating its digest
 reproduces `integrity.hash`; and, for chains, that every event links to its predecessor, that
 sequences are unique and orderable, and that one algorithm is used throughout.
+
+**What is reported beyond the verdict.** Each chain's **head** — the declared hash of its
+highest-sequence event — is printed, because it is the value to publish somewhere the store's
+administrators do not control and the value a checkpoint is compared against. The sealing batches
+events declare in `integrity.batchId` are listed as a note: reported, never judged, because a batch
+is the group sealed together and not a verification scope. See
+[ADR 0013](decisions/0013-batch-id-reported-not-judged.md).
 
 **What is not verified.** Whether the events you supplied are all the events that existed: chain
 verification proves consistency of the supplied set, and an attacker who removes the _end_ of a chain
@@ -665,7 +673,7 @@ and [ADR 0008](decisions/0008-declarative-profile-conformance.md).
 
 [ADR 0001](decisions/0001-specification-first.md) promises that "an implementation in any language can
 be checked against the same fixtures". [conformance-kit/manifest.json](conformance-kit/manifest.json)
-is what makes that actionable: for all 320 published fixtures and 5 chains it records the verdict each
+is what makes that actionable: for all 325 published fixtures and 6 chains it records the verdict each
 engine returns — rule identifiers, JSON Pointers, statuses, severities and finding kinds.
 
 Human-readable messages are deliberately absent. An implementation that words an error differently is

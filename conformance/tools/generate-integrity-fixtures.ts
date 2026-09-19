@@ -163,13 +163,16 @@ function unsigned(event: Event): Event {
 }
 
 /** An unsealed integrity object. `hash` is a placeholder so that key order is stable. */
-function integrity(options: { previousHash?: string; chainId?: string } = {}): Event {
+function integrity(
+  options: { previousHash?: string; chainId?: string; batchId?: string } = {},
+): Event {
   return {
     canonicalization: CANONICALIZATION_RFC8785,
     hashAlgorithm: "SHA-256",
     hash: "",
     ...(options.previousHash === undefined ? {} : { previousHash: options.previousHash }),
     ...(options.chainId === undefined ? {} : { chainId: options.chainId }),
+    ...(options.batchId === undefined ? {} : { batchId: options.batchId }),
   };
 }
 
@@ -397,6 +400,47 @@ const chain003: Event = sealEvent({
   integrity: integrity({ chainId: CHAIN_ID, previousHash: declaredHash(chain002) }),
 });
 
+// The same three events from a second instance of the service, sealed in two
+// batches: the first two together, the third on its own. `batchId` is inside
+// the digest, so these are different events with different hashes, not the
+// chain above relabelled. Batches are reported by `verify-chain`, not judged.
+const BATCHED_CHAIN_ID = "chain-platform-control-service-instance-9e4b";
+const BATCH_ONE = "batch-2026-04-03-08-instance-9e4b";
+const BATCH_TWO = "batch-2026-04-03-09-instance-9e4b";
+
+function inBatch(
+  source: Event,
+  options: { id: string; batchId: string; previousHash?: string },
+): Event {
+  const content = { ...source };
+  delete content["integrity"];
+  return sealEvent({
+    ...content,
+    id: options.id,
+    application: { ...(source["application"] as Event), instance: "instance-9e4b" },
+    integrity: integrity({
+      chainId: BATCHED_CHAIN_ID,
+      batchId: options.batchId,
+      ...(options.previousHash === undefined ? {} : { previousHash: options.previousHash }),
+    }),
+  });
+}
+
+const batched001: Event = inBatch(chain001, {
+  id: "018f2a30-1111-7222-8333-444455556611",
+  batchId: BATCH_ONE,
+});
+const batched002: Event = inBatch(chain002, {
+  id: "018f2a30-1111-7222-8333-444455556612",
+  batchId: BATCH_ONE,
+  previousHash: declaredHash(batched001),
+});
+const batched003: Event = inBatch(chain003, {
+  id: "018f2a30-1111-7222-8333-444455556613",
+  batchId: BATCH_TWO,
+  previousHash: declaredHash(batched002),
+});
+
 // ---------------------------------------------------------------------------
 // Invalid fixtures, all derived from the valid ones
 // ---------------------------------------------------------------------------
@@ -548,6 +592,11 @@ const FIXTURES: readonly Fixture[] = [
   },
   { relativePath: path.join("valid", "signed-event-rsa-pss.json"), content: signedEventRsaPss },
   ...chainFixtures(path.join("valid", "three-event-chain"), [chain001, chain002, chain003]),
+  ...chainFixtures(path.join("valid", "chain-in-two-batches"), [
+    batched001,
+    batched002,
+    batched003,
+  ]),
   { relativePath: path.join("invalid", "tampered-event.json"), content: tamperedEvent },
   { relativePath: path.join("invalid", "wrong-declared-hash.json"), content: wrongDeclaredHash },
   {

@@ -27,12 +27,20 @@ function integrityOf(event: Event): Event {
   return event["integrity"] as Event;
 }
 
-/** Builds a sealed chain of `count` events with sequences 1..count. */
-function buildChain(count: number, chainId = CHAIN_ID): Event[] {
+/**
+ * Builds a sealed chain of `count` events with sequences 1..count. `batchOf`
+ * names the sealing batch an event declares, or none.
+ */
+function buildChain(
+  count: number,
+  chainId = CHAIN_ID,
+  batchOf: (sequence: number) => string | undefined = () => undefined,
+): Event[] {
   const events: Event[] = [];
   let previousHash: string | undefined;
 
   for (let index = 0; index < count; index += 1) {
+    const batchId = batchOf(index + 1);
     const sealed = sealEvent({
       specVersion: "0.1",
       id: `018f2a30-1111-7222-8333-00000000000${index + 1}`,
@@ -48,6 +56,7 @@ function buildChain(count: number, chainId = CHAIN_ID): Event[] {
         hash: "",
         ...(previousHash === undefined ? {} : { previousHash }),
         chainId,
+        ...(batchId === undefined ? {} : { batchId }),
       },
     }) as Event;
 
@@ -68,6 +77,10 @@ function verify(events: readonly Event[]): ChainReport {
 
 function chainKinds(report: ChainReport): string[] {
   return report.chains.flatMap((chain) => chain.findings.map((finding) => finding.kind));
+}
+
+function batchNote(report: ChainReport, index = 0) {
+  return report.chains[index]?.notes.find((note) => note.message.startsWith("events declare"));
 }
 
 function loadDirectory(...segments: string[]): Event[] {
@@ -339,5 +352,146 @@ describe("signatures in chains", () => {
     const report = verify(events);
     assert.equal(report.intact, false);
     assert.ok(chainKinds(report).includes("unsupported-signature-algorithm"));
+  });
+});
+
+describe("the chain head", () => {
+  test("is the declared hash of the highest-sequence event", () => {
+    const events = buildChain(3);
+    const report = verify(events);
+    assert.equal(report.chains[0]?.headHash, integrityOf(events[2] as Event)["hash"]);
+  });
+
+  test("a single-event chain's head is its own hash", () => {
+    const events = buildChain(1);
+    assert.equal(verify(events).chains[0]?.headHash, integrityOf(events[0] as Event)["hash"]);
+  });
+
+  test("does not depend on the supplied order", () => {
+    const events = buildChain(3);
+    const report = verify([events[2], events[0], events[1]] as Event[]);
+    assert.equal(report.chains[0]?.headHash, integrityOf(events[2] as Event)["hash"]);
+  });
+
+  test("is reported for a broken chain too; intact says what it is worth", () => {
+    const events = buildChain(3);
+    ((events[1] as Event)["resource"] as Event)["id"] = "record-tampered";
+
+    const report = verify(events);
+    assert.equal(report.intact, false);
+    assert.equal(report.chains[0]?.headHash, integrityOf(events[2] as Event)["hash"]);
+  });
+
+  test("is omitted when the highest sequence is declared twice", () => {
+    const events = buildChain(3);
+    const rival = structuredClone(events[2] as Event);
+    rival["id"] = "018f2a30-1111-7222-8333-000000000099";
+    const report = verify([...events, sealEvent(rival) as Event]);
+
+    // The rival also fails its link, since it sits behind the event it copies.
+    assert.ok(chainKinds(report).includes("duplicate-sequence"));
+    assert.equal(report.chains[0]?.headHash, undefined);
+    assert.equal(report.chains[0]?.lastSequence, 3);
+  });
+
+  test("is omitted when no event can be ordered", () => {
+    const event = buildChain(1)[0] as Event;
+    delete event["sequence"];
+    const report = verify([sealEvent(event) as Event]);
+    assert.equal(report.chains[0]?.headHash, undefined);
+  });
+});
+
+describe("batches", () => {
+  const twoBatches = (sequence: number) => (sequence <= 2 ? "batch-a" : "batch-b");
+
+  test("are listed as a note and never change the verdict", () => {
+    const report = verify(buildChain(3, CHAIN_ID, twoBatches));
+    assert.equal(report.intact, true);
+    assert.deepEqual(chainKinds(report), []);
+
+    const note = batchNote(report);
+    assert.equal(note?.message, "events declare 2 sealing batches");
+    assert.deepEqual(note?.detail, [
+      "batch-a: 2 events, sequences 1..2",
+      "batch-b: 1 event, sequence 3",
+      "a batch is the group sealed together, not a verification scope; reported, not judged",
+    ]);
+  });
+
+  test("a chain without batches gets no batch note", () => {
+    assert.equal(batchNote(verify(buildChain(3))), undefined);
+  });
+
+  test("a partially batched chain says how many events declare no batchId", () => {
+    const report = verify(
+      buildChain(3, CHAIN_ID, (sequence) => (sequence === 2 ? "batch-a" : undefined)),
+    );
+    assert.equal(report.intact, true);
+    assert.deepEqual(batchNote(report)?.detail?.slice(0, 2), [
+      "batch-a: 1 event, sequence 2",
+      "2 events declare no batchId",
+    ]);
+  });
+
+  test("a batch with a gap in its sequences lists them", () => {
+    const report = verify(
+      buildChain(3, CHAIN_ID, (sequence) => (sequence === 2 ? "batch-b" : "batch-a")),
+    );
+    assert.deepEqual(batchNote(report)?.detail?.slice(0, 2), [
+      "batch-a: 2 events, sequences 1, 3",
+      "batch-b: 1 event, sequence 2",
+    ]);
+  });
+
+  test("a batch shared with another chain is stated, not failed", () => {
+    const shared = () => "batch-shared";
+    const report = verify([
+      ...buildChain(2, CHAIN_ID, shared),
+      ...buildChain(2, "chain-test-instance-2", shared),
+    ]);
+
+    assert.equal(report.intact, true);
+    assert.equal(report.chains.length, 2);
+    assert.deepEqual(
+      batchNote(report, 0)?.detail?.[0],
+      "batch-shared: 2 events, sequences 1..2; also declared in chain chain-test-instance-2",
+    );
+    assert.deepEqual(
+      batchNote(report, 1)?.detail?.[0],
+      "batch-shared: 2 events, sequences 1..2; also declared in chain chain-test-instance-1",
+    );
+  });
+
+  test("batch membership is inside the digest, so relabelling a batch breaks the event", () => {
+    const events = buildChain(3, CHAIN_ID, twoBatches);
+    integrityOf(events[1] as Event)["batchId"] = "batch-b";
+
+    const report = verify(events);
+    assert.equal(report.intact, false);
+    assert.deepEqual(chainKinds(report), ["hash-mismatch"]);
+  });
+});
+
+describe("the published chain in two batches", () => {
+  test("is intact, reports its head and lists both batches", () => {
+    const events = loadDirectory("valid", "chain-in-two-batches");
+    const report = verify(events);
+
+    assert.equal(report.intact, true);
+    assert.equal(report.chains[0]?.eventCount, 3);
+    assert.equal(report.chains[0]?.headHash, integrityOf(events[2] as Event)["hash"]);
+    assert.deepEqual(batchNote(report)?.detail?.slice(0, 2), [
+      "batch-2026-04-03-08-instance-9e4b: 2 events, sequences 1..2",
+      "batch-2026-04-03-09-instance-9e4b: 1 event, sequence 3",
+    ]);
+  });
+
+  test("is a different chain from three-event-chain, not the same one relabelled", () => {
+    const batched = loadDirectory("valid", "chain-in-two-batches");
+    const plain = loadDirectory("valid", "three-event-chain");
+    for (const [index, event] of batched.entries()) {
+      assert.notEqual(integrityOf(event)["hash"], integrityOf(plain[index] as Event)["hash"]);
+    }
   });
 });

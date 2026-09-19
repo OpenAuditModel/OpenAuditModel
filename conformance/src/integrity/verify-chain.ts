@@ -26,7 +26,11 @@ interface ChainMember {
   readonly previousHash?: string;
   readonly hashAlgorithm?: string;
   readonly canonicalization?: string;
+  readonly batchId?: string;
 }
+
+/** Which chains each `batchId` was seen in, across the whole supplied set. */
+type BatchChains = ReadonlyMap<string, ReadonlySet<string>>;
 
 function asString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
@@ -34,6 +38,32 @@ function asString(value: unknown): string | undefined {
 
 function asSequence(value: unknown): number | undefined {
   return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : undefined;
+}
+
+function count(total: number, singular: string, plural = `${singular}s`): string {
+  return `${total} ${total === 1 ? singular : plural}`;
+}
+
+/** "sequence 3", "sequences 1..3", or "sequences 1, 3" when the set has gaps. */
+function describeSequences(members: readonly ChainMember[]): string {
+  const sequences = [
+    ...new Set(
+      members.flatMap((member) => (member.sequence === undefined ? [] : [member.sequence])),
+    ),
+  ].sort((a, b) => a - b);
+  const first = sequences[0];
+  const last = sequences[sequences.length - 1];
+  const unsequenced = members.length - members.filter((m) => m.sequence !== undefined).length;
+  const suffix = unsequenced === 0 ? "" : `, ${count(unsequenced, "event")} without sequence`;
+
+  if (first === undefined || last === undefined) {
+    return `no sequence${suffix}`;
+  }
+  if (sequences.length === 1) {
+    return `sequence ${first}${suffix}`;
+  }
+  const contiguous = last - first + 1 === sequences.length;
+  return `sequences ${contiguous ? `${first}..${last}` : sequences.join(", ")}${suffix}`;
 }
 
 /** Orders members deterministically: by sequence, then by label for equal sequences. */
@@ -51,6 +81,7 @@ function verifyOneChain(
   members: readonly ChainMember[],
   validator: EventValidator,
   publicKey: KeyObject | undefined,
+  batchChains: BatchChains,
 ): ChainVerificationResult {
   const findings: Finding[] = [];
   const notes: Note[] = [];
@@ -202,11 +233,61 @@ function verifyOneChain(
     });
   }
 
+  // Batches are reported, never judged. `integrity.batchId` names the group of
+  // events that were sealed together (integrity.md §2.1); it is not a
+  // verification scope, so nothing below touches the verdict. A batch that
+  // also appears in another chain is stated for the same reason: it is a
+  // fact about the supplied set, and only a claim that chains are batch-level
+  // could make it a defect. See ADR 0013.
+  const batches = new Map<string, ChainMember[]>();
+  let unbatched = 0;
+  for (const member of ordered) {
+    if (member.batchId === undefined) {
+      unbatched += 1;
+      continue;
+    }
+    const bucket = batches.get(member.batchId);
+    if (bucket === undefined) {
+      batches.set(member.batchId, [member]);
+    } else {
+      bucket.push(member);
+    }
+  }
+  if (batches.size > 0) {
+    const detail = [...batches.entries()].map(([batchId, bucket]) => {
+      const elsewhere = [...(batchChains.get(batchId) ?? [])]
+        .filter((other) => other !== chainId)
+        .sort((left, right) => left.localeCompare(right, "en"));
+      const shared =
+        elsewhere.length === 0
+          ? ""
+          : `; also declared in ${elsewhere.length === 1 ? "chain" : "chains"} ${elsewhere.join(", ")}`;
+      return `${batchId}: ${count(bucket.length, "event")}, ${describeSequences(bucket)}${shared}`;
+    });
+    if (unbatched > 0) {
+      detail.push(`${count(unbatched, "event")} declare${unbatched === 1 ? "s" : ""} no batchId`);
+    }
+    detail.push(
+      "a batch is the group sealed together, not a verification scope; reported, not judged",
+    );
+    notes.push({
+      message: `events declare ${count(batches.size, "sealing batch", "sealing batches")}`,
+      detail,
+    });
+  }
+
+  // The head is the value a published chain head or checkpoint names. It is
+  // the declared hash, already checked against its recalculation above, and
+  // is reported for a broken chain too: `intact` says what it is worth.
+  const atHead = last === undefined ? undefined : bySequence.get(last);
+  const headHash = atHead !== undefined && atHead.length === 1 ? atHead[0]?.hash : undefined;
+
   return {
     chainId,
     eventCount: members.length,
     ...(first === undefined ? {} : { firstSequence: first }),
     ...(last === undefined ? {} : { lastSequence: last }),
+    ...(headHash === undefined ? {} : { headHash }),
     intact: findings.length === 0,
     checks,
     findings,
@@ -270,6 +351,7 @@ export function verifyChains(
     const previousHash = asString(integrity.previousHash);
     const hashAlgorithm = asString(integrity.hashAlgorithm);
     const canonicalization = asString(integrity.canonicalization);
+    const batchId = asString(integrity.batchId);
 
     const member: ChainMember = {
       label: input.label,
@@ -279,6 +361,7 @@ export function verifyChains(
       ...(previousHash === undefined ? {} : { previousHash }),
       ...(hashAlgorithm === undefined ? {} : { hashAlgorithm }),
       ...(canonicalization === undefined ? {} : { canonicalization }),
+      ...(batchId === undefined ? {} : { batchId }),
     };
 
     const group = groups.get(chainId);
@@ -289,9 +372,25 @@ export function verifyChains(
     }
   }
 
+  const batchChains = new Map<string, Set<string>>();
+  for (const [chainId, members] of groups) {
+    for (const member of members) {
+      if (member.batchId !== undefined) {
+        const seen = batchChains.get(member.batchId);
+        if (seen === undefined) {
+          batchChains.set(member.batchId, new Set([chainId]));
+        } else {
+          seen.add(chainId);
+        }
+      }
+    }
+  }
+
   const chains = [...groups.entries()]
     .sort((left, right) => left[0].localeCompare(right[0], "en"))
-    .map(([chainId, members]) => verifyOneChain(chainId, members, validator, publicKey));
+    .map(([chainId, members]) =>
+      verifyOneChain(chainId, members, validator, publicKey, batchChains),
+    );
 
   return {
     chains,
