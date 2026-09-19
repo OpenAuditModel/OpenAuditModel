@@ -36,19 +36,44 @@ export const DIGEST_BYTE_LENGTHS: Readonly<Record<SupportedHashAlgorithm, number
  * Signature algorithms this verifier can execute, as normative identifiers.
  *
  * `integrity.signature.algorithm` is an open vocabulary for the same reason
- * `hashAlgorithm` is: schema acceptance is not verifier support. Ed25519 is
- * the only algorithm implemented in v0.1 — it needs no key-size parameter, no
- * hash-algorithm choice, and is natively supported by Node's `crypto` module,
- * so it introduces no new dependency. ECDSA-P256-SHA256 and RSA-PSS-SHA256
- * are recommended by the schema's own description but not yet implemented.
+ * `hashAlgorithm` is: schema acceptance is not verifier support. The three the
+ * schema's own description recommends are implemented; anything else is
+ * reported `unsupported-signature-algorithm`, never silently treated as
+ * verified. All three come from Node's `crypto` module and add no dependency.
  */
-export const SUPPORTED_SIGNATURE_ALGORITHMS = ["Ed25519"] as const;
+export const SUPPORTED_SIGNATURE_ALGORITHMS = [
+  "Ed25519",
+  "ECDSA-P256-SHA256",
+  "RSA-PSS-SHA256",
+] as const;
 
 export type SupportedSignatureAlgorithm = (typeof SUPPORTED_SIGNATURE_ALGORITHMS)[number];
 
-/** Signature length in bytes for each supported algorithm. */
-export const SIGNATURE_BYTE_LENGTHS: Readonly<Record<SupportedSignatureAlgorithm, number>> = {
-  Ed25519: 64,
+/**
+ * What each algorithm requires of a key and of a signature value. The verifier
+ * checks these before the primitive runs, so that a key of the wrong type or a
+ * value of the wrong length is reported as what it is rather than as
+ * "signature does not match".
+ */
+export interface SignatureAlgorithmSpec {
+  /** Node `asymmetricKeyType` values a matching public key may report. */
+  readonly keyTypes: readonly string[];
+  /** Required named curve, for elliptic-curve keys. */
+  readonly namedCurve?: string;
+  /** Smallest modulus this verifier accepts, for RSA keys. */
+  readonly minimumModulusBits?: number;
+  /** Signature length in bytes when the scheme fixes it; RSA's is the modulus length. */
+  readonly signatureBytes?: number;
+}
+
+export const SIGNATURE_ALGORITHMS: Readonly<
+  Record<SupportedSignatureAlgorithm, SignatureAlgorithmSpec>
+> = {
+  Ed25519: { keyTypes: ["ed25519"], signatureBytes: 64 },
+  // IEEE P1363 encoding (r ‖ s), so the length is fixed and checkable. DER
+  // would make the same signature 70 to 72 bytes and the check meaningless.
+  "ECDSA-P256-SHA256": { keyTypes: ["ec"], namedCurve: "prime256v1", signatureBytes: 64 },
+  "RSA-PSS-SHA256": { keyTypes: ["rsa", "rsa-pss"], minimumModulusBits: 2048 },
 };
 
 /**

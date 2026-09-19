@@ -283,7 +283,8 @@ canonicalization and algorithm are implemented, recalculates the digest and comp
 link. It detects broken links, modified events, reordering, duplicate sequences, missing sequences,
 mixed algorithms and unsupported algorithms.
 
-Both commands accept `--public-key <path>`, a PEM-encoded Ed25519 public key. When it is supplied and
+Both commands accept `--public-key <path>`, a PEM-encoded public key for the declared algorithm —
+`Ed25519`, `ECDSA-P256-SHA256` or `RSA-PSS-SHA256`. When it is supplied and
 an event declares `integrity.signature`, the signature is verified against the same digest input as
 the hash. Without it, `verify-integrity` reports a declared signature in an implemented algorithm as
 present but not checked — the verdict rests on the hash alone, and silence never stands in for a
@@ -300,13 +301,14 @@ Exit codes are `0` verified, `1` a verification failed, `2` a usage, read or par
 `verify-chain` — `3` when no event could be assigned to a chain, so no chain was checked and
 nothing was proven.
 
-**Implemented in v0.1:** Ed25519 signature verification, given a public key supplied out of band —
-there is no key registry to resolve `keyId` against.
+**Implemented:** Ed25519, ECDSA-P256-SHA256 and RSA-PSS-SHA256 signature verification, given a
+public key supplied out of band — there is no key registry to resolve `keyId` against. ECDSA
+signatures are expected in IEEE P1363 form (`r ‖ s`, 64 bytes); RSA-PSS signatures are verified with
+the salt length recovered from the signature, and keys under 2048 bits are refused.
 
-**Not implemented in v0.1**, and not to be inferred from the presence of the fields that would support
-them: signing, ECDSA-P256-SHA256 and RSA-PSS-SHA256 signature verification, key generation, key
-storage, key management integrations, certificate parsing, trust stores, transparency logs, timestamp
-authorities, WORM storage and remote verification services.
+**Not implemented**, and not to be inferred from the presence of the fields that would support them:
+signing, key generation, key storage, key management integrations, certificate parsing, trust
+stores, transparency logs, timestamp authorities, WORM storage and remote verification services.
 
 ## 10. Practical guidance
 

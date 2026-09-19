@@ -11,6 +11,34 @@ While the project is **Experimental**, breaking changes are possible in any rele
 as such. A change that alters the meaning of an existing field or event name is never acceptable — a
 new name is introduced instead.
 
+## Unreleased
+
+### Changed behaviour — ECDSA-P256-SHA256 and RSA-PSS-SHA256 signatures verify
+
+`--public-key` and `publicKeyPem` accept a key for any of the three algorithms the schema's own
+description recommends; until now only Ed25519 was implemented and the other two were refused as
+`unsupported-signature-algorithm`. An event signed with either of them and checked with a matching
+key now verifies, and one signed with either and checked without a key is now reported as declared
+but not checked — with the verdict resting on the hash — where it previously failed. That is a
+verdict moving from `1` to `0` for such events, which is why this is a "changed behaviour" entry
+rather than an addition.
+
+The key's type, curve and size must match the declared algorithm — `ed25519`, `ec` on P-256, or RSA
+with at least 2048 bits — and a mismatch is reported as `signature-invalid` naming both, not as a
+signature that "does not match". ECDSA signatures are expected in IEEE P1363 form (64 bytes);
+RSA-PSS is verified with the salt length recovered from the signature. ADR 0012 carries the
+amendment.
+
+The fixture that demonstrates an unimplemented algorithm declared `ECDSA-P256-SHA256`, which no
+longer is one; it now declares `ECDSA-P384-SHA384`, keeps its name, and keeps failing. Two signed
+fixtures and two test-only public keys are added. Because neither new scheme signs
+deterministically in Node, the RSA-PSS fixture is signed with a zero-length salt and the ECDSA
+fixture is the first the generator checks by verifying the committed signature instead of
+regenerating it — every other field is still compared exactly.
+
+`SIGNATURE_BYTE_LENGTHS` is replaced by `SIGNATURE_ALGORITHMS`, which records what each algorithm
+requires of a key and a value. Breaking for a deep importer of that constant; none is known.
+
 ## 0.4.2 - 2026-09-18
 
 Specification `0.1`, unchanged. Repository `0.4.2`.

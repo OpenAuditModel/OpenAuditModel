@@ -5,7 +5,12 @@
  * specification/integrity.md §4.
  */
 import assert from "node:assert/strict";
-import { generateKeyPairSync, sign as cryptoSign, type KeyObject } from "node:crypto";
+import {
+  constants as cryptoConstants,
+  generateKeyPairSync,
+  sign as cryptoSign,
+  type KeyObject,
+} from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import test, { describe } from "node:test";
@@ -336,7 +341,13 @@ describe("signatures", () => {
 
   test("algorithm identifiers are matched case-sensitively", () => {
     assert.equal(isSupportedSignatureAlgorithm("Ed25519"), true);
-    for (const identifier of ["ed25519", "ED25519", "EdDSA", "RSA-PSS-SHA256"]) {
+    for (const identifier of [
+      "ed25519",
+      "ED25519",
+      "EdDSA",
+      "ECDSA-P384-SHA384",
+      "rsa-pss-sha256",
+    ]) {
       assert.equal(isSupportedSignatureAlgorithm(identifier), false, identifier);
     }
   });
@@ -383,11 +394,11 @@ describe("signatures", () => {
 
     test("an unimplemented algorithm is refused before any key material is touched", () => {
       const event = sealEvent(baseEvent());
-      const result = verifyEventSignature(event, "ECDSA-P256-SHA256", "not-checked", keyA);
+      const result = verifyEventSignature(event, "ECDSA-P384-SHA384", "not-checked", keyA);
       assert.deepEqual(result, {
         ok: false,
         kind: "unsupported-signature-algorithm",
-        message: 'signature algorithm "ECDSA-P256-SHA256" is not implemented by this verifier',
+        message: 'signature algorithm "ECDSA-P384-SHA384" is not implemented by this verifier',
       });
     });
 
@@ -443,7 +454,7 @@ describe("signatures", () => {
     test("without a public key, an unimplemented signature algorithm still fails verification", () => {
       const event = sealEvent(baseEvent());
       const signed = withSignature(event, {
-        algorithm: "RSA-PSS-SHA256",
+        algorithm: "ECDSA-P384-SHA384",
         value: signWithKeyA(event),
         keyId: "test-key-a",
       });
@@ -608,5 +619,121 @@ describe("published examples", () => {
     const event = readFixture(repoRoot, "examples", "valid", "minimal-event.json");
     assert.deepEqual(validator.validateEvent(event), []);
     assert.deepEqual(kinds(event), ["integrity-missing"]);
+  });
+});
+
+describe("the algorithms added in 0.5.0", () => {
+  const ecdsa = generateKeyPairSync("ec", { namedCurve: "prime256v1" });
+  const ecdsaP384 = generateKeyPairSync("ec", { namedCurve: "secp384r1" });
+  const rsa = generateKeyPairSync("rsa", { modulusLength: 2048 });
+  const rsaSmall = generateKeyPairSync("rsa", { modulusLength: 1024 });
+  const ed = generateKeyPairSync("ed25519");
+
+  function ecdsaSign(event: unknown): string {
+    return cryptoSign("sha256", canonicalBytes(buildDigestInput(event)), {
+      key: ecdsa.privateKey,
+      dsaEncoding: "ieee-p1363",
+    }).toString("base64");
+  }
+  function rsaSign(event: unknown, key: KeyObject = rsa.privateKey): string {
+    return cryptoSign("sha256", canonicalBytes(buildDigestInput(event)), {
+      key,
+      padding: cryptoConstants.RSA_PKCS1_PSS_PADDING,
+      saltLength: 32,
+    }).toString("base64");
+  }
+
+  test("ECDSA-P256-SHA256 verifies with a P-256 key and an IEEE P1363 signature", () => {
+    const event = sealEvent(baseEvent());
+    assert.deepEqual(
+      verifyEventSignature(event, "ECDSA-P256-SHA256", ecdsaSign(event), ecdsa.publicKey),
+      { ok: true },
+    );
+  });
+
+  test("ECDSA-P256-SHA256 refuses a key on another curve before verifying", () => {
+    const event = sealEvent(baseEvent());
+    const result = verifyEventSignature(
+      event,
+      "ECDSA-P256-SHA256",
+      ecdsaSign(event),
+      ecdsaP384.publicKey,
+    );
+    assert.equal(result.ok, false);
+    assert.equal(!result.ok && result.kind, "signature-invalid");
+    assert.match(!result.ok ? result.message : "", /secp384r1/);
+  });
+
+  test("a key of another type is named as such, not reported as a mismatching signature", () => {
+    const event = sealEvent(baseEvent());
+    const result = verifyEventSignature(event, "ECDSA-P256-SHA256", ecdsaSign(event), ed.publicKey);
+    assert.equal(result.ok, false);
+    assert.match(!result.ok ? result.message : "", /is ed25519, but ECDSA-P256-SHA256 needs ec/);
+  });
+
+  test("RSA-PSS-SHA256 verifies whatever salt length the signer chose", () => {
+    const event = sealEvent(baseEvent());
+    assert.deepEqual(verifyEventSignature(event, "RSA-PSS-SHA256", rsaSign(event), rsa.publicKey), {
+      ok: true,
+    });
+  });
+
+  test("RSA-PSS-SHA256 refuses a modulus under 2048 bits", () => {
+    const event = sealEvent(baseEvent());
+    const result = verifyEventSignature(
+      event,
+      "RSA-PSS-SHA256",
+      rsaSign(event, rsaSmall.privateKey),
+      rsaSmall.publicKey,
+    );
+    assert.equal(result.ok, false);
+    assert.match(!result.ok ? result.message : "", /1024-bit modulus/);
+  });
+
+  test("an RSA signature of the wrong length is malformed, never invalid", () => {
+    const event = sealEvent(baseEvent());
+    const short = Buffer.alloc(128, 1).toString("base64");
+    const result = verifyEventSignature(event, "RSA-PSS-SHA256", short, rsa.publicKey);
+    assert.equal(!result.ok && result.kind, "malformed-signature");
+  });
+
+  test("a tampered event fails both new schemes on the signature", () => {
+    const event = sealEvent(baseEvent());
+    const ecdsaValue = ecdsaSign(event);
+    const rsaValue = rsaSign(event);
+    const changed = structuredClone(event);
+    (changed["resource"] as Event)["id"] = "resource-999";
+    assert.equal(
+      !verifyEventSignature(changed, "ECDSA-P256-SHA256", ecdsaValue, ecdsa.publicKey).ok,
+      true,
+    );
+    assert.equal(
+      !verifyEventSignature(changed, "RSA-PSS-SHA256", rsaValue, rsa.publicKey).ok,
+      true,
+    );
+  });
+
+  test("the committed fixtures verify with the committed test keys", () => {
+    for (const [file, key, algorithm] of [
+      ["signed-event-ecdsa-p256.json", "ecdsa-p256-test-public.pem", "ECDSA-P256-SHA256"],
+      ["signed-event-rsa-pss.json", "rsa-pss-test-public.pem", "RSA-PSS-SHA256"],
+    ] as const) {
+      const event = readFixture(integrityValid, file);
+      const publicKey = loadPublicKey(readFileSync(path.join(integrityKeys, key), "utf8"));
+      const result = verifyEventIntegrity(event, file, validator, { publicKey });
+      assert.equal(result.verified, true, file);
+      assert.ok(
+        result.checks.some((check) => check.message === `signature valid (${algorithm})`),
+        JSON.stringify(result.checks),
+      );
+      // Without a key the same event is declared, not checked, and still verified on its hash.
+      const unkeyed = verifyEventIntegrity(event, file, validator);
+      assert.equal(unkeyed.verified, true);
+      assert.ok(
+        unkeyed.checks.some((check) =>
+          check.message.startsWith(`signature declared (${algorithm})`),
+        ),
+      );
+    }
   });
 });

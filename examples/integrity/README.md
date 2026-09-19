@@ -31,11 +31,21 @@ ones fail verification, not validation — that is the point of separating the t
 
 ## Keys
 
-[keys/ed25519-test-public.pem](keys/ed25519-test-public.pem) is the public half of a TEST-ONLY Ed25519
-key pair generated solely to make `signed-event-ed25519.json` and its invalid variants reproducible by
-the fixture generator, the same way their hashes are. **The private half is committed in the generator
-itself and is not a secret** — anyone can produce a "validly signed" event under this key, which is
-exactly why a real signing key must never be generated this way or checked into a repository.
+[keys/ed25519-test-public.pem](keys/ed25519-test-public.pem),
+[keys/ecdsa-p256-test-public.pem](keys/ecdsa-p256-test-public.pem) and
+[keys/rsa-pss-test-public.pem](keys/rsa-pss-test-public.pem) are the public halves of TEST-ONLY key
+pairs, one per implemented algorithm, generated solely to make the signed fixtures and their invalid
+variants reproducible by the fixture generator, the same way their hashes are. **The private halves
+are committed in the generator itself and are not secrets** — anyone can produce a "validly signed"
+event under these keys, which is exactly why a real signing key must never be generated this way or
+checked into a repository.
+
+Two of the three schemes are not deterministic in Node: ECDSA draws a fresh nonce per signature and
+RSA-PSS a fresh salt. The RSA-PSS fixture is signed with a zero-length salt, which is deterministic
+and still verifies. ECDSA has no such switch, so `signed-event-ecdsa-p256.json` is the one fixture the
+generator does not regenerate byte-for-byte: its check compares every field except the signature
+value and then **verifies** the committed value with the test key, which fails on any edit just as
+deep equality would.
 
 ## Valid fixtures
 
@@ -44,6 +54,8 @@ exactly why a real signing key must never be generated this way or checked into 
 | [single-event-sha256.json](valid/single-event-sha256.json)           | A sealed event with no chain                                               |
 | [unicode-and-number-event.json](valid/unicode-and-number-event.json) | RFC 8785 determinism over mixed scripts, escapes, number forms and nesting |
 | [signed-event-ed25519.json](valid/signed-event-ed25519.json)         | A sealed event additionally signed; verifiable with `--public-key`         |
+| [signed-event-ecdsa-p256.json](valid/signed-event-ecdsa-p256.json)   | The same content signed with ECDSA-P256-SHA256 (IEEE P1363 encoding)       |
+| [signed-event-rsa-pss.json](valid/signed-event-rsa-pss.json)         | The same content signed with RSA-PSS-SHA256 (2048-bit key, zero salt)      |
 | [three-event-chain/](valid/three-event-chain/)                       | A genesis event and two linked successors, sequences 1 to 3                |
 
 `unicode-and-number-event.json` deliberately stores its members out of sorted order, mixes upper and
@@ -63,7 +75,7 @@ Each fails verification for one documented reason. The expectations are asserted
 | [wrong-declared-hash.json](invalid/wrong-declared-hash.json)                         | Content untouched; declared hash is a digest of another event             | `hash-mismatch`                   |
 | [unsupported-algorithm.json](invalid/unsupported-algorithm.json)                     | Declares `BLAKE3`, which the v0.1 verifier does not implement             | `unsupported-algorithm`           |
 | [tampered-signed-event.json](invalid/tampered-signed-event.json)                     | Content changed after signing; hash fails before the signature is reached | `hash-mismatch`                   |
-| [unsupported-signature-algorithm.json](invalid/unsupported-signature-algorithm.json) | Declares `ECDSA-P256-SHA256`, not yet implemented                         | `unsupported-signature-algorithm` |
+| [unsupported-signature-algorithm.json](invalid/unsupported-signature-algorithm.json) | Declares `ECDSA-P384-SHA384`, which this verifier does not implement      | `unsupported-signature-algorithm` |
 | [broken-previous-hash/](invalid/broken-previous-hash/)                               | Event 3 re-linked past event 2 and re-sealed                              | `broken-link`                     |
 | [duplicate-sequence/](invalid/duplicate-sequence/)                                   | Two events declare sequence 2                                             | `duplicate-sequence`              |
 | [missing-sequence/](invalid/missing-sequence/)                                       | Event 2 declares no sequence                                              | `sequence-missing`                |

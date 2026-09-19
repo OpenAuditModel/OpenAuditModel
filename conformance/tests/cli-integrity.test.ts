@@ -404,3 +404,39 @@ describe("help and options", () => {
     assert.doesNotMatch(result.stderr, /not implemented/);
   });
 });
+
+describe("--public-key for the algorithms added in 0.5.0", () => {
+  test("an ECDSA-P256-SHA256 fixture verifies with its test key", () => {
+    const result = auditmodel(
+      "verify-integrity",
+      "examples/integrity/valid/signed-event-ecdsa-p256.json",
+      "--public-key",
+      "examples/integrity/keys/ecdsa-p256-test-public.pem",
+    );
+    assert.equal(result.status, 0, result.output);
+    assert.match(result.stdout, /signature valid \(ECDSA-P256-SHA256\)/);
+  });
+
+  test("an RSA-PSS-SHA256 fixture verifies with its test key", () => {
+    const result = auditmodel(
+      "verify-integrity",
+      "examples/integrity/valid/signed-event-rsa-pss.json",
+      "--public-key",
+      "examples/integrity/keys/rsa-pss-test-public.pem",
+    );
+    assert.equal(result.status, 0, result.output);
+    assert.match(result.stdout, /signature valid \(RSA-PSS-SHA256\)/);
+  });
+
+  test("the wrong kind of key for the declared algorithm fails the signature, and says which", () => {
+    const result = auditmodel(
+      "verify-integrity",
+      "examples/integrity/valid/signed-event-ecdsa-p256.json",
+      "--public-key",
+      TEST_PUBLIC_KEY,
+    );
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /\[signature-invalid\]/);
+    assert.match(result.stdout, /is ed25519, but ECDSA-P256-SHA256 needs ec/);
+  });
+});

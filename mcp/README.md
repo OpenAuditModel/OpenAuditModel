@@ -76,10 +76,11 @@ Eight, all deterministic, read-only, stateless and offline. Each delegates to th
 | `get_event_guidance`      | Explain what an event name requires, from schema, conventions and profile  |
 
 `verify_integrity` and `verify_chain` accept an optional `publicKeyPem` argument — a PEM-encoded
-Ed25519 public key — to additionally verify `integrity.signature`, the same way the CLI's
-`--public-key` does. Without it, a declared Ed25519 signature is reported as declared but not
-checked, and a declared signature in an unimplemented algorithm — `ECDSA-P256-SHA256` and
-`RSA-PSS-SHA256` are not implemented — fails verification whether or not a key is supplied. The key
+public key for the declared algorithm: `Ed25519`, `ECDSA-P256-SHA256` or `RSA-PSS-SHA256` — to
+additionally verify `integrity.signature`, the same way the CLI's `--public-key` does. Without it, a
+declared signature in an implemented algorithm is reported as declared but not checked, and a
+declared signature in an algorithm this verifier does not implement fails verification whether or
+not a key is supplied. The key
 is public by definition, so passing it as
 a tool argument carries no confidentiality concern; nothing about the key is persisted or logged
 either way, the same as every other tool input. See
