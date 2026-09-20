@@ -11,6 +11,17 @@ While the project is **Experimental**, breaking changes are possible in any rele
 as such. A change that alters the meaning of an existing field or event name is never acceptable — a
 new name is introduced instead.
 
+## Unreleased
+
+### Fixed — the supported-versions table names the release that is actually current
+
+`SECURITY.md` still listed `0.4.x` as the current release after 0.5.0 and 0.5.1 shipped, so the
+document a reader consults to learn whether their version still receives fixes told them the wrong
+thing about both. A standing release rule already said that table moves with the version; nothing
+checked it, while the README's version row beside it had been checked since 0.3.0. A test now
+asserts that the table names exactly this release's minor as current and lists every earlier minor
+as superseded, and it fails against the table as it stood.
+
 ## 0.5.1 - 2026-09-20
 
 Specification `0.1`, unchanged. Repository `0.5.1`.
