@@ -1,5 +1,5 @@
 /**
- * The nine OpenAuditModel MCP tools.
+ * The ten OpenAuditModel MCP tools.
  *
  * Every tool is deterministic, read-only, stateless and offline. None calls a
  * model, opens a socket, touches a filesystem or keeps anything between
@@ -12,6 +12,7 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import { verifyEventIntegrity } from "../../conformance/src/integrity/verify-event.js";
 import { verifyChains } from "../../conformance/src/integrity/verify-chain.js";
 import { verifyCheckpoint } from "../../conformance/src/integrity/verify-checkpoint.js";
+import { verifyProof } from "../../conformance/src/integrity/verify-proof.js";
 import type { Finding } from "../../conformance/src/integrity/types.js";
 import { loadPublicKey } from "../../conformance/src/integrity/signature.js";
 import { lintEvent } from "../../conformance/src/privacy/lint-event.js";
@@ -25,6 +26,7 @@ import {
   IAM_PROFILE_NAME,
   iamProfile,
   profileByName,
+  proofValidator,
   SPEC_VERSION,
   validator,
 } from "./engines.js";
@@ -50,7 +52,10 @@ const MATCHED_RULES_NOTE =
   "matchedRules lists rules selected by the event-name selector. A conditional rule appears here when it governs the event even if its condition did not hold, in which case it contributed no requirements.";
 
 const CHECKPOINT_NOTE =
-  "This establishes that the archive is consistent with the supplied checkpoint. Whether the checkpoint is genuine and its anchor real is for whoever holds the anchor; nothing was dereferenced.";
+  "An agreeing verdict establishes only that the archive is consistent with the supplied checkpoint. Whether the checkpoint is genuine and its anchor real is for whoever holds the anchor; nothing was dereferenced.";
+
+const PROOF_NOTE =
+  "A verified proof shows only that the event is a member of the tree the root describes. The root's provenance is the anchor's; nothing was dereferenced.";
 
 /** A finding as every tool returns it: kind, where, and the fixed message — never event content. */
 function findingOut(finding: Finding) {
@@ -317,6 +322,55 @@ export function registerTools(server: McpServer, limits: EventLimits = DEFAULT_E
           })),
           note: CHECKPOINT_NOTE,
           limits: { maxEventsPerRequest: limits.maxEventsPerRequest },
+        };
+      }),
+  );
+
+  server.registerTool(
+    "verify_proof",
+    {
+      title: "Verify an event's inclusion proof against a tree root",
+      description:
+        "Verifies that one event is a leaf of the Merkle tree a published root describes, without the rest of the tree. The proof's own consistency is checked first — its hash algorithm, digest lengths, the path's shape against the leaf's index and the tree's size, and the root the path recomputes to (RFC 6962 hashing: leaf H(0x00 ‖ digest), node H(0x01 ‖ left ‖ right)) — then the event is verified exactly as verify_integrity verifies it and its integrity.hash must be the leaf. Outcomes: verified; failed (an inconsistent proof, another leaf, another root, an event that fails verification, or a root signature that failed against the supplied key); no-leaf (the event's hash cannot be established, so there is nothing to prove — never an approval); invalid-proof (not a proof under its schema; nothing was judged). The root's anchor is reported and never dereferenced. publicKeyPem, when supplied, verifies the root's signature — over the root object with /signature removed — and the event's signature.",
+      inputSchema: z.object({
+        event: eventSchema,
+        proof: z.record(z.string(), z.unknown()),
+        publicKeyPem: z.string().optional(),
+      }),
+    },
+    ({ event, proof, publicKeyPem }) =>
+      runTool(() => {
+        assertEventWithinLimits(event, LABEL, limits);
+        assertEventWithinLimits(proof, "proof", limits);
+        const publicKey = resolvePublicKey(publicKeyPem);
+        const report = verifyProof(
+          event,
+          LABEL,
+          proof,
+          { events: validator, proof: proofValidator },
+          { publicKey },
+        );
+
+        return {
+          outcome: report.outcome,
+          verified: report.outcome === "verified",
+          proofVersion: report.proofVersion ?? null,
+          hashAlgorithm: report.hashAlgorithm ?? null,
+          leaf: report.leaf ?? null,
+          root: report.root ?? null,
+          calculatedRoot: report.calculatedRoot ?? null,
+          signature: report.signature ?? null,
+          event:
+            report.event === undefined
+              ? null
+              : {
+                  verified: report.event.verified,
+                  checks: report.event.checks.map((check) => check.message),
+                  findings: report.event.findings.map(findingOut),
+                },
+          checks: report.checks.map((check) => check.message),
+          findings: report.findings.map(findingOut),
+          note: PROOF_NOTE,
         };
       }),
   );
@@ -679,6 +733,7 @@ export const TOOL_NAMES: readonly string[] = [
   "verify_integrity",
   "verify_chain",
   "verify_checkpoint",
+  "verify_proof",
   "lint_privacy",
   "check_profile",
   "check_coverage",

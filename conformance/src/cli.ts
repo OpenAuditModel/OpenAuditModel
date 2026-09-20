@@ -2,11 +2,12 @@
 /**
  * `auditmodel` — the OpenAuditModel conformance command line interface.
  *
- * v0.1 implements seven commands:
+ * v0.1 implements eight commands:
  *   validate           check events against the canonical schema
  *   verify-integrity   recalculate and compare each event's own digest
  *   verify-chain       verify previous-hash chains across a set of events
  *   verify-checkpoint  compare an archive with a chain checkpoint
+ *   verify-proof       verify one event's inclusion proof against a tree root
  *   lint-privacy       report suspected privacy and secret-exposure risks
  *   check-profile      check events against a domain profile
  *   check-coverage     report how much of a profile a set of events reaches
@@ -32,6 +33,7 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import {
   createCheckpointValidator,
+  createProofValidator,
   createValidator,
   SPEC_VERSION,
   type DocumentValidator,
@@ -47,13 +49,16 @@ import { formatIssues } from "./format-errors.js";
 import { verifyEventIntegrity } from "./integrity/verify-event.js";
 import { verifyChains, type ChainEventInput } from "./integrity/verify-chain.js";
 import { verifyCheckpoint } from "./integrity/verify-checkpoint.js";
+import { verifyProof } from "./integrity/verify-proof.js";
 import { loadPublicKey } from "./integrity/signature.js";
 import type {
   ChainVerificationResult,
   CheckpointReport,
+  EventVerificationResult,
   Finding,
   Note,
   PassedCheck,
+  ProofReport,
 } from "./integrity/types.js";
 import { lintEvent } from "./privacy/lint-event.js";
 import { summarise } from "./privacy/types.js";
@@ -93,6 +98,7 @@ const IMPLEMENTED_COMMANDS = new Set([
   "verify-integrity",
   "verify-chain",
   "verify-checkpoint",
+  "verify-proof",
   "lint-privacy",
   "check-profile",
   "check-coverage",
@@ -101,17 +107,27 @@ const IMPLEMENTED_COMMANDS = new Set([
 /** The commands --format applies to; every other implemented command refuses the flag. */
 const FORMAT_COMMANDS = new Set([
   "verify-checkpoint",
+  "verify-proof",
   "lint-privacy",
   "check-profile",
   "check-coverage",
 ]);
 
 /** The commands --public-key applies to. */
-const PUBLIC_KEY_COMMANDS = new Set(["verify-integrity", "verify-chain", "verify-checkpoint"]);
+const PUBLIC_KEY_COMMANDS = new Set([
+  "verify-integrity",
+  "verify-chain",
+  "verify-checkpoint",
+  "verify-proof",
+]);
+
+/** The fixed line that follows every verify-proof verdict. */
+const PROOF_NOT_PROVEN =
+  "a verified proof shows only that the event is a member of the tree the root describes; the root's provenance is the anchor's";
 
 /** The fixed line that follows every verify-checkpoint verdict, so that a pass is never read as more than it is. */
 const CHECKPOINT_NOT_PROVEN =
-  "this establishes that the archive is consistent with the supplied checkpoint; whether the checkpoint is genuine and its anchor real is for whoever holds the anchor";
+  "an agreeing verdict establishes only that the archive is consistent with the supplied checkpoint; whether the checkpoint is genuine and its anchor real is for whoever holds the anchor";
 
 const USAGE = `auditmodel — OpenAuditModel conformance tooling (specification ${SPEC_VERSION}, experimental)
 
@@ -121,6 +137,8 @@ Usage:
   auditmodel verify-chain <path...>      Verify previous-hash chains across a set of events
   auditmodel verify-checkpoint <path...> Compare an archive with a chain checkpoint
                                           (--checkpoint <file>)
+  auditmodel verify-proof <path>         Verify one event's inclusion proof against a
+                                          tree root (--proof <file>)
   auditmodel lint-privacy <path...>      Report suspected privacy and secret-exposure risks
   auditmodel check-profile <path...>     Check events against a domain profile
   auditmodel check-coverage <path...>    Report how much of a profile a set of events reaches
@@ -133,17 +151,19 @@ those files.
 
 Options:
   -q, --quiet                            Only report failures
-      --format <text|json>               Output format for verify-checkpoint, lint-privacy,
-                                          check-profile and check-coverage
+      --format <text|json>               Output format for verify-checkpoint, verify-proof,
+                                          lint-privacy, check-profile and check-coverage
       --profile <name>                   Profile to check against (check-profile,
                                           check-coverage)
       --checkpoint <file>                Checkpoint document to compare the archive with
                                           (verify-checkpoint). Its anchor is never
                                           dereferenced.
+      --proof <file>                     Inclusion proof to verify the event against
+                                          (verify-proof). Its anchor is never dereferenced.
       --public-key <path>                PEM public key to verify integrity.signature against
                                           (verify-integrity, verify-chain,
-                                          verify-checkpoint, where it also verifies the
-                                          checkpoint's own signature): Ed25519,
+                                          verify-checkpoint and verify-proof, where it also
+                                          verifies the document's own signature): Ed25519,
                                           ECDSA-P256-SHA256 or RSA-PSS-SHA256; the key must be
                                           of the declared algorithm's type. Without it,
                                           a declared signature is reported but not checked;
@@ -163,6 +183,8 @@ Exit codes:
        verify-checkpoint
                       the archive holds none of the chains the checkpoint
                       names, so nothing was compared
+       verify-proof   the event's hash cannot be established, so there is
+                      nothing to prove
        check-coverage no event in the set is governed by the profile, so the
                       profile reached nothing
 
@@ -694,6 +716,188 @@ function writeCheckpointJson(
   write(`${JSON.stringify(payload, null, 2)}\n`);
 }
 
+function runVerifyProof(
+  inputs: readonly string[],
+  quiet: boolean,
+  format: string,
+  proofFile: string | undefined,
+  publicKey: KeyObject | undefined,
+): number {
+  if (proofFile === undefined) {
+    process.stderr.write("auditmodel: verify-proof requires --proof <file>\n\n");
+    process.stderr.write(USAGE);
+    return EXIT_ERROR;
+  }
+
+  const json = format === "json";
+  const loaded = loadInput(inputs, "verify-proof", quiet || json);
+  if (typeof loaded === "number") {
+    return loaded;
+  }
+  if (loaded.failures.length > 0) {
+    reportLoadFailures(loaded.failures);
+    return EXIT_ERROR;
+  }
+  if (loaded.documents.length !== 1) {
+    process.stderr.write(
+      `auditmodel: verify-proof takes exactly one event; ${loaded.documents.length} were given\n`,
+    );
+    return EXIT_ERROR;
+  }
+
+  const parsed = readJsonFile(proofFile);
+  if (!parsed.ok) {
+    process.stderr.write(`auditmodel: cannot read --proof "${proofFile}": ${parsed.error}\n`);
+    return EXIT_ERROR;
+  }
+
+  let proofValidator: DocumentValidator;
+  try {
+    proofValidator = createProofValidator();
+  } catch (cause) {
+    process.stderr.write(`auditmodel: ${(cause as Error).message}\n`);
+    return EXIT_ERROR;
+  }
+
+  const document = loaded.documents[0] as EventDocument;
+  const report = verifyProof(
+    document.event,
+    displayLabel(document),
+    parsed.value,
+    { events: loaded.validator, proof: proofValidator },
+    { publicKey },
+  );
+
+  if (json) {
+    writeProofJson(report, proofFile, proofValidator.schemaId, loaded);
+  } else {
+    writeProofText(report, proofFile, quiet);
+  }
+
+  if (report.outcome === "invalid-proof") {
+    return EXIT_ERROR;
+  }
+  if (report.outcome === "no-leaf") {
+    process.stderr.write(
+      "auditmodel: no verdict: the event's hash cannot be established, so there is nothing to prove\n",
+    );
+    return EXIT_NO_VERDICT;
+  }
+  return report.outcome === "verified" ? EXIT_OK : EXIT_INVALID;
+}
+
+/** The text block for one event's own verification, as verify-integrity prints it. */
+function writeEventResult(result: EventVerificationResult, quiet: boolean): void {
+  if (result.verified) {
+    write(`ok    ${result.label}\n`);
+    if (!quiet) {
+      writeChecks(result.checks, "        ");
+    }
+    return;
+  }
+  write(`FAIL  ${result.label}\n`);
+  if (!quiet) {
+    writeChecks(result.checks, "        ");
+  }
+  writeFindings(result.findings, "        ");
+}
+
+function writeProofText(report: ProofReport, proofFile: string, quiet: boolean): void {
+  const version = report.proofVersion === undefined ? "" : ` (proof ${report.proofVersion})`;
+  write(`proof ${displayPath(proofFile)}${version}\n`);
+  if (!quiet) {
+    writeChecks(
+      report.checks.map((check) => ({ message: `ok    ${check.message}` })),
+      "  ",
+    );
+  }
+  if (report.findings.length > 0) {
+    write("  FAIL\n");
+    writeFindings(report.findings, "    ");
+  }
+  if (report.root !== undefined && !quiet) {
+    const leaves = report.root.leafCount === 1 ? "leaf" : "leaves";
+    write(
+      `  tree:      ${report.hashAlgorithm}, ${report.root.leafCount} ${leaves}, root ${report.root.hash}\n`,
+    );
+    write(
+      `  anchor:    ${report.root.anchor.type} — ${report.root.anchor.reference} (not dereferenced)\n`,
+    );
+  }
+  write("\n");
+
+  if (report.outcome === "invalid-proof") {
+    write("the document is not a proof, so nothing was judged\n");
+    return;
+  }
+
+  if (report.event !== undefined) {
+    writeEventResult(report.event, quiet);
+    write("\n");
+  }
+
+  switch (report.outcome) {
+    case "verified":
+      write(
+        `proof verified: leaf ${report.leaf?.index} of ${report.root?.leafCount} in the tree the root describes\n`,
+      );
+      break;
+    case "failed":
+      write("proof failed\n");
+      break;
+    case "no-leaf":
+      write("no verdict: the event's hash cannot be established, so there is nothing to prove\n");
+      break;
+    default:
+      break;
+  }
+  write(`${PROOF_NOT_PROVEN}\n`);
+}
+
+function writeProofJson(
+  report: ProofReport,
+  proofFile: string,
+  proofSchemaId: string,
+  loaded: LoadedInput,
+): void {
+  const finding = (entry: Finding) => ({
+    kind: entry.kind,
+    ...(entry.label === undefined ? {} : { label: entry.label }),
+    message: entry.message,
+    ...(entry.detail === undefined ? {} : { detail: entry.detail }),
+  });
+  const payload = {
+    tool: "auditmodel verify-proof",
+    specVersion: SPEC_VERSION,
+    schemaId: loaded.validator.schemaId,
+    proof: {
+      file: displayPath(proofFile),
+      schemaId: proofSchemaId,
+      ...(report.proofVersion === undefined ? {} : { version: report.proofVersion }),
+      ...(report.hashAlgorithm === undefined ? {} : { hashAlgorithm: report.hashAlgorithm }),
+      ...(report.leaf === undefined ? {} : { leaf: report.leaf }),
+      ...(report.root === undefined ? {} : { root: report.root }),
+      ...(report.calculatedRoot === undefined ? {} : { calculatedRoot: report.calculatedRoot }),
+      ...(report.signature === undefined ? {} : { signature: report.signature }),
+      checks: report.checks.map((check) => check.message),
+      findings: report.findings.map(finding),
+    },
+    outcome: report.outcome,
+    ...(report.event === undefined
+      ? {}
+      : {
+          event: {
+            label: report.event.label,
+            verified: report.event.verified,
+            checks: report.event.checks.map((check) => check.message),
+            findings: report.event.findings.map(finding),
+          },
+        }),
+    notProven: PROOF_NOT_PROVEN,
+  };
+  write(`${JSON.stringify(payload, null, 2)}\n`);
+}
+
 function runVerifyChain(
   inputs: readonly string[],
   quiet: boolean,
@@ -1115,6 +1319,7 @@ export function run(argv: readonly string[]): number {
         format: { type: "string" },
         profile: { type: "string" },
         checkpoint: { type: "string" },
+        proof: { type: "string" },
         "public-key": { type: "string" },
       },
     });
@@ -1179,6 +1384,17 @@ export function run(argv: readonly string[]): number {
     return EXIT_ERROR;
   }
 
+  if (
+    typeof values.proof === "string" &&
+    IMPLEMENTED_COMMANDS.has(command) &&
+    command !== "verify-proof"
+  ) {
+    process.stderr.write(
+      `auditmodel: --proof is not supported by "${command}"; it applies to verify-proof\n`,
+    );
+    return EXIT_ERROR;
+  }
+
   let publicKey: KeyObject | undefined;
   if (typeof values["public-key"] === "string" && PUBLIC_KEY_COMMANDS.has(command)) {
     const keyPath = values["public-key"];
@@ -1214,6 +1430,15 @@ export function run(argv: readonly string[]): number {
       quiet,
       format,
       typeof values.checkpoint === "string" ? values.checkpoint : undefined,
+      publicKey,
+    );
+  }
+  if (command === "verify-proof") {
+    return runVerifyProof(
+      rest,
+      quiet,
+      format,
+      typeof values.proof === "string" ? values.proof : undefined,
       publicKey,
     );
   }

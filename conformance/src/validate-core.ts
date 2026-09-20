@@ -15,6 +15,7 @@ import { toIssues, type ValidationIssue } from "./format-errors.js";
 import {
   CHECKPOINT_SCHEMA_ID,
   createValidatorFromCompiled,
+  PROOF_SCHEMA_ID,
   SCHEMA_ID,
   SPEC_VERSION,
   type EventValidator,
@@ -23,7 +24,13 @@ import {
 // Re-exported so that existing import sites keep working. Code that only needs
 // a precompiled validator should import ./validator-interface.js directly, which
 // keeps Ajv out of its bundle entirely.
-export { CHECKPOINT_SCHEMA_ID, createValidatorFromCompiled, SCHEMA_ID, SPEC_VERSION };
+export {
+  CHECKPOINT_SCHEMA_ID,
+  createValidatorFromCompiled,
+  PROOF_SCHEMA_ID,
+  SCHEMA_ID,
+  SPEC_VERSION,
+};
 export type { EventValidator };
 
 /** `ajv-formats` is published as CommonJS; this is its ESM-interop entry point. */

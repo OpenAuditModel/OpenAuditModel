@@ -105,6 +105,13 @@ const CATALOGUE = [
     "Chain Checkpoint Schema 0.1",
     "Schema for chain checkpoint documents, the reference verify_checkpoint compares an archive with. A tooling document versioned on its own; never constrains an audit event.",
   ],
+  [
+    "openauditmodel://schema/proof/0.1",
+    "schemas/proof/v0.1/proof.schema.json",
+    SCHEMA_JSON,
+    "Inclusion Proof Schema 0.1",
+    "Schema for Merkle inclusion proofs, which verify_proof checks an event against; defines the RFC 6962 hashing. A tooling document versioned on its own; never constrains an audit event.",
+  ],
 
   // Semantic conventions
   [

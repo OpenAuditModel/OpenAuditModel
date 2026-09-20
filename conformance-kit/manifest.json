@@ -8261,5 +8261,42 @@
         }
       ]
     }
+  ],
+  "proofs": [
+    {
+      "proof": "examples/integrity/proofs/three-event-chain.002.proof.json",
+      "event": "examples/integrity/valid/three-event-chain/002.json",
+      "outcome": "verified",
+      "findings": [],
+      "eventFindings": []
+    },
+    {
+      "proof": "examples/integrity/proofs/three-event-chain.002.wrong-root.proof.json",
+      "event": "examples/integrity/valid/three-event-chain/002.json",
+      "outcome": "failed",
+      "findings": ["proof-root-mismatch"],
+      "eventFindings": []
+    },
+    {
+      "proof": "examples/integrity/proofs/three-event-chain.002.proof.json",
+      "event": "examples/integrity/valid/three-event-chain/001.json",
+      "outcome": "failed",
+      "findings": ["proof-leaf-mismatch"],
+      "eventFindings": []
+    },
+    {
+      "proof": "examples/integrity/proofs/three-event-chain.002.proof.json",
+      "event": "examples/integrity/invalid/tampered-event.json",
+      "outcome": "failed",
+      "findings": [],
+      "eventFindings": ["hash-mismatch"]
+    },
+    {
+      "proof": "examples/integrity/proofs/three-event-chain.002.proof.json",
+      "event": "examples/valid/minimal-event.json",
+      "outcome": "no-leaf",
+      "findings": ["proof-leaf-unavailable"],
+      "eventFindings": ["integrity-missing"]
+    }
   ]
 }

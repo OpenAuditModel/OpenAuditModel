@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Generates standalone Ajv validators for the canonical audit event schema and
- * for the chain checkpoint schema, which refers into the event schema's $defs.
+ * for the checkpoint and proof schemas, which refer into the event schema's
+ * $defs (and the proof into the checkpoint's).
  *
  * The validator is compiled ahead of time so that no schema compilation
  * happens at runtime, in any deployment. Ajv's standalone generator emits that
@@ -37,6 +38,7 @@ const CHECKPOINT_SCHEMA_PATH = path.join(
   "v0.1",
   "checkpoint.schema.json",
 );
+const PROOF_SCHEMA_PATH = path.join(repoRoot, "schemas", "proof", "v0.1", "proof.schema.json");
 
 /** One generated module per schema. `referenced` schemas are registered for `$ref` resolution. */
 const TARGETS = [
@@ -52,6 +54,13 @@ const TARGETS = [
     output: path.join(packageRoot, "src", "checkpoint-validator.generated.ts"),
     source:
       "schemas/checkpoint/v0.1/checkpoint.schema.json, with the audit event schema registered for its $refs",
+  },
+  {
+    schema: PROOF_SCHEMA_PATH,
+    referenced: [EVENT_SCHEMA_PATH, CHECKPOINT_SCHEMA_PATH],
+    output: path.join(packageRoot, "src", "proof-validator.generated.ts"),
+    source:
+      "schemas/proof/v0.1/proof.schema.json, with the audit event and checkpoint schemas registered for its $refs",
   },
 ];
 

@@ -89,6 +89,10 @@ try {
     existsSync(path.join(installed, "schemas", "checkpoint", "v0.1", "checkpoint.schema.json")),
     "checkpoint schema shipped inside the package",
   );
+  check(
+    existsSync(path.join(installed, "schemas", "proof", "v0.1", "proof.schema.json")),
+    "proof schema shipped inside the package",
+  );
   const profiles = existsSync(path.join(installed, "profiles"))
     ? readdirSync(path.join(installed, "profiles"), { withFileTypes: true })
         .filter(
@@ -144,6 +148,18 @@ try {
         result.status === 0,
         "a shipped checkpoint agrees with its archive through the installed CLI",
         `${agreeing.checkpoint} exited ${result.status}`,
+      );
+    }
+
+    const proven = (kit.proofs ?? []).find((entry) => entry.outcome === "verified");
+    if (proven !== undefined) {
+      const result = cli(
+        `verify-proof "${path.join(installed, proven.event)}" --proof "${path.join(installed, proven.proof)}"`,
+      );
+      check(
+        result.status === 0,
+        "a shipped proof verifies through the installed CLI",
+        `${proven.proof} exited ${result.status}`,
       );
     }
   }

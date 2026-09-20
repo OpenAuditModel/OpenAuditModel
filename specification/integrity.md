@@ -273,7 +273,7 @@ This section is normative in the sense that documentation and tooling MUST NOT c
 
 ## 9. Verifying with the conformance tooling
 
-Three commands are implemented. All are offline: they resolve no remote reference, fetch no
+Four commands are implemented. All are offline: they resolve no remote reference, fetch no
 evidence URL, dereference no anchor and execute nothing contained in an event.
 
 ```bash
@@ -281,6 +281,8 @@ auditmodel verify-integrity examples/integrity/valid/single-event-sha256.json
 auditmodel verify-chain examples/integrity/valid/three-event-chain
 auditmodel verify-checkpoint examples/integrity/valid/three-event-chain \
   --checkpoint examples/integrity/checkpoints/three-event-chain.checkpoint.json
+auditmodel verify-proof examples/integrity/valid/three-event-chain/002.json \
+  --proof examples/integrity/proofs/three-event-chain.002.proof.json
 ```
 
 `verify-integrity` validates the event against the canonical schema, confirms the declared
@@ -306,7 +308,18 @@ that the archive is consistent with the checkpoint it was handed, and it says so
 whether the checkpoint is genuine and its anchor real is for whoever holds the anchor. See
 [ADR 0014](../decisions/0014-chain-checkpoints.md).
 
-All three commands accept `--public-key <path>`, a PEM-encoded public key for the declared algorithm —
+`verify-proof` verifies one event against an **inclusion proof**: a document under its own schema,
+`https://openauditmodel.org/schemas/proof/0.1/schema.json`, holding the event's `integrity.hash`
+as a leaf, the sibling hashes up to a Merkle root, and the root with the checkpoint's anchoring
+rule. The tree is hashed as RFC 6962 §2.1 defines — a leaf is `H(0x00 ‖ d)` over the decoded
+digest, a node is `H(0x01 ‖ left ‖ right)`, a tree over `n` leaves splits at the largest power of
+two below `n`, and an odd node is promoted unchanged — and the schema says so, because a tree that
+is not written down is not a specification of anything. The command checks the proof's own
+consistency, recomputes the root, verifies the event as `verify-integrity` does and requires its hash
+to be the leaf. What it establishes is membership of the tree the root describes; the root's
+provenance is the anchor's. See [ADR 0015](../decisions/0015-merkle-inclusion-proofs.md).
+
+All four commands accept `--public-key <path>`, a PEM-encoded public key for the declared algorithm —
 `Ed25519`, `ECDSA-P256-SHA256` or `RSA-PSS-SHA256`. When it is supplied and
 an event declares `integrity.signature`, the signature is verified against the same digest input as
 the hash. Without it, `verify-integrity` reports a declared signature in an implemented algorithm as
@@ -315,7 +328,9 @@ check; `verify-chain` reports chain-level checks, not per-event ones. A declared
 signature in an algorithm this verifier does not implement fails verification whether or not a key is
 supplied, as §6.1 requires: a signature that can never be checked here must not read as verified.
 `verify-checkpoint` applies the same key to the checkpoint's own `signature`, which covers the
-canonical form of the document with `/signature` removed.
+canonical form of the document with `/signature` removed; `verify-proof` applies it to the root's
+`signature`, which covers the `root` object the same way, so one signed root serves every proof cut
+from its tree.
 
 ```bash
 auditmodel verify-integrity examples/integrity/valid/signed-event-ed25519.json \
@@ -326,15 +341,17 @@ Exit codes are `0` verified, `1` a verification failed, `2` a usage, read or par
 `verify-checkpoint`, also a document that is not a checkpoint under its schema — and `3` when no
 verdict was produced: for `verify-chain`, no event could be assigned to a chain, so no chain was
 checked; for `verify-checkpoint`, the archive holds none of the chains the checkpoint names, so
-nothing was compared. Neither `3` is an approval.
+nothing was compared; for `verify-proof`, the event's hash cannot be established, so there is
+nothing to prove. No `3` is an approval.
 
 **Implemented:** Ed25519, ECDSA-P256-SHA256 and RSA-PSS-SHA256 signature verification, given a
 public key supplied out of band — there is no key registry to resolve `keyId` against. ECDSA
 signatures are expected in IEEE P1363 form (`r ‖ s`, 64 bytes); RSA-PSS signatures are verified with
 the salt length recovered from the signature, and keys under 2048 bits are refused.
 
-**Implemented, as tooling:** chain checkpoints — the document format above and `verify-checkpoint`.
-The specification defines neither; the tooling versions the document on its own.
+**Implemented, as tooling:** chain checkpoints and Merkle inclusion proofs — the two document
+formats above, `verify-checkpoint` and `verify-proof`. The specification defines none of them; the
+tooling versions each document on its own.
 
 **Not implemented**, and not to be inferred from the presence of the fields that would support them:
 signing, key generation, key storage, key management integrations, certificate parsing, trust

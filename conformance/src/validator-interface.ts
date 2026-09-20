@@ -20,6 +20,9 @@ export const SCHEMA_ID = "https://openauditmodel.org/schemas/audit-event/0.1/sch
 /** Canonical identifier of the chain checkpoint schema, a tooling document versioned on its own. */
 export const CHECKPOINT_SCHEMA_ID = "https://openauditmodel.org/schemas/checkpoint/0.1/schema.json";
 
+/** Canonical identifier of the inclusion proof schema, a tooling document versioned on its own. */
+export const PROOF_SCHEMA_ID = "https://openauditmodel.org/schemas/proof/0.1/schema.json";
+
 /**
  * Validates parsed events. The smallest interface the conformance engines need,
  * so that they work with a schema read from disk or compiled in at build time.

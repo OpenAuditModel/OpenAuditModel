@@ -38,6 +38,18 @@ export function digestByteLength(algorithm: SupportedHashAlgorithm): number {
   return DIGEST_BYTE_LENGTHS[algorithm];
 }
 
+/** Hashes the concatenation of `parts` with a supported algorithm and returns the raw digest. */
+export function digestBytes(
+  algorithm: SupportedHashAlgorithm,
+  ...parts: readonly Uint8Array[]
+): Buffer {
+  const hash = createHash(NODE_HASH_NAMES[algorithm]);
+  for (const part of parts) {
+    hash.update(part);
+  }
+  return hash.digest();
+}
+
 /** True when a value is a well-formed lowercase hexadecimal digest. */
 export function isHexDigest(value: unknown): value is string {
   return typeof value === "string" && HEX_DIGEST.test(value);

@@ -16,6 +16,8 @@ import { buildDigestInput } from "./digest.js";
 import {
   SIGNATURE_ALGORITHMS,
   SUPPORTED_SIGNATURE_ALGORITHMS,
+  type DocumentSignatureResult,
+  type Finding,
   type SupportedSignatureAlgorithm,
 } from "./types.js";
 
@@ -106,6 +108,57 @@ export function verifyDocumentSignature(
     value,
     publicKey,
   );
+}
+
+/**
+ * Checks a document's declared `signature`, when it has one, the three ways a
+ * declared signature is always reported: failed for an algorithm this
+ * verifier does not implement whether or not a key is supplied; declared but
+ * not checked without a key; verified with one. Returns `undefined` only when
+ * no signature is declared. `label` names the document in the finding.
+ */
+export function checkDeclaredDocumentSignature(
+  document: unknown,
+  publicKey: KeyObject | undefined,
+  label: string,
+): { readonly result: DocumentSignatureResult; readonly finding?: Finding } | undefined {
+  if (document === null || typeof document !== "object" || Array.isArray(document)) {
+    return undefined;
+  }
+  const declared = (document as Record<string, unknown>)["signature"];
+  if (declared === null || typeof declared !== "object" || Array.isArray(declared)) {
+    return undefined;
+  }
+  const algorithm = (declared as Record<string, unknown>)["algorithm"];
+  const value = (declared as Record<string, unknown>)["value"];
+  if (typeof algorithm !== "string" || typeof value !== "string") {
+    return undefined;
+  }
+
+  if (!isSupportedSignatureAlgorithm(algorithm)) {
+    const message = `signature algorithm "${algorithm}" is not implemented by this verifier`;
+    return {
+      result: { algorithm, status: "invalid", message },
+      finding: { kind: "unsupported-signature-algorithm", label, message },
+    };
+  }
+  if (publicKey === undefined) {
+    return {
+      result: {
+        algorithm,
+        status: "not-checked",
+        message: `signature declared (${algorithm}), not checked: no public key was supplied`,
+      },
+    };
+  }
+  const outcome = verifyDocumentSignature(document, algorithm, value, publicKey);
+  if (outcome.ok) {
+    return { result: { algorithm, status: "valid", message: `signature valid (${algorithm})` } };
+  }
+  return {
+    result: { algorithm, status: "invalid", message: outcome.message },
+    finding: { kind: outcome.kind, label, message: outcome.message },
+  };
 }
 
 function verifySignature(

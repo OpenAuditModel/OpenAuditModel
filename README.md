@@ -110,6 +110,8 @@ The same contract across every command, so a CI job can branch on it:
 - `verify-checkpoint` returns it when **the archive holds none of the chains the checkpoint
   names**, so nothing was compared. An archive the checkpoint does not describe is not a verified
   archive.
+- `verify-proof` returns it when **the event's hash cannot be established** — no integrity object,
+  no hash, an algorithm this verifier does not implement — so there is nothing to prove.
 
 ```bash
 # conforming → 0        the profile's rules were checked and passed
@@ -320,6 +322,7 @@ See [ADR 0003](decisions/0003-backend-and-transport-independence.md).
 specification/         15 normative documents defining the model
 schemas/v0.1/          the canonical JSON Schema (Draft 2020-12)
 schemas/checkpoint/    the chain checkpoint schema, a tooling document versioned on its own
+schemas/proof/         the inclusion proof schema, with RFC 6962 hashing written into it
 semantic-conventions/  recommended event names and vocabularies
 profiles/              ten enforceable domain profiles, 127 rules (113 error-severity, 14 advisory)
 mappings/              informative mappings to CloudEvents, OTel, ECS, OCSF, CADF
@@ -331,7 +334,7 @@ conformance/           the `auditmodel` CLI and its test suite
 conformance-kit/       every fixture's expected verdict, as data, for any language
 mcp/                   the remote MCP server, distributed as a container image
 deploy/                Docker Compose and reverse-proxy examples
-decisions/             14 architecture decision records
+decisions/             15 architecture decision records
 ```
 
 The core model requires seven fields — `specVersion`, `id`, `time`, `event`, `actor`, `resource`,
@@ -413,13 +416,15 @@ specification and are not detectable by any validator. See
 ## How is an event's integrity verified?
 
 An event MAY carry `integrity` material: a digest of itself, and a link to the previous event in a
-chain. Three commands check it, all entirely offline.
+chain. Four commands check it, all entirely offline.
 
 ```bash
 auditmodel verify-integrity examples/integrity/valid/single-event-sha256.json
 auditmodel verify-chain examples/integrity/valid/three-event-chain
 auditmodel verify-checkpoint examples/integrity/valid/three-event-chain \
   --checkpoint examples/integrity/checkpoints/three-event-chain.checkpoint.json
+auditmodel verify-proof examples/integrity/valid/three-event-chain/002.json \
+  --proof examples/integrity/proofs/three-event-chain.002.proof.json
 ```
 
 ```text
@@ -491,6 +496,19 @@ does not fail today's archive — events after the head are noted as not covered
 holds none of the chains the checkpoint names exits `3`, never `0`. Key generation, storage, rotation,
 revocation and certificate parsing remain out of scope, regardless of whether a signature is present.
 See [ADR 0014](decisions/0014-chain-checkpoints.md).
+
+**Proving one event belongs to a published tree.** A checkpoint covers a chain; an **inclusion
+proof** covers one event. It is a sidecar document
+([`/schemas/proof/0.1/schema.json`](https://openauditmodel.org/schemas/proof/0.1/schema.json))
+holding the event's `integrity.hash` as the leaf, the sibling hashes up to a Merkle root, and the
+root with the same anchoring rule a checkpoint has. Nothing is added to the event. `verify-proof`
+checks the proof's own consistency first — the path must have the shape the leaf's index and the
+tree's size imply, and must recompute to the recorded root — then verifies the event exactly as
+`verify-integrity` does and requires its hash to be the leaf. The hashing is RFC 6962's, written
+into the schema so that an implementer in another language builds the same tree: a leaf is
+`H(0x00 ‖ digest)`, a node is `H(0x01 ‖ left ‖ right)`, and an odd node is promoted unchanged. A
+passing proof shows membership of the tree the root describes; the root's provenance is the
+anchor's, and the tool says so. See [ADR 0015](decisions/0015-merkle-inclusion-proofs.md).
 
 **How the digest is calculated.** Deep-clone the event, remove exactly `/integrity/hash` and
 `/integrity/signature`, serialize with **RFC 8785** (the JSON Canonicalization Scheme), encode as
@@ -581,12 +599,12 @@ instrumentation can validate, privacy-lint and profile-check an event without cl
 claude mcp add --transport http openauditmodel https://mcp.openauditmodel.org/mcp
 ```
 
-Nine tools — `validate_event`, `verify_integrity`, `verify_chain`, `verify_checkpoint`,
-`lint_privacy`, `check_profile`, `check_coverage`, `generate_event_template`, `get_event_guidance` —
-three prompts, and thirty-five read-only resources: seven specification chapters, three schemas (the
-canonical audit event schema, the profile definition schema and the chain checkpoint schema), the
-semantic-conventions index and twelve convention documents, the profile index and all ten profile
-definitions, and the examples index.
+Ten tools — `validate_event`, `verify_integrity`, `verify_chain`, `verify_checkpoint`,
+`verify_proof`, `lint_privacy`, `check_profile`, `check_coverage`, `generate_event_template`,
+`get_event_guidance` — three prompts, and thirty-six read-only resources: seven specification
+chapters, four schemas (the canonical audit event schema, the profile definition schema, the chain
+checkpoint schema and the inclusion proof schema), the semantic-conventions index and twelve
+convention documents, the profile index and all ten profile definitions, and the examples index.
 
 **It is a remote service, and this matters.** MCP tool inputs are processed ephemerally by the
 OpenAuditModel MCP service. The service does not intentionally persist audit event content or
@@ -705,7 +723,7 @@ and [ADR 0008](decisions/0008-declarative-profile-conformance.md).
 
 [ADR 0001](decisions/0001-specification-first.md) promises that "an implementation in any language can
 be checked against the same fixtures". [conformance-kit/manifest.json](conformance-kit/manifest.json)
-is what makes that actionable: for all 327 published fixtures, 7 chains and 8 checkpoint cases it records the verdict each
+is what makes that actionable: for all 327 published fixtures, 7 chains, 8 checkpoint cases and 5 proof cases it records the verdict each
 engine returns — rule identifiers, JSON Pointers, statuses, severities and finding kinds.
 
 Human-readable messages are deliberately absent. An implementation that words an error differently is
