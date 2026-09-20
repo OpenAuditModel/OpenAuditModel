@@ -4,7 +4,8 @@
 
 | Version | Status                                                                     |
 | ------- | -------------------------------------------------------------------------- |
-| 0.4.x   | Current release (conformance CLI and MCP server). Fixes applied to `main`. |
+| 0.5.x   | Current release (conformance CLI and MCP server). Fixes applied to `main`. |
+| 0.4.x   | Superseded. No fixes; upgrade to the current release.                      |
 | 0.3.x   | Superseded. No fixes; upgrade to the current release.                      |
 | 0.2.x   | Superseded. No fixes; upgrade to the current release.                      |
 | 0.1.x   | Superseded. No fixes; upgrade to the current release.                      |

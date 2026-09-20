@@ -23,6 +23,7 @@ const schemaPath = resolveSchemaPath();
 const repoRoot = path.dirname(path.dirname(path.dirname(schemaPath)));
 const cliPath = fileURLToPath(new URL("../src/cli.js", import.meta.url));
 const readme = readFileSync(path.join(repoRoot, "README.md"), "utf8");
+const security = readFileSync(path.join(repoRoot, "SECURITY.md"), "utf8");
 
 const scratch = mkdtempSync(path.join(tmpdir(), "openauditmodel-readme-"));
 after(() => {
@@ -129,6 +130,41 @@ describe("the README quick start event", () => {
 });
 
 describe("the README documents the commands that exist", () => {
+  test("the supported-versions table names this release as current, and nothing else", () => {
+    // A standing release rule says SECURITY.md moves in the same change as the
+    // version. It was missed twice in a row — 0.5.0 and 0.5.1 both shipped with
+    // the table still calling 0.4.x current — because nothing checked it, while
+    // the README row beside this test had been checked since 0.3.0. SECURITY.md
+    // is the document a reader consults to learn whether their version still
+    // gets fixes; a stale row there tells them the wrong thing about a
+    // security promise.
+    const manifest = JSON.parse(
+      readFileSync(path.join(repoRoot, "package.json"), "utf8"),
+    ) as Record<string, unknown>;
+    const version = String(manifest["version"]);
+    const minor = version.split(".").slice(0, 2).join(".");
+
+    const current = [...security.matchAll(/^\| ([0-9]+\.[0-9]+)\.x\s*\| Current release/gm)].map(
+      (match) => match[1],
+    );
+    assert.deepEqual(
+      current,
+      [minor],
+      `SECURITY.md must name exactly ${minor}.x as the current release, for package.json ${version}`,
+    );
+
+    // And every earlier minor is still listed, so a reader on an old version
+    // learns it is superseded rather than finding no row at all.
+    const listed = [...security.matchAll(/^\| ([0-9]+\.[0-9]+)\.x\s*\|/gm)].map(
+      (match) => match[1],
+    );
+    const [major, current_] = minor.split(".").map(Number) as [number, number];
+    const expected = Array.from({ length: current_ + 1 }, (_, index) => `${major}.${index}`)
+      .filter((entry) => entry !== `${major}.0` || current_ === 0)
+      .reverse();
+    assert.deepEqual(listed, expected, "SECURITY.md skips or reorders a released minor");
+  });
+
   test("the tooling-release row in the status table matches package.json", () => {
     const manifest = JSON.parse(
       readFileSync(path.join(repoRoot, "package.json"), "utf8"),
