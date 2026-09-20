@@ -135,6 +135,13 @@ existing audit database → mapper → OpenAuditModel NDJSON → customer, archi
 `validate`, `lint-privacy` and `check-profile` all accept `.ndjson` and `.jsonl`, so the export can be
 checked in CI before it is handed to anyone.
 
+**What the profiles will ask for** is in [profiles/REQUIREMENTS.md](profiles/REQUIREMENTS.md): every
+event name a profile selects, what each of the 127 rules requires, and the fields the ten profiles
+ask for most often. It is generated from the profiles themselves, so it says what the tooling
+actually enforces rather than what a document once said it would. Core validation is the floor and
+most producers pass it on the first try; the profiles are where a real adoption finds out what it is
+not recording.
+
 ## What is OpenAuditModel?
 
 OpenAuditModel is an open, vendor-neutral specification for the structure of an audit event: a
@@ -325,6 +332,7 @@ schemas/checkpoint/    the chain checkpoint schema, a tooling document versioned
 schemas/proof/         the inclusion proof schema, with RFC 6962 hashing written into it
 semantic-conventions/  recommended event names and vocabularies
 profiles/              ten enforceable domain profiles, 127 rules (113 error-severity, 14 advisory)
+profiles/REQUIREMENTS.md  generated: what every rule asks for, from the producer's side
 mappings/              informative mappings to CloudEvents, OTel, ECS, OCSF, CADF
 examples/              11 valid and 7 invalid conformance fixtures
 examples/integrity/    generated tamper-evidence fixtures, valid and invalid

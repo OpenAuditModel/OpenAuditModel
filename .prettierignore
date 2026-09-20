@@ -7,3 +7,4 @@ LICENSE
 
 # Generated and verified by a staleness check; the generator owns their format.
 mcp/src/*.generated.ts
+profiles/REQUIREMENTS.md

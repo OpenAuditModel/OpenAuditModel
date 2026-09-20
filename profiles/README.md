@@ -52,6 +52,12 @@ profile rules **not evaluated**. Both properties are covered by tests. See
 
 All ten profiles are enforceable and carry fixtures. There are no placeholder profiles left in v0.1.
 
+**[REQUIREMENTS.md](REQUIREMENTS.md) is the producer's view of all of them**: every event name any
+profile selects, what each rule requires of it, and which fields the corpus asks for most. It is
+generated from the ten documents below and checked by `npm run verify`, so it cannot drift from what
+the tooling enforces. Read it if the question is "I record this operation — what does the model want
+from it?"; read this file if the question is what a profile is and how one is written.
+
 ## Profile definition format
 
 A profile is a JSON document at `profiles/<name>/profile.json`, validated against
