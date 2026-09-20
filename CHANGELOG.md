@@ -11,6 +11,29 @@ While the project is **Experimental**, breaking changes are possible in any rele
 as such. A change that alters the meaning of an existing field or event name is never acceptable — a
 new name is introduced instead.
 
+## 0.5.1 - 2026-09-20
+
+Specification `0.1`, unchanged. Repository `0.5.1`.
+
+### Fixed — the MCP server enforces every profile it publishes
+
+`check_profile` and `check_coverage` accepted nine profiles, not ten.
+`incident-management` was revised to profile version 0.2 in 0.4.0, and the pattern that discovers
+enforceable profiles from the bundled resource manifest was pinned to the literal `0.1`, so the
+profile went on being served as a resource while dropping out of the set the two tools accept. A
+caller asking the live endpoint to check an incident event was told no such profile existed, while
+the README said all ten were enforceable and the CLI, which loads profiles from disk by name and
+never reads a version, checked all ten. The pattern now matches the whole version form the profile
+definition schema allows.
+
+A revision was always expected to move a profile's version — ADR 0008 says so and the archive tool
+enforces it — so the version was the one part of that URI that could not be a literal. Two
+assertions close the gap the old test left: the profiles the server serves are exactly the profiles
+it can enforce, and that set is exactly what the repository publishes. Both fail against the old
+pattern. The server now also refuses to start when a resource URI's version disagrees with the
+version inside the profile document, because enforcing rules under the wrong version number is
+worse than not starting.
+
 ## 0.5.0 - 2026-09-20
 
 Specification `0.1`, unchanged. Repository `0.5.0`.

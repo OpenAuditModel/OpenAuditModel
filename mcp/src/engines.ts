@@ -68,16 +68,38 @@ export const DOCUMENT_PROFILE_NAME = "document-management";
  * supply a profile document: conformance would then mean whatever the caller
  * wanted it to mean.
  */
-const PROFILE_URI = /^openauditmodel:\/\/profiles\/([a-z][a-z0-9-]*)\/0\.1$/;
+/**
+ * A profile resource URI: the profile's name and the version it declares.
+ *
+ * The version part matches the whole `version` form the profile definition
+ * schema allows, not one literal. It used to be pinned to `0.1`, and when
+ * `incident-management` was revised to `0.2` the profile went on being served
+ * as a resource while quietly dropping out of the enforceable set — the server
+ * published rules it would no longer check anything against. A profile
+ * revision is expected (ADR 0008); a revision that removes a tool's ability to
+ * enforce it is not.
+ */
+const PROFILE_URI = /^openauditmodel:\/\/profiles\/([a-z][a-z0-9-]*)\/([0-9]+(?:\.[0-9]+){0,2})$/;
 
 function bundledProfiles(): ReadonlyMap<string, ProfileDefinition> {
   const found = new Map<string, ProfileDefinition>();
   for (const resource of BUNDLED_RESOURCES) {
     const match = PROFILE_URI.exec(resource.uri);
-    if (match?.[1] === undefined) {
+    const name = match?.[1];
+    if (name === undefined) {
       continue;
     }
-    found.set(match[1], JSON.parse(resource.text) as ProfileDefinition);
+    const profile = JSON.parse(resource.text) as ProfileDefinition;
+    // The URI carries the version by hand; the document carries it as data.
+    // A disagreement means the allowlist was edited and the profile was not,
+    // or the reverse, and enforcing rules under the wrong version number is
+    // worse than refusing to start.
+    if (profile.version !== match?.[2]) {
+      throw new Error(
+        `${resource.uri} advertises version ${match?.[2] ?? "(none)"}, but the profile declares ${profile.version}`,
+      );
+    }
+    found.set(name, profile);
   }
   if (!found.has(IAM_PROFILE_NAME)) {
     throw new Error("the identity profile is missing from the generated resource manifest");

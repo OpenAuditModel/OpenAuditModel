@@ -18,7 +18,8 @@ import { TOOL_NAMES } from "../src/register-tools.js";
 import { PROMPT_NAMES } from "../src/register-prompts.js";
 import { RESOURCE_URIS } from "../src/register-resources.js";
 import { BUNDLED_RESOURCES } from "../src/resource-manifest.generated.js";
-import { validator, iamProfile } from "../src/engines.js";
+import { ENFORCEABLE_PROFILES, iamProfile, profileByName, validator } from "../src/engines.js";
+import { availableProfiles } from "../../conformance/src/profiles/load-profile.js";
 import { MAX_EVENTS_PER_REQUEST } from "../src/output-safety.js";
 import {
   createCheckpointValidator,
@@ -967,6 +968,38 @@ describe("build artifacts", () => {
         resource.source,
       );
     }
+  });
+
+  test("every profile the server serves is one it can enforce", () => {
+    // The gap this closes: `incident-management` was revised to profile
+    // version 0.2, the URI pattern that discovers enforceable profiles was
+    // pinned to 0.1, and the profile went on being published as a resource
+    // while check_profile and check_coverage stopped accepting it — nine
+    // enforceable profiles behind a README that said ten. The test below
+    // asserted the URI carried the right version, which it did; nothing
+    // asserted the two sets were the same set.
+    const served = BUNDLED_RESOURCES.flatMap((resource) => {
+      const match = /^openauditmodel:\/\/profiles\/([a-z][a-z0-9-]*)\/[0-9.]+$/.exec(resource.uri);
+      return match?.[1] === undefined ? [] : [match[1]];
+    }).sort((left, right) => left.localeCompare(right, "en"));
+
+    assert.deepEqual(
+      [...ENFORCEABLE_PROFILES].sort((l, r) => l.localeCompare(r, "en")),
+      served,
+    );
+    for (const name of served) {
+      assert.notEqual(profileByName(name), undefined, name);
+    }
+  });
+
+  test("the enforceable set is every profile the repository publishes", () => {
+    // And the repository's own profiles are the ground truth for both: a
+    // profile that ships but is not in the allowlist would be invisible here
+    // rather than merely unenforceable.
+    assert.deepEqual(
+      [...ENFORCEABLE_PROFILES].sort((left, right) => left.localeCompare(right, "en")),
+      availableProfiles(),
+    );
   });
 
   test("every bundled profile is advertised under the version it declares", () => {
