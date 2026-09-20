@@ -22,12 +22,14 @@ import { validator, iamProfile } from "../src/engines.js";
 import { MAX_EVENTS_PER_REQUEST } from "../src/output-safety.js";
 import {
   createCheckpointValidator,
+  createProofValidator,
   createValidator,
   resolveSchemaPath,
 } from "../../conformance/src/validate.js";
 import { verifyEventIntegrity } from "../../conformance/src/integrity/verify-event.js";
 import { verifyChains } from "../../conformance/src/integrity/verify-chain.js";
 import { verifyCheckpoint } from "../../conformance/src/integrity/verify-checkpoint.js";
+import { verifyProof } from "../../conformance/src/integrity/verify-proof.js";
 import { buildDigestInput, sealEvent } from "../../conformance/src/integrity/digest.js";
 import { canonicalBytes } from "../../conformance/src/integrity/canonicalize.js";
 import { lintEvent } from "../../conformance/src/privacy/lint-event.js";
@@ -38,6 +40,7 @@ const schemaPath = resolveSchemaPath();
 const repoRoot = path.dirname(path.dirname(path.dirname(schemaPath)));
 const cliValidator = createValidator(schemaPath);
 const cliCheckpointValidator = createCheckpointValidator(schemaPath);
+const cliProofValidator = createProofValidator(schemaPath);
 
 const ORIGIN = "https://openauditmodel.org";
 
@@ -253,9 +256,9 @@ describe("protocol", () => {
     assert.equal(info["version"], SERVER_VERSION);
   });
 
-  test("exactly nine tools are listed", async () => {
+  test("exactly ten tools are listed", async () => {
     const tools = (await rpc("tools/list"))["tools"] as Array<{ name: string }>;
-    assert.equal(tools.length, 9);
+    assert.equal(tools.length, 10);
     assert.deepEqual(tools.map((tool) => tool.name).sort(), [...TOOL_NAMES].sort());
   });
 
@@ -478,6 +481,51 @@ describe("tool parity with the conformance engines", () => {
         file,
       );
     }
+  });
+
+  test("verify_proof verifies the published proof with the test key", async () => {
+    const event = readEvent("examples/integrity/valid/three-event-chain", "002.json");
+    const proof = readEvent("examples/integrity/proofs", "three-event-chain.002.proof.json");
+    const publicKeyPem = readFileSync(
+      path.join(repoRoot, "examples", "integrity", "keys", "ed25519-test-public.pem"),
+      "utf8",
+    );
+
+    const actual = await callTool("verify_proof", { event, proof, publicKeyPem });
+    assert.equal(actual["outcome"], "verified");
+    assert.equal(actual["verified"], true);
+    assert.equal((actual["signature"] as Json)["status"], "valid");
+    assert.equal(actual["calculatedRoot"], (actual["root"] as Json)["hash"]);
+    assert.ok((actual["note"] as string).includes("the anchor's"));
+  });
+
+  test("verify_proof fails a path that leads to another root, and matches the verifier", async () => {
+    const event = readEvent("examples/integrity/valid/three-event-chain", "002.json");
+    for (const file of [
+      "three-event-chain.002.wrong-root.proof.json",
+      "three-event-chain.002.proof.json",
+    ]) {
+      const proof = readEvent("examples/integrity/proofs", file);
+      const expected = verifyProof(event, "event", proof, {
+        events: cliValidator,
+        proof: cliProofValidator,
+      });
+      const actual = await callTool("verify_proof", { event, proof });
+      assert.equal(actual["outcome"], expected.outcome, file);
+      assert.deepEqual(
+        (actual["findings"] as Array<{ kind: string }>).map((finding) => finding.kind),
+        expected.findings.map((finding) => finding.kind),
+        file,
+      );
+    }
+  });
+
+  test("verify_proof gives no verdict for an event whose hash cannot be established", async () => {
+    const event = readEvent("examples/valid", "minimal-event.json");
+    const proof = readEvent("examples/integrity/proofs", "three-event-chain.002.proof.json");
+    const actual = await callTool("verify_proof", { event, proof });
+    assert.equal(actual["outcome"], "no-leaf");
+    assert.equal(actual["verified"], false);
   });
 
   test("verify_chain reports the head hash and lists sealing batches as notes", async () => {

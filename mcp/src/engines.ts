@@ -11,6 +11,7 @@ import type { ValidateFunction } from "ajv";
 import {
   CHECKPOINT_SCHEMA_ID,
   createValidatorFromCompiled,
+  PROOF_SCHEMA_ID,
   SCHEMA_ID,
   SPEC_VERSION,
   type EventValidator,
@@ -18,9 +19,10 @@ import {
 import type { ProfileDefinition } from "../../conformance/src/profiles/types.js";
 import validateAuditEvent from "./schema-validator.generated.js";
 import validateCheckpoint from "./checkpoint-validator.generated.js";
+import validateProof from "./proof-validator.generated.js";
 import { BUNDLED_RESOURCES } from "./resource-manifest.generated.js";
 
-export { CHECKPOINT_SCHEMA_ID, SCHEMA_ID, SPEC_VERSION };
+export { CHECKPOINT_SCHEMA_ID, PROOF_SCHEMA_ID, SCHEMA_ID, SPEC_VERSION };
 
 /**
  * The canonical validator, built from Ajv's own ahead-of-time compiled code.
@@ -44,6 +46,12 @@ export const validator: EventValidator = createValidatorFromCompiled(
 export const checkpointValidator: EventValidator = createValidatorFromCompiled(
   validateCheckpoint as unknown as ValidateFunction,
   CHECKPOINT_SCHEMA_ID,
+);
+
+/** The inclusion proof validator, compiled the same way, with both schemas it refers to registered. */
+export const proofValidator: EventValidator = createValidatorFromCompiled(
+  validateProof as unknown as ValidateFunction,
+  PROOF_SCHEMA_ID,
 );
 
 export const IAM_PROFILE_NAME = "identity-and-access-management";

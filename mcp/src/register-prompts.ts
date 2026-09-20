@@ -98,7 +98,8 @@ Work in this order.
    not prove the event was ever stored, is still stored, or belongs to a complete chain. For a set of
    chained events, call verify_chain. When a checkpoint for the chain exists, call verify_checkpoint
    as well: it is the only check that can show a deleted tail, and what it establishes is consistency
-   with the checkpoint supplied, not that the checkpoint is genuine.
+   with the checkpoint supplied, not that the checkpoint is genuine. When an inclusion proof for the
+   event exists, call verify_proof: it shows membership of the tree the root describes, and no more.
 
 5. Explain what each finding means for the audit purpose — what question the trail can no longer
    answer — rather than only restating the rule.

@@ -16,7 +16,7 @@
 import type { KeyObject } from "node:crypto";
 import type { EventValidator } from "../validate-core.js";
 import { digestsEqual, isHexDigest } from "./digest.js";
-import { isSupportedSignatureAlgorithm, verifyDocumentSignature } from "./signature.js";
+import { checkDeclaredDocumentSignature } from "./signature.js";
 import { verifyChains, type ChainEventInput } from "./verify-chain.js";
 import { readIntegrity } from "./verify-event.js";
 import type {
@@ -24,7 +24,6 @@ import type {
   CheckpointChainResult,
   CheckpointClaim,
   CheckpointReport,
-  CheckpointSignatureResult,
   Finding,
   Note,
   PassedCheck,
@@ -120,47 +119,6 @@ function indexArchive(inputs: readonly ChainEventInput[]): Map<string, IndexedEv
     }
   }
   return index;
-}
-
-/** Checks the checkpoint's own signature, when it declares one, under the event rules. */
-function checkDocumentSignature(
-  checkpoint: Record<string, unknown>,
-  publicKey: KeyObject | undefined,
-): { readonly result: CheckpointSignatureResult; readonly finding?: Finding } | undefined {
-  const declared = checkpoint["signature"];
-  if (declared === null || typeof declared !== "object" || Array.isArray(declared)) {
-    return undefined;
-  }
-  const algorithm = asString((declared as Record<string, unknown>)["algorithm"]);
-  const value = asString((declared as Record<string, unknown>)["value"]);
-  if (algorithm === undefined || value === undefined) {
-    return undefined;
-  }
-
-  if (!isSupportedSignatureAlgorithm(algorithm)) {
-    const message = `signature algorithm "${algorithm}" is not implemented by this verifier`;
-    return {
-      result: { algorithm, status: "invalid", message },
-      finding: { kind: "unsupported-signature-algorithm", label: CHECKPOINT_LABEL, message },
-    };
-  }
-  if (publicKey === undefined) {
-    return {
-      result: {
-        algorithm,
-        status: "not-checked",
-        message: `signature declared (${algorithm}), not checked: no public key was supplied`,
-      },
-    };
-  }
-  const outcome = verifyDocumentSignature(checkpoint, algorithm, value, publicKey);
-  if (outcome.ok) {
-    return { result: { algorithm, status: "valid", message: `signature valid (${algorithm})` } };
-  }
-  return {
-    result: { algorithm, status: "invalid", message: outcome.message },
-    finding: { kind: outcome.kind, label: CHECKPOINT_LABEL, message: outcome.message },
-  };
 }
 
 /** Compares one claim with the chain the archive holds under that identifier. */
@@ -306,7 +264,7 @@ export function verifyCheckpoint(
   const checks: PassedCheck[] = [{ message: "checkpoint schema valid" }];
   const findings: Finding[] = [];
 
-  const signature = checkDocumentSignature(document, options.publicKey);
+  const signature = checkDeclaredDocumentSignature(document, options.publicKey, CHECKPOINT_LABEL);
   if (signature !== undefined) {
     if (signature.finding === undefined) {
       checks.push({ message: signature.result.message });

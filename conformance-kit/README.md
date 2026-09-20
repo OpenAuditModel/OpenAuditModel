@@ -22,7 +22,7 @@ same as the reference implementation, on the cases this project chose to publish
 having and it is not a claim about the implementation's fitness, completeness or correctness in
 general.
 
-**The corpus is not the world.** 327 fixtures, 7 chains and 8 checkpoint cases, chosen to cover the behaviour this
+**The corpus is not the world.** 327 fixtures, 7 chains, 8 checkpoint cases and 5 proof cases, chosen to cover the behaviour this
 repository decided to pin. An implementation can pass all of them and still differ on an input nobody
 here thought to write down.
 
@@ -59,6 +59,7 @@ the implementation's own.
 | `checkProfile`    | fixtures under `examples/profiles/<name>/`                    |
 | `chains`          | directories verified as a set rather than per event           |
 | `checkpoints`     | a checkpoint document compared with named archive directories |
+| `proofs`          | a proof document verified against a named event               |
 
 `verifyIntegrity` is recorded only where the fixture declares integrity material, because
 `verify-integrity` reports "no integrity object" for everything else — a property of the command
@@ -71,6 +72,12 @@ that agrees with `examples/integrity/valid/three-event-chain` is the one that re
 `examples/integrity/invalid/truncated-chain` as `tail-truncated` — while the `chains` record for
 that same directory says `intact`. Both are right, and an implementation has to reproduce both.
 Documents under `examples/integrity/checkpoints/` are not events and have no `fixtures` record.
+
+A `proofs` record names a proof document and the event it was verified against, and records the
+outcome, the finding kinds on the proof and its relation to the event, and the event's own
+verification findings separately. The tree hashing an implementation must reproduce is RFC 6962's,
+as the proof schema's description states. Documents under `examples/integrity/proofs/` are not
+events either.
 
 ## How to use it
 

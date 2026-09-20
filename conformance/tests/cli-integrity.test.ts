@@ -52,6 +52,9 @@ const BATCHED_CHAIN = "examples/integrity/valid/chain-in-two-batches";
 const TRUNCATED_CHAIN = "examples/integrity/invalid/truncated-chain";
 const CHECKPOINTS = "examples/integrity/checkpoints";
 const CHECKPOINT = `${CHECKPOINTS}/three-event-chain.checkpoint.json`;
+const EVENT_002 = `${VALID_CHAIN}/002.json`;
+const PROOF = "examples/integrity/proofs/three-event-chain.002.proof.json";
+const WRONG_ROOT_PROOF = "examples/integrity/proofs/three-event-chain.002.wrong-root.proof.json";
 const SIGNED_EVENT = "examples/integrity/valid/signed-event-ed25519.json";
 const TEST_PUBLIC_KEY = "examples/integrity/keys/ed25519-test-public.pem";
 
@@ -534,14 +537,128 @@ describe("verify-checkpoint", () => {
   });
 });
 
+describe("verify-proof", () => {
+  test("exits 0 for the published proof and says what it did not prove", () => {
+    const result = auditmodel(
+      "verify-proof",
+      EVENT_002,
+      "--proof",
+      PROOF,
+      "--public-key",
+      TEST_PUBLIC_KEY,
+    );
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /proof schema valid/);
+    assert.match(result.stdout, /root signature valid \(Ed25519\)/);
+    assert.match(result.stdout, /path has the shape of leaf 1 in a tree of 3 leaves/);
+    assert.match(result.stdout, /path recomputes to the recorded root/);
+    assert.match(result.stdout, /the leaf is this event's integrity hash/);
+    assert.match(result.stdout, /tree: +SHA-256, 3 leaves, root [0-9a-f]{64}/);
+    assert.match(result.stdout, /anchor: +publication — .*\(not dereferenced\)/);
+    assert.match(result.stdout, /proof verified: leaf 1 of 3/);
+    assert.match(result.stdout, /the root's provenance is the anchor's/);
+  });
+
+  test("exits 1 when the path leads to another root, and shows both", () => {
+    const result = auditmodel("verify-proof", EVENT_002, "--proof", WRONG_ROOT_PROOF);
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /\[proof-root-mismatch\]/);
+    assert.match(result.stdout, /recorded: +[0-9a-f]{64}/);
+    assert.match(result.stdout, /calculated: [0-9a-f]{64}/);
+    assert.match(result.stdout, /proof failed/);
+  });
+
+  test("exits 1 when the proof is for another event", () => {
+    const result = auditmodel("verify-proof", `${VALID_CHAIN}/001.json`, "--proof", PROOF);
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /\[proof-leaf-mismatch\]/);
+  });
+
+  test("exits 3, never 0, when the event's hash cannot be established", () => {
+    const result = auditmodel(
+      "verify-proof",
+      "examples/valid/minimal-event.json",
+      "--proof",
+      PROOF,
+    );
+    assert.equal(result.status, 3);
+    assert.match(result.stdout, /\[proof-leaf-unavailable\]/);
+    assert.match(result.stderr, /no verdict: the event's hash cannot be established/);
+  });
+
+  test("exits 2 for a document that is not a proof, without judging the event", () => {
+    const file = writeScratch("not-a-proof.json", '{"proofVersion":"0.1"}');
+    const result = auditmodel("verify-proof", EVENT_002, "--proof", file);
+    assert.equal(result.status, 2);
+    assert.match(result.stdout, /\[proof-schema-invalid\]/);
+    assert.match(result.stdout, /nothing was judged/);
+    assert.doesNotMatch(result.stdout, /proof verified|proof failed/);
+  });
+
+  test("exits 2 without --proof, with an unreadable proof, or with more than one event", () => {
+    assert.equal(auditmodel("verify-proof", EVENT_002).status, 2);
+    assert.match(auditmodel("verify-proof", EVENT_002).stderr, /requires --proof <file>/);
+    assert.match(
+      auditmodel("verify-proof", EVENT_002, "--proof", "examples/integrity/proofs/none.json")
+        .stderr,
+      /cannot read --proof/,
+    );
+    const many = auditmodel("verify-proof", VALID_CHAIN, "--proof", PROOF);
+    assert.equal(many.status, 2);
+    assert.match(many.stderr, /takes exactly one event; 3 were given/);
+  });
+
+  test("--format json carries the outcome, the roots and the not-proven line", () => {
+    const result = auditmodel(
+      "verify-proof",
+      EVENT_002,
+      "--proof",
+      WRONG_ROOT_PROOF,
+      "--format",
+      "json",
+    );
+    assert.equal(result.status, 1);
+    const report = JSON.parse(result.stdout) as {
+      tool: string;
+      outcome: string;
+      proof: {
+        schemaId: string;
+        calculatedRoot: string;
+        root: { hash: string };
+        findings: Array<{ kind: string }>;
+      };
+      event: { verified: boolean };
+      notProven: string;
+    };
+    assert.equal(report.tool, "auditmodel verify-proof");
+    assert.equal(report.outcome, "failed");
+    assert.match(report.proof.schemaId, /schemas\/proof\/0\.1/);
+    assert.notEqual(report.proof.calculatedRoot, report.proof.root.hash);
+    assert.deepEqual(
+      report.proof.findings.map((f) => f.kind),
+      ["proof-root-mismatch"],
+    );
+    assert.equal(report.event.verified, true);
+    assert.match(report.notProven, /the anchor's/);
+  });
+
+  test("--proof is refused by every other command rather than ignored", () => {
+    const result = auditmodel("verify-integrity", EVENT_002, "--proof", PROOF);
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /--proof is not supported by "verify-integrity"/);
+  });
+});
+
 describe("help and options", () => {
-  test("help documents the three verification commands", () => {
+  test("help documents the four verification commands", () => {
     const result = auditmodel("--help");
     assert.equal(result.status, 0);
     assert.match(result.stdout, /auditmodel verify-integrity <path\.\.\.>/);
     assert.match(result.stdout, /auditmodel verify-chain <path\.\.\.>/);
     assert.match(result.stdout, /auditmodel verify-checkpoint <path\.\.\.>/);
+    assert.match(result.stdout, /auditmodel verify-proof <path>/);
     assert.match(result.stdout, /--checkpoint <file>/);
+    assert.match(result.stdout, /--proof <file>/);
   });
 
   const formatUnsupported = ["validate", "verify-integrity", "verify-chain"] as const;
@@ -584,6 +701,7 @@ describe("help and options", () => {
     ]) {
       assert.match(help, new RegExp(`auditmodel ${command} <path\\.\\.\\.>`), command);
     }
+    assert.match(help, /auditmodel verify-proof <path>/);
   });
 
   test("help states that verification is tamper-evident, not tamper-proof", () => {

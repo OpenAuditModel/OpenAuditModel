@@ -13,7 +13,7 @@ import path from "node:path";
 import test, { describe } from "node:test";
 import { resolveSchemaPath } from "../src/validate.js";
 import { availableProfiles } from "../src/profiles/load-profile.js";
-import { buildKit, checkKit, CHECKPOINT_DIRECTORY } from "../tools/generate-kit.js";
+import { buildKit, checkKit, NON_EVENT_DIRECTORIES } from "../tools/generate-kit.js";
 
 const schemaPath = resolveSchemaPath();
 const repoRoot = path.dirname(path.dirname(path.dirname(schemaPath)));
@@ -42,7 +42,8 @@ describe("the conformance kit", () => {
     const expected = publishedFixtures(path.join(repoRoot, "examples"))
       .filter(
         (file) =>
-          !file.startsWith("examples/integrity/keys/") && !file.startsWith(CHECKPOINT_DIRECTORY),
+          !file.startsWith("examples/integrity/keys/") &&
+          !NON_EVENT_DIRECTORIES.some((directory) => file.startsWith(directory)),
       )
       .sort((left, right) => left.localeCompare(right, "en"));
     const covered = kit.fixtures
@@ -65,13 +66,45 @@ describe("the conformance kit", () => {
         assert.ok(existsSync(path.join(repoRoot, directory)), directory);
       }
     }
+    for (const record of kit.proofs) {
+      assert.ok(existsSync(path.join(repoRoot, record.proof)), record.proof);
+      assert.ok(existsSync(path.join(repoRoot, record.event)), record.event);
+    }
   });
 
   test("every published checkpoint document is compared with at least one archive", () => {
-    const published = publishedFixtures(path.join(repoRoot, CHECKPOINT_DIRECTORY)).sort();
+    const published = publishedFixtures(
+      path.join(repoRoot, "examples", "integrity", "checkpoints"),
+    ).sort();
     const recorded = [...new Set(kit.checkpoints.map((record) => record.checkpoint))].sort();
     assert.ok(published.length > 0);
     assert.deepEqual(recorded, published);
+  });
+
+  test("every published proof document is verified against at least one event", () => {
+    const published = publishedFixtures(
+      path.join(repoRoot, "examples", "integrity", "proofs"),
+    ).sort();
+    const recorded = [...new Set(kit.proofs.map((record) => record.proof))].sort();
+    assert.ok(published.length > 0);
+    assert.deepEqual(recorded, published);
+  });
+
+  test("the proof for event 2 verifies, and the same path against another root fails", () => {
+    const verified = kit.proofs.find(
+      (record) =>
+        record.proof.endsWith("three-event-chain.002.proof.json") &&
+        record.event.endsWith("three-event-chain/002.json"),
+    );
+    assert.equal(verified?.outcome, "verified");
+    assert.deepEqual(verified?.findings, []);
+
+    const wrongRoot = kit.proofs.find((record) => record.proof.includes("wrong-root"));
+    assert.equal(wrongRoot?.outcome, "failed");
+    assert.deepEqual(wrongRoot?.findings, ["proof-root-mismatch"]);
+
+    const noLeaf = kit.proofs.find((record) => record.event.endsWith("minimal-event.json"));
+    assert.equal(noLeaf?.outcome, "no-leaf");
   });
 
   test("the deleted tail is recorded as intact by verify-chain and as truncated by the checkpoint", () => {
@@ -93,7 +126,10 @@ describe("the conformance kit", () => {
     // translation and every improvement to a sentence, so the generator records
     // identifiers, pointers and statuses and nothing else.
     const rendered =
-      JSON.stringify(kit.fixtures) + JSON.stringify(kit.chains) + JSON.stringify(kit.checkpoints);
+      JSON.stringify(kit.fixtures) +
+      JSON.stringify(kit.chains) +
+      JSON.stringify(kit.checkpoints) +
+      JSON.stringify(kit.proofs);
     for (const forbidden of ["message", "recommendation", "detail", "summary"]) {
       assert.doesNotMatch(rendered, new RegExp(`"${forbidden}"`), forbidden);
     }

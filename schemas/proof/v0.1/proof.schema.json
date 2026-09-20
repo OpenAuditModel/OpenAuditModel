@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openauditmodel.org/schemas/proof/0.1/schema.json",
+  "title": "OpenAuditModel Inclusion Proof Schema",
+  "description": "An inclusion proof shows that one event is a leaf of a Merkle tree whose root has been published, without the rest of the tree being supplied. The event's `integrity.hash` is the leaf; nothing is added to the event. `auditmodel verify-proof` recomputes the root from the leaf along the path and compares it with the recorded root. Hashing is RFC 6962 §2.1: a leaf is H(0x00 ‖ d) where d is the event's `integrity.hash` decoded from hexadecimal; an interior node is H(0x01 ‖ left ‖ right) over the raw node hashes; a tree over n leaves splits at k, the largest power of two smaller than n; an odd node at any level is promoted unchanged, never duplicated. The path lists sibling hashes from the leaf upward, each with the side the sibling sits on, and its shape is fully determined by the leaf's index and the tree's size. A proof is a tooling document versioned on its own. It is not part of the canonical audit event schema and never constrains an audit event; its digest, identifier and signature definitions are the audit event schema's own, and its root's anchor is the checkpoint schema's, by reference.",
+  "$comment": "The root carries the same anchoring rule a checkpoint does: `root.anchor` is required and may not be blank, and the verifier never dereferences it. A root signature covers the canonical form of the `root` object with `/signature` removed, so one signed root serves every proof cut from its tree. See decisions/0015-merkle-inclusion-proofs.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["proofVersion", "hashAlgorithm", "leaf", "path", "root"],
+  "properties": {
+    "proofVersion": {
+      "description": "Version of this document format. Independent of the specification version and of the event schema.",
+      "const": "0.1"
+    },
+    "hashAlgorithm": {
+      "description": "Hash algorithm of the tree: the H in the leaf and node definitions. Open vocabulary, matched case-sensitively; the verifier implements SHA-256, SHA-384 and SHA-512, and every digest in the proof must be that algorithm's length.",
+      "$ref": "https://openauditmodel.org/schemas/audit-event/0.1/schema.json#/$defs/algorithmIdentifier"
+    },
+    "leaf": {
+      "description": "The event this proof is about: its `integrity.hash`, and its position among the tree's leaves.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hash", "index"],
+      "properties": {
+        "hash": {
+          "description": "The event's `integrity.hash`, exactly as the event declares it.",
+          "$ref": "https://openauditmodel.org/schemas/audit-event/0.1/schema.json#/$defs/hexDigest"
+        },
+        "index": {
+          "description": "Zero-based position of the leaf among the tree's leaves.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "eventId": {
+          "description": "The event's `id`, for a human reader. Never evaluated: the leaf is identified by its hash.",
+          "$ref": "https://openauditmodel.org/schemas/audit-event/0.1/schema.json#/$defs/identifier"
+        }
+      }
+    },
+    "path": {
+      "description": "Sibling hashes from the leaf upward. Empty for a tree of one leaf, whose root is the leaf hash itself.",
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["side", "hash"],
+        "properties": {
+          "side": {
+            "description": "Which side of the current node the sibling sits on: `left` means the sibling is the left input of the parent, `right` the right input.",
+            "type": "string",
+            "enum": ["left", "right"]
+          },
+          "hash": {
+            "description": "The sibling node's hash.",
+            "$ref": "https://openauditmodel.org/schemas/audit-event/0.1/schema.json#/$defs/hexDigest"
+          }
+        }
+      }
+    },
+    "root": {
+      "description": "The tree head the path leads to, anchored beyond the store's reach and optionally signed.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hash", "leafCount", "anchor"],
+      "properties": {
+        "hash": {
+          "description": "The Merkle tree hash over all `leafCount` leaves.",
+          "$ref": "https://openauditmodel.org/schemas/audit-event/0.1/schema.json#/$defs/hexDigest"
+        },
+        "leafCount": {
+          "description": "Number of leaves in the tree. With `leaf.index` it determines the shape of the path.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "anchor": {
+          "description": "Where this root was recorded outside the store's administrative control. Required and non-empty, under the checkpoint schema's rule.",
+          "$ref": "https://openauditmodel.org/schemas/checkpoint/0.1/schema.json#/$defs/anchor"
+        },
+        "signature": {
+          "description": "Signature over the canonical form of this `root` object with `/signature` removed, in the same shape and under the same rules as an event's `integrity.signature`.",
+          "$ref": "https://openauditmodel.org/schemas/audit-event/0.1/schema.json#/$defs/signature"
+        }
+      }
+    }
+  }
+}

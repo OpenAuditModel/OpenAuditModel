@@ -26,12 +26,15 @@ auditmodel verify-integrity examples/integrity/valid/signed-event-ed25519.json \
   --public-key examples/integrity/keys/ed25519-test-public.pem
 auditmodel verify-checkpoint examples/integrity/valid/three-event-chain \
   --checkpoint examples/integrity/checkpoints/three-event-chain.checkpoint.json
+auditmodel verify-proof examples/integrity/valid/three-event-chain/002.json \
+  --proof examples/integrity/proofs/three-event-chain.002.proof.json
 ```
 
 Every event fixture in this directory, valid and invalid alike, is a **schema-valid** event. The
 invalid ones fail verification, not validation — that is the point of separating the two commands.
-The documents under [checkpoints/](checkpoints/) are not events; they validate against the
-[checkpoint schema](../../schemas/checkpoint/v0.1/checkpoint.schema.json).
+The documents under [checkpoints/](checkpoints/) and [proofs/](proofs/) are not events; they
+validate against the [checkpoint schema](../../schemas/checkpoint/v0.1/checkpoint.schema.json) and
+the [proof schema](../../schemas/proof/v0.1/proof.schema.json).
 
 ## Keys
 
@@ -159,6 +162,40 @@ the archive is judged against it. The verifier never dereferences an anchor.
 checkpoint it was handed. Whether the checkpoint is genuine and its anchor real is for whoever holds
 the anchor. A checkpoint kept beside the events it describes is noted as such, because whoever can
 rewrite the store can rewrite it too.
+
+## Inclusion proofs
+
+An inclusion proof shows that one event is a leaf of a Merkle tree whose root has been published,
+without the rest of the tree. The event's `integrity.hash` is the leaf; nothing is added to the event.
+The documents under [proofs/](proofs/) are generated from the three chain events' digests.
+
+**The tree is hashed as RFC 6962 §2.1 defines it**, and the schema's description says the same, so
+an implementer in another language builds the same tree from the document rather than from this
+repository's code:
+
+- a leaf is `H(0x00 ‖ d)`, where `d` is the event's `integrity.hash` decoded from hexadecimal;
+- an interior node is `H(0x01 ‖ left ‖ right)` over the raw node hashes;
+- a tree over `n` leaves splits at `k`, the largest power of two smaller than `n`; an odd node at any
+  level is promoted unchanged, never duplicated;
+- the path lists sibling hashes from the leaf upward, each with the side the sibling sits on, and its
+  shape is fully determined by the leaf's index and the tree's size — `verify-proof` checks the shape
+  before it hashes anything.
+
+The prefixes are what keep a leaf from colliding with a node; a tree hashed without them admits a
+second-preimage construction, and "we used SHA-256" is not a specification of a tree.
+
+| Document                                                                                          | Against                             | Outcome                                 |
+| ------------------------------------------------------------------------------------------------- | ----------------------------------- | --------------------------------------- |
+| [three-event-chain.002.proof.json](proofs/three-event-chain.002.proof.json)                       | `valid/three-event-chain/002.json`  | verified; root signed with the test key |
+| the same document                                                                                 | `valid/three-event-chain/001.json`  | exit 1, `proof-leaf-mismatch`           |
+| the same document                                                                                 | `invalid/tampered-event.json`       | exit 1: the event fails its own digest  |
+| the same document                                                                                 | `examples/valid/minimal-event.json` | exit 3: no hash, so nothing to prove    |
+| [three-event-chain.002.wrong-root.proof.json](proofs/three-event-chain.002.wrong-root.proof.json) | `valid/three-event-chain/002.json`  | exit 1, `proof-root-mismatch`           |
+
+The root carries the checkpoint's anchoring rule and may carry a signature over the `root` object
+with `/signature` removed, so one signed root serves every proof cut from its tree. A passing proof
+shows membership of the tree the root describes; the root's provenance is the anchor's, and the
+command says so after every verdict.
 
 ## What these fixtures cannot show
 

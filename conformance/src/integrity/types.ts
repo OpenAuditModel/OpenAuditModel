@@ -121,7 +121,19 @@ export type CheckpointFindingKind =
   | "checkpoint-head-missing"
   | "checkpoint-count-mismatch";
 
-export type FindingKind = EventFindingKind | ChainFindingKind | CheckpointFindingKind;
+/** Why an inclusion proof failed, or why no verdict could be reached. */
+export type ProofFindingKind =
+  | "proof-schema-invalid"
+  | "proof-algorithm-unsupported"
+  | "proof-digest-length-mismatch"
+  | "proof-position-invalid"
+  | "proof-path-inconsistent"
+  | "proof-root-mismatch"
+  | "proof-leaf-unavailable"
+  | "proof-leaf-mismatch";
+
+export type FindingKind =
+  EventFindingKind | ChainFindingKind | CheckpointFindingKind | ProofFindingKind;
 
 /** A single reason verification did not succeed. */
 export interface Finding {
@@ -213,12 +225,15 @@ export interface CheckpointChainResult {
   readonly notes: readonly Note[];
 }
 
-/** What the checkpoint's signature turned out to be, when it declares one. */
-export interface CheckpointSignatureResult {
+/** What a document's signature turned out to be, when it declares one. */
+export interface DocumentSignatureResult {
   readonly algorithm: string;
   readonly status: "valid" | "not-checked" | "invalid";
   readonly message: string;
 }
+
+/** Retained name for the checkpoint's reading of {@link DocumentSignatureResult}. */
+export type CheckpointSignatureResult = DocumentSignatureResult;
 
 /**
  * The verdict on the whole comparison.
@@ -254,4 +269,46 @@ export interface CheckpointReport {
   readonly archive?: ChainReport;
   /** One entry per chain the checkpoint names, in the checkpoint's order. */
   readonly chains: readonly CheckpointChainResult[];
+}
+
+/**
+ * The verdict on an inclusion proof.
+ *
+ * - `verified`: the proof is internally consistent, its leaf is this event's
+ *   verified hash, and the path recomputes to the recorded root.
+ * - `failed`: the proof is inconsistent, names another leaf, recomputes to
+ *   another root, the event itself fails verification, or the root's
+ *   signature failed against the supplied key.
+ * - `no-leaf`: the event's hash cannot be established, so there is nothing to
+ *   prove. No verdict, and never an approval.
+ * - `invalid-proof`: the document is not a proof under its schema; nothing was
+ *   judged.
+ */
+export type ProofOutcome = "verified" | "failed" | "no-leaf" | "invalid-proof";
+
+/** Outcome of verifying one event's inclusion proof. */
+export interface ProofReport {
+  readonly outcome: ProofOutcome;
+  readonly proofVersion?: string;
+  readonly hashAlgorithm?: string;
+  readonly leaf?: { readonly hash: string; readonly index: number; readonly eventId?: string };
+  readonly root?: {
+    readonly hash: string;
+    readonly leafCount: number;
+    readonly anchor: {
+      readonly type: string;
+      readonly reference: string;
+      readonly recordedAt?: string;
+    };
+  };
+  /** The root recomputed from the leaf along the path, when it could be. */
+  readonly calculatedRoot?: string;
+  readonly signature?: DocumentSignatureResult;
+  /** The event's own verification, as `verify-integrity` reports it. */
+  readonly event?: EventVerificationResult;
+  /** Checks on the proof and its relation to the event. The event's own checks are in `event`. */
+  readonly checks: readonly PassedCheck[];
+  /** Findings on the proof and its relation to the event. The event's own findings are in `event`. */
+  readonly findings: readonly Finding[];
+  readonly notes: readonly Note[];
 }

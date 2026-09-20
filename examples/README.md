@@ -55,6 +55,8 @@ node dist/conformance/src/cli.js verify-integrity examples/integrity/valid/singl
 node dist/conformance/src/cli.js verify-chain examples/integrity/valid/three-event-chain
 node dist/conformance/src/cli.js verify-checkpoint examples/integrity/valid/three-event-chain \
   --checkpoint examples/integrity/checkpoints/three-event-chain.checkpoint.json
+node dist/conformance/src/cli.js verify-proof examples/integrity/valid/three-event-chain/002.json \
+  --proof examples/integrity/proofs/three-event-chain.002.proof.json
 ```
 
 ## Optional fields are optional

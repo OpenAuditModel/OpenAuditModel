@@ -96,6 +96,37 @@ side with the `chains` record that calls the same directory intact. `createValid
 pinned counts equal to what the server registers, so the next addition cannot fail the container
 job the way this one did.
 
+### Added — `verify-proof`, and the Merkle inclusion proof it checks
+
+A checkpoint covers a chain; an inclusion proof covers one event. It is a sidecar document under its
+own schema at `https://openauditmodel.org/schemas/proof/0.1/schema.json`, versioned independently
+of the specification: the event's `integrity.hash` as the leaf with its index, the sibling hashes up
+to a Merkle root, and the root with its leaf count, the checkpoint schema's anchor, and optionally a
+signature over the root object. Nothing is added to the event.
+
+The hashing is defined, not assumed. Leaves and nodes are domain-separated as RFC 6962 §2.1 does
+it — `H(0x00 ‖ digest)` and `H(0x01 ‖ left ‖ right)` — a tree splits at the largest power of two
+below its size, and an odd node is promoted unchanged. The schema's description says so, because a
+tree that hashes concatenations with no prefix admits second-preimage constructions and an
+implementer in another language should build to the document, not to this repository's code.
+
+`verify-proof <event-file> --proof <file> [--public-key] [--format json]` checks the proof's own
+consistency first — algorithm, digest lengths, the path's shape against the leaf's index and the
+tree's size, the root it recomputes to — then verifies the event exactly as `verify-integrity` does
+and requires its hash to be the leaf. Exit `0` when the proof verifies, `1` when it does not or the
+event fails its own verification, `2` when the document is not a proof, and `3` when the event's
+hash cannot be established, so there is nothing to prove. Every report ends with what a verified
+proof shows, and no more: membership of the tree the root describes; the root's provenance is the
+anchor's.
+
+The MCP server gains `verify_proof` and serves the proof schema: ten tools, thirty-six resources,
+and the deploy smoke test follows. The site publishes the schema at its `$id`. Two proofs are
+generated under `examples/integrity/proofs/`, and the conformance kit's new `proofs` family records
+five cases, including the same proof against the wrong event and against an event with no hash.
+`merkleRoot`, `auditPath`, `expectedSides`, `rootFromPath`, `verifyProof`, `createProofValidator` and
+`checkDeclaredDocumentSignature` are new exports; `CheckpointSignatureResult` is now an alias of
+`DocumentSignatureResult`. ADR 0015 records the decisions.
+
 ## 0.4.2 - 2026-09-18
 
 Specification `0.1`, unchanged. Repository `0.4.2`.

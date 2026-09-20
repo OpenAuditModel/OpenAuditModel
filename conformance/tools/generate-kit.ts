@@ -42,6 +42,7 @@ import path from "node:path";
 import { parseArgs } from "node:util";
 import {
   createCheckpointValidator,
+  createProofValidator,
   createValidator,
   resolveSchemaPath,
   SPEC_VERSION,
@@ -50,6 +51,7 @@ import { lintEvent } from "../src/privacy/lint-event.js";
 import { verifyEventIntegrity } from "../src/integrity/verify-event.js";
 import { verifyChains } from "../src/integrity/verify-chain.js";
 import { verifyCheckpoint } from "../src/integrity/verify-checkpoint.js";
+import { verifyProof } from "../src/integrity/verify-proof.js";
 import { availableProfiles, loadProfile } from "../src/profiles/load-profile.js";
 import { checkProfile } from "../src/profiles/check-profile.js";
 import type { ProfileDefinition } from "../src/profiles/types.js";
@@ -59,9 +61,20 @@ const repoRoot = path.dirname(path.dirname(path.dirname(schemaPath)));
 const kitRoot = path.join(repoRoot, "conformance-kit");
 const validator = createValidator(schemaPath);
 const checkpointValidator = createCheckpointValidator(schemaPath);
+const proofValidator = createProofValidator(schemaPath);
 
-/** Published documents that are not events and are recorded by their own family instead. */
-const CHECKPOINT_DIRECTORY = "examples/integrity/checkpoints/";
+/** Published documents that are not events and are recorded by their own families instead. */
+const NON_EVENT_DIRECTORIES: readonly string[] = [
+  "examples/integrity/checkpoints/",
+  "examples/integrity/proofs/",
+];
+
+function isEventFixture(relativePath: string): boolean {
+  return (
+    !relativePath.startsWith("examples/integrity/keys/") &&
+    !NON_EVENT_DIRECTORIES.some((directory) => relativePath.startsWith(directory))
+  );
+}
 
 /** A JSON Pointer and the schema keyword that rejected it. */
 interface SchemaIssue {
@@ -174,6 +187,42 @@ const CHECKPOINT_CASES: readonly {
   {
     checkpoint: "examples/integrity/checkpoints/archive.checkpoint.json",
     archive: ["examples/integrity/valid/three-event-chain"],
+  },
+];
+
+interface ProofRecord {
+  /** The proof document, relative to the repository root. */
+  readonly proof: string;
+  /** The event it was verified against, relative to the repository root. */
+  readonly event: string;
+  readonly outcome: string;
+  /** Finding kinds on the proof and its relation to the event. */
+  readonly findings: readonly string[];
+  /** Finding kinds of the event's own verification, as `verifyIntegrity` records them. */
+  readonly eventFindings: readonly string[];
+}
+
+/** Which event each published proof is verified against. A proof alone proves nothing; the pairing is the case. */
+const PROOF_CASES: readonly { readonly proof: string; readonly event: string }[] = [
+  {
+    proof: "examples/integrity/proofs/three-event-chain.002.proof.json",
+    event: "examples/integrity/valid/three-event-chain/002.json",
+  },
+  {
+    proof: "examples/integrity/proofs/three-event-chain.002.wrong-root.proof.json",
+    event: "examples/integrity/valid/three-event-chain/002.json",
+  },
+  {
+    proof: "examples/integrity/proofs/three-event-chain.002.proof.json",
+    event: "examples/integrity/valid/three-event-chain/001.json",
+  },
+  {
+    proof: "examples/integrity/proofs/three-event-chain.002.proof.json",
+    event: "examples/integrity/invalid/tampered-event.json",
+  },
+  {
+    proof: "examples/integrity/proofs/three-event-chain.002.proof.json",
+    event: "examples/valid/minimal-event.json",
   },
 ];
 
@@ -351,7 +400,23 @@ function recordCheckpoint(testCase: (typeof CHECKPOINT_CASES)[number]): Checkpoi
   };
 }
 
-export { CHECKPOINT_CASES, CHECKPOINT_DIRECTORY };
+function recordProof(testCase: (typeof PROOF_CASES)[number]): ProofRecord {
+  const event = JSON.parse(readFileSync(path.join(repoRoot, testCase.event), "utf8")) as unknown;
+  const proof = JSON.parse(readFileSync(path.join(repoRoot, testCase.proof), "utf8")) as unknown;
+  const report = verifyProof(event, testCase.event, proof, {
+    events: validator,
+    proof: proofValidator,
+  });
+  return {
+    proof: testCase.proof,
+    event: testCase.event,
+    outcome: report.outcome,
+    findings: report.findings.map((finding) => finding.kind),
+    eventFindings: report.event?.findings.map((finding) => finding.kind) ?? [],
+  };
+}
+
+export { CHECKPOINT_CASES, NON_EVENT_DIRECTORIES, PROOF_CASES };
 
 export interface ConformanceKit {
   readonly specVersion: string;
@@ -361,6 +426,7 @@ export interface ConformanceKit {
   readonly fixtures: readonly FixtureRecord[];
   readonly chains: readonly ChainRecord[];
   readonly checkpoints: readonly CheckpointRecord[];
+  readonly proofs: readonly ProofRecord[];
 }
 
 /** Builds the kit from the published fixtures and the engines. */
@@ -373,12 +439,10 @@ export function buildKit(): ConformanceKit {
     }
   }
 
-  // Keys are not JSON and checkpoints are not events; the latter have a
-  // family of their own below.
-  const files = jsonFiles(path.join(repoRoot, "examples")).filter(
-    (file) =>
-      !relative(file).startsWith("examples/integrity/keys/") &&
-      !relative(file).startsWith(CHECKPOINT_DIRECTORY),
+  // Keys are not JSON; checkpoints and proofs are not events and have
+  // families of their own below.
+  const files = jsonFiles(path.join(repoRoot, "examples")).filter((file) =>
+    isEventFixture(relative(file)),
   );
 
   return {
@@ -398,6 +462,7 @@ export function buildKit(): ConformanceKit {
     fixtures: files.map((file) => recordFixture(file, profiles)),
     chains: chainDirectories().map((directory) => recordChain(directory)),
     checkpoints: CHECKPOINT_CASES.map((testCase) => recordCheckpoint(testCase)),
+    proofs: PROOF_CASES.map((testCase) => recordProof(testCase)),
   };
 }
 
@@ -430,7 +495,7 @@ function main(): number {
     if (drifted.length === 0) {
       const kit = buildKit();
       process.stdout.write(
-        `conformance kit is current (${kit.fixtures.length} fixtures, ${kit.chains.length} chains, ${kit.checkpoints.length} checkpoint cases)\n`,
+        `conformance kit is current (${kit.fixtures.length} fixtures, ${kit.chains.length} chains, ${kit.checkpoints.length} checkpoint cases, ${kit.proofs.length} proof cases)\n`,
       );
       return 0;
     }
@@ -446,7 +511,7 @@ function main(): number {
   mkdirSync(kitRoot, { recursive: true });
   writeFileSync(MANIFEST, `${JSON.stringify(kit, null, 2)}\n`, "utf8");
   process.stdout.write(
-    `wrote conformance-kit/manifest.json (${kit.fixtures.length} fixtures, ${kit.chains.length} chains, ${kit.checkpoints.length} checkpoint cases)\n`,
+    `wrote conformance-kit/manifest.json (${kit.fixtures.length} fixtures, ${kit.chains.length} chains, ${kit.checkpoints.length} checkpoint cases, ${kit.proofs.length} proof cases)\n`,
   );
   return 0;
 }

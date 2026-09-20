@@ -68,9 +68,9 @@ the archive itself is broken — a broken archive never agrees with anything, wh
 archive holds none of the chains the checkpoint names, so nothing was compared. `3` exists so that
 pointing the tool at the wrong archive cannot read as a pass.
 
-Every report, passing or failing, ends with the same line: this establishes that the archive is
-consistent with the supplied checkpoint; whether the checkpoint is genuine and its anchor real is for
-whoever holds the anchor. Without that line a tool that trusts whatever checkpoint it is handed
+Every report, passing or failing, ends with the same line: an agreeing verdict establishes only
+that the archive is consistent with the supplied checkpoint; whether the checkpoint is genuine and
+its anchor real is for whoever holds the anchor. Without that line a tool that trusts whatever checkpoint it is handed
 would satisfy the "detects truncation" requirement while being the silence-as-approval failure this
 project exists to refuse. When the checkpoint file lies under a directory the events were read from,
 the report notes it; the tool cannot know a store's boundaries, but it can see the two paths

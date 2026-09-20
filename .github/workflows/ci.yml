@@ -117,6 +117,17 @@ jobs:
             exit 1
           fi
 
+      - name: Verify the published inclusion proof, and confirm the wrong root fails
+        run: |
+          node dist/conformance/src/cli.js verify-proof examples/integrity/valid/three-event-chain/002.json \
+            --proof examples/integrity/proofs/three-event-chain.002.proof.json \
+            --public-key examples/integrity/keys/ed25519-test-public.pem
+          if node dist/conformance/src/cli.js verify-proof examples/integrity/valid/three-event-chain/002.json \
+            --proof examples/integrity/proofs/three-event-chain.002.wrong-root.proof.json --quiet; then
+            echo "::error::expected the wrong-root proof to fail, but it verified"
+            exit 1
+          fi
+
       - name: Verify an Ed25519-signed event with the test public key
         run: |
           node dist/conformance/src/cli.js verify-integrity \

@@ -29,6 +29,7 @@ import {
   type SupportedSignatureAlgorithm,
 } from "../src/integrity/types.js";
 import { verifyEventSignature } from "../src/integrity/signature.js";
+import { auditPath, merkleRoot } from "../src/integrity/merkle.js";
 
 type Event = Record<string, unknown>;
 
@@ -537,6 +538,45 @@ const archiveCheckpoint: Event = signDocument({
 });
 
 // ---------------------------------------------------------------------------
+// Inclusion proofs
+//
+// A Merkle tree over the three chain events' digests, hashed as RFC 6962
+// defines it (see src/integrity/merkle.ts), and the audit path of event 2 in
+// it. The root is anchored and signed once; every proof cut from the tree
+// carries the same signed root.
+// ---------------------------------------------------------------------------
+
+const TREE_LEAVES = [chain001, chain002, chain003].map(declaredHash);
+const treeRoot = merkleRoot("SHA-256", TREE_LEAVES).toString("hex");
+
+const PROOF_ANCHOR = {
+  type: "publication",
+  reference: "https://audit-archive.example/trees/platform-control-service/2026-04-03",
+  recordedAt: "2026-04-03T10:00:05Z",
+};
+
+const signedRoot: Event = signDocument({ hash: treeRoot, leafCount: 3, anchor: PROOF_ANCHOR });
+
+/** Event 2 is leaf 1 of the tree; this is its audit path to the signed root. */
+const proof002: Event = {
+  proofVersion: "0.1",
+  hashAlgorithm: "SHA-256",
+  leaf: { hash: declaredHash(chain002), index: 1, eventId: chain002["id"] },
+  path: auditPath("SHA-256", TREE_LEAVES, 1),
+  root: signedRoot,
+};
+
+/** The same path against the root of a different tree — the first two leaves only. */
+const proof002WrongRoot: Event = {
+  ...proof002,
+  root: {
+    hash: merkleRoot("SHA-256", TREE_LEAVES.slice(0, 2)).toString("hex"),
+    leafCount: 3,
+    anchor: PROOF_ANCHOR,
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Invalid fixtures, all derived from the valid ones
 // ---------------------------------------------------------------------------
 
@@ -731,6 +771,11 @@ const FIXTURES: readonly Fixture[] = [
     content: unanchoredCheckpoint,
   },
   { relativePath: path.join("checkpoints", "archive.checkpoint.json"), content: archiveCheckpoint },
+  { relativePath: path.join("proofs", "three-event-chain.002.proof.json"), content: proof002 },
+  {
+    relativePath: path.join("proofs", "three-event-chain.002.wrong-root.proof.json"),
+    content: proof002WrongRoot,
+  },
 ];
 
 /** Not JSON fixtures: the public halves of the TEST-ONLY signing keys, for

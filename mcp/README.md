@@ -61,7 +61,7 @@ and no claim is made about one that has not been tried.
 
 ## Tools
 
-Nine, all deterministic, read-only, stateless and offline. Each delegates to the same engine the
+Ten, all deterministic, read-only, stateless and offline. Each delegates to the same engine the
 `auditmodel` CLI uses; parity is asserted by test rather than assumed.
 
 | Tool                      | Purpose                                                                        |
@@ -70,13 +70,14 @@ Nine, all deterministic, read-only, stateless and offline. Each delegates to the
 | `verify_integrity`        | Recalculate an event's digest and compare it with the declared hash            |
 | `verify_chain`            | Verify previous-hash chains across a set of events                             |
 | `verify_checkpoint`       | Compare an archive with a chain checkpoint; the check that sees a deleted tail |
+| `verify_proof`            | Verify one event's Merkle inclusion proof against a published root             |
 | `lint_privacy`            | Report values shaped like credentials or unminimized payloads                  |
 | `check_profile`           | Check against any of the ten bundled domain profiles                           |
 | `check_coverage`          | Report how much of a profile a set of events reaches, and what it misses       |
 | `generate_event_template` | Produce a placeholder skeleton for an event name                               |
 | `get_event_guidance`      | Explain what an event name requires, from schema, conventions and profile      |
 
-`verify_integrity`, `verify_chain` and `verify_checkpoint` accept an optional `publicKeyPem` argument — a PEM-encoded
+`verify_integrity`, `verify_chain`, `verify_checkpoint` and `verify_proof` accept an optional `publicKeyPem` argument — a PEM-encoded
 public key for the declared algorithm: `Ed25519`, `ECDSA-P256-SHA256` or `RSA-PSS-SHA256` — to
 additionally verify `integrity.signature`, the same way the CLI's `--public-key` does. Without it, a
 declared signature in an implemented algorithm is reported as declared but not checked, and a
@@ -100,6 +101,13 @@ The anchor is returned and never dereferenced, and the result carries the same l
 consistency with the supplied checkpoint is what was established, not the checkpoint's provenance.
 See [ADR 0014](../decisions/0014-chain-checkpoints.md).
 
+`verify_proof` takes one event and an inclusion proof, checks the proof's own consistency and the
+root it recomputes to under RFC 6962 hashing, verifies the event as `verify_integrity` does and
+requires its hash to be the leaf. Its `outcome` is one of `verified`, `failed`, `no-leaf` (the
+event's hash cannot be established; nothing to prove) and `invalid-proof`. The root's anchor is
+returned and never dereferenced. See
+[ADR 0015](../decisions/0015-merkle-inclusion-proofs.md).
+
 No tool returns the event it was given. `lint_privacy` never returns a matched value, a preview, a
 prefix, a suffix or a decoded token claim. `verify_integrity` never returns canonicalized content or
 digest input.
@@ -111,10 +119,10 @@ contributed no requirements.
 
 ## Resources
 
-Thirty-five read-only documents under `openauditmodel://`: seven specification chapters, three
-schemas — the canonical audit event schema, the profile definition schema and the chain checkpoint
-schema — the semantic conventions index and twelve convention documents, the profile index, all ten
-profile definitions and the examples index.
+Thirty-six read-only documents under `openauditmodel://`: seven specification chapters, four
+schemas — the canonical audit event schema, the profile definition schema, the chain checkpoint
+schema and the inclusion proof schema — the semantic conventions index and twelve convention
+documents, the profile index, all ten profile definitions and the examples index.
 
 Content is compiled in at build time from an allowlist in
 [scripts/generate-resource-manifest.mjs](scripts/generate-resource-manifest.mjs). The server reads no
@@ -206,7 +214,7 @@ any host.
 Application logs carry a generated request identifier, the route, the tool name, a result category, a
 status code and a duration — and nothing else. There is no parameter through which a request body, an
 event identifier, an actor, a resource, a digest or a privacy finding could be logged. `toolName` is
-one of nine published names and says which analysis ran; an _event_ name is excluded, because that
+one of ten published names and says which analysis ran; an _event_ name is excluded, because that
 would describe the caller's business operations.
 
 Set `OAM_LOG_LEVEL=error` or `silent` to reduce or disable output.

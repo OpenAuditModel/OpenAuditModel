@@ -17,13 +17,21 @@ import {
   createAjv,
   createValidatorFromSchema,
   createValidatorFromSchemas,
+  PROOF_SCHEMA_ID,
   SCHEMA_ID,
   SPEC_VERSION,
   validateSchemaDocument,
   type EventValidator,
 } from "./validate-core.js";
 
-export { CHECKPOINT_SCHEMA_ID, createAjv, SCHEMA_ID, SPEC_VERSION, validateSchemaDocument };
+export {
+  CHECKPOINT_SCHEMA_ID,
+  createAjv,
+  PROOF_SCHEMA_ID,
+  SCHEMA_ID,
+  SPEC_VERSION,
+  validateSchemaDocument,
+};
 export type { EventValidator };
 
 export const SCHEMA_RELATIVE_PATH = path.join(
@@ -38,6 +46,14 @@ export const CHECKPOINT_SCHEMA_RELATIVE_PATH = path.join(
   "checkpoint",
   "v0.1",
   "checkpoint.schema.json",
+);
+
+/** The inclusion proof schema, versioned on its own; 0.1 is its first version. */
+export const PROOF_SCHEMA_RELATIVE_PATH = path.join(
+  "schemas",
+  "proof",
+  "v0.1",
+  "proof.schema.json",
 );
 
 /** Outcome of validating a single file. */
@@ -117,20 +133,30 @@ export interface DocumentValidator extends EventValidator {
 }
 
 /**
- * Locates the checkpoint schema from the event schema's location: the two ship
- * together, under the same `schemas/` directory, in the repository and in the
- * installed package alike.
+ * Locates a tooling document's schema from the event schema's location: they
+ * ship together, under the same `schemas/` directory, in the repository and in
+ * the installed package alike.
  */
-export function resolveCheckpointSchemaPath(schemaPath?: string): string {
+function resolveDocumentSchemaPath(relativePath: string, schemaPath?: string): string {
   const eventSchemaPath = schemaPath ?? resolveSchemaPath();
   const root = path.dirname(path.dirname(path.dirname(eventSchemaPath)));
-  const candidate = path.join(root, CHECKPOINT_SCHEMA_RELATIVE_PATH);
+  const candidate = path.join(root, relativePath);
   if (!existsSync(candidate)) {
-    throw new Error(
-      `Unable to locate ${CHECKPOINT_SCHEMA_RELATIVE_PATH} beside ${eventSchemaPath}.`,
-    );
+    throw new Error(`Unable to locate ${relativePath} beside ${eventSchemaPath}.`);
   }
   return candidate;
+}
+
+export function resolveCheckpointSchemaPath(schemaPath?: string): string {
+  return resolveDocumentSchemaPath(CHECKPOINT_SCHEMA_RELATIVE_PATH, schemaPath);
+}
+
+export function resolveProofSchemaPath(schemaPath?: string): string {
+  return resolveDocumentSchemaPath(PROOF_SCHEMA_RELATIVE_PATH, schemaPath);
+}
+
+function readSchema(file: string): AnySchemaObject {
+  return JSON.parse(readFileSync(file, "utf8")) as AnySchemaObject;
 }
 
 /**
@@ -141,11 +167,25 @@ export function resolveCheckpointSchemaPath(schemaPath?: string): string {
 export function createCheckpointValidator(schemaPath?: string): DocumentValidator {
   const eventSchemaPath = schemaPath ?? resolveSchemaPath();
   const checkpointSchemaPath = resolveCheckpointSchemaPath(eventSchemaPath);
-  const checkpointSchema = JSON.parse(
-    readFileSync(checkpointSchemaPath, "utf8"),
-  ) as AnySchemaObject;
-  const core = createValidatorFromSchemas(checkpointSchema, [loadSchema(eventSchemaPath)]);
+  const core = createValidatorFromSchemas(readSchema(checkpointSchemaPath), [
+    loadSchema(eventSchemaPath),
+  ]);
   return { ...core, schemaPath: checkpointSchemaPath };
+}
+
+/**
+ * Compiles the inclusion proof schema. It borrows from the event schema as the
+ * checkpoint does, and its root's `anchor` is the checkpoint schema's, so one
+ * anchoring rule holds across both documents.
+ */
+export function createProofValidator(schemaPath?: string): DocumentValidator {
+  const eventSchemaPath = schemaPath ?? resolveSchemaPath();
+  const proofSchemaPath = resolveProofSchemaPath(eventSchemaPath);
+  const core = createValidatorFromSchemas(readSchema(proofSchemaPath), [
+    loadSchema(eventSchemaPath),
+    readSchema(resolveCheckpointSchemaPath(eventSchemaPath)),
+  ]);
+  return { ...core, schemaPath: proofSchemaPath };
 }
 
 /** Re-exported so that consumers of the validator keep a single import site. */
