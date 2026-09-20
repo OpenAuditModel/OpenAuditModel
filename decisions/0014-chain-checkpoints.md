@@ -72,9 +72,10 @@ Every report, passing or failing, ends with the same line: an agreeing verdict e
 that the archive is consistent with the supplied checkpoint; whether the checkpoint is genuine and
 its anchor real is for whoever holds the anchor. Without that line a tool that trusts whatever checkpoint it is handed
 would satisfy the "detects truncation" requirement while being the silence-as-approval failure this
-project exists to refuse. When the checkpoint file lies under a directory the events were read from,
-the report notes it; the tool cannot know a store's boundaries, but it can see the two paths
-coincide.
+project exists to refuse. When the checkpoint file and the events share a directory tree — the
+checkpoint under a directory the events were read from, or the events under the checkpoint's
+directory, as in a bundle with the checkpoint beside an `events/` folder — the report notes it; the
+tool cannot know a store's boundaries, but it can see the two paths coincide.
 
 ### 4. The archive manifest is the checkpoint's multi-chain form
 
@@ -122,6 +123,11 @@ loop that enforces it naming the exception. The fixture was generated and watche
   with.
 - The viewer is not touched. A "covered up to sequence N by an anchored checkpoint" indicator is the
   natural viewer item once it reads checkpoints; that is a later stop.
+- One key per run. `--public-key` verifies the checkpoint's signature and every event's with the
+  same key, so a checkpoint signed by the archive operator over events signed by the producer is
+  verified in two runs, one per key — a false failure otherwise, never a false pass, and the
+  documentation says so. A separate document key belongs with the key-handling work of a later
+  stop, not with this decision.
 - The specification still says truncation may be undetectable, and it is right: it is undetectable
   by chain verification. What changed is that the reference §8 asks for now has a format the tooling
   can compare against.

@@ -7,7 +7,7 @@
  */
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test, { after, describe } from "node:test";
@@ -509,6 +509,61 @@ describe("verify-checkpoint", () => {
     assert.match(result.stdout, /note: the checkpoint and the events come from the same location/);
   });
 
+  test("a checkpoint above the events' directory is noted too", () => {
+    const bundle = path.join(scratch, "bundle");
+    mkdirSync(path.join(bundle, "events"), { recursive: true });
+    for (const file of ["001.json", "002.json", "003.json"]) {
+      writeFileSync(
+        path.join(bundle, "events", file),
+        readFileSync(path.join(repoRoot, VALID_CHAIN, file), "utf8"),
+        "utf8",
+      );
+    }
+    const checkpointFile = path.join(bundle, "checkpoint.json");
+    writeFileSync(checkpointFile, readFileSync(path.join(repoRoot, CHECKPOINT), "utf8"), "utf8");
+
+    const result = auditmodel(
+      "verify-checkpoint",
+      path.join(bundle, "events"),
+      "--checkpoint",
+      checkpointFile,
+    );
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /note: the checkpoint and the events come from the same location/);
+  });
+
+  test("--quiet keeps the verdict lines and drops the checks", () => {
+    const result = auditmodel(
+      "verify-checkpoint",
+      VALID_CHAIN,
+      "--checkpoint",
+      CHECKPOINT,
+      "--quiet",
+    );
+    assert.equal(result.status, 0);
+    assert.doesNotMatch(result.stdout, /ok {4}/);
+    assert.doesNotMatch(result.stdout, /note:/);
+    assert.match(result.stdout, /agrees with the checkpoint/);
+    assert.match(result.stdout, /1 chain named by the checkpoint: 1 agrees/);
+
+    const failing = auditmodel(
+      "verify-checkpoint",
+      TRUNCATED_CHAIN,
+      "--checkpoint",
+      CHECKPOINT,
+      "--quiet",
+    );
+    assert.equal(failing.status, 1);
+    assert.match(failing.stdout, /\[tail-truncated\]/);
+  });
+
+  test("an unreadable event among the inputs exits 2 after the report", () => {
+    const broken = writeScratch("broken-event.json", "{not json");
+    const result = auditmodel("verify-checkpoint", VALID_CHAIN, broken, "--checkpoint", CHECKPOINT);
+    assert.equal(result.status, 2);
+    assert.match(result.stdout, /ERROR .*broken-event\.json/);
+  });
+
   test("exits 2 without --checkpoint, or with one that cannot be read", () => {
     const missing = auditmodel("verify-checkpoint", VALID_CHAIN);
     assert.equal(missing.status, 2);
@@ -640,6 +695,25 @@ describe("verify-proof", () => {
     );
     assert.equal(report.event.verified, true);
     assert.match(report.notProven, /the anchor's/);
+  });
+
+  test("a schema-invalid event fails the proof with exit 1, as verify-integrity would", () => {
+    const event = JSON.parse(readFileSync(path.join(repoRoot, EVENT_002), "utf8")) as Record<
+      string,
+      unknown
+    >;
+    const file = writeScratch("schema-invalid-002.json", JSON.stringify({ ...event, extra: true }));
+    const result = auditmodel("verify-proof", file, "--proof", PROOF);
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /\[schema-invalid\]/);
+    assert.match(result.stdout, /proof failed/);
+  });
+
+  test("--quiet keeps the verdict line and drops the checks", () => {
+    const result = auditmodel("verify-proof", EVENT_002, "--proof", PROOF, "--quiet");
+    assert.equal(result.status, 0);
+    assert.doesNotMatch(result.stdout, /ok {4}/);
+    assert.match(result.stdout, /proof verified: leaf 1 of 3/);
   });
 
   test("--proof is refused by every other command rather than ignored", () => {

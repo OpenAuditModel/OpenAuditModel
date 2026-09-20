@@ -214,7 +214,7 @@ function verifySignature(
 
   const signatureBytes = Buffer.from(value, "base64");
   // Two schemes fix their length; an RSA signature is exactly one modulus long.
-  const expectedLength = spec.signatureBytes ?? (modulusBits as number) / 8;
+  const expectedLength = spec.signatureBytes ?? Math.ceil((modulusBits as number) / 8);
   if (signatureBytes.length !== expectedLength) {
     return {
       ok: false,

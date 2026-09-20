@@ -22,7 +22,7 @@ same as the reference implementation, on the cases this project chose to publish
 having and it is not a claim about the implementation's fitness, completeness or correctness in
 general.
 
-**The corpus is not the world.** 327 fixtures, 7 chains, 8 checkpoint cases and 5 proof cases, chosen to cover the behaviour this
+**The corpus is not the world.** 327 fixtures, 7 chains, 8 checkpoint cases and 6 proof cases, chosen to cover the behaviour this
 repository decided to pin. An implementation can pass all of them and still differ on an input nobody
 here thought to write down.
 

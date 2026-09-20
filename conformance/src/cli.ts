@@ -162,8 +162,9 @@ Options:
                                           (verify-proof). Its anchor is never dereferenced.
       --public-key <path>                PEM public key to verify integrity.signature against
                                           (verify-integrity, verify-chain,
-                                          verify-checkpoint and verify-proof, where it also
-                                          verifies the document's own signature): Ed25519,
+                                          verify-checkpoint and verify-proof, where the same
+                                          key also verifies the document's own signature):
+                                          Ed25519,
                                           ECDSA-P256-SHA256 or RSA-PSS-SHA256; the key must be
                                           of the declared algorithm's type. Without it,
                                           a declared signature is reported but not checked;
@@ -444,13 +445,22 @@ function writeChainResult(chain: ChainVerificationResult, quiet: boolean): void 
 }
 
 /**
- * True when the checkpoint file lies in or under a directory the events were
- * read from. The tool cannot know a store's boundaries, but it can see when
- * the two paths coincide — and a checkpoint kept beside the events it
- * describes is the case integrity.md §8 (item 11) warns about.
+ * True when the checkpoint file and the events share a directory tree: the
+ * checkpoint lies in or under a directory the events were read from, or the
+ * events lie under the checkpoint's directory — the bundle layout with the
+ * checkpoint beside an `events/` folder. The tool cannot know a store's
+ * boundaries, but it can see when the two paths coincide, and a checkpoint
+ * kept beside the events it describes is the case integrity.md §8 (item 11)
+ * warns about. A checkpoint at a filesystem root contains everything and
+ * says nothing, so that one case is not flagged.
  */
 function checkpointSharesLocation(checkpointFile: string, inputs: readonly string[]): boolean {
   const checkpointDirectory = path.resolve(path.dirname(checkpointFile));
+  if (path.parse(checkpointDirectory).root === checkpointDirectory) {
+    return false;
+  }
+  const contains = (parent: string, child: string): boolean =>
+    child === parent || child.startsWith(`${parent}${path.sep}`);
   for (const input of inputs) {
     let base: string;
     try {
@@ -460,7 +470,7 @@ function checkpointSharesLocation(checkpointFile: string, inputs: readonly strin
     } catch {
       continue;
     }
-    if (checkpointDirectory === base || checkpointDirectory.startsWith(`${base}${path.sep}`)) {
+    if (contains(base, checkpointDirectory) || contains(checkpointDirectory, base)) {
       return true;
     }
   }
@@ -789,8 +799,8 @@ function runVerifyProof(
 /** The text block for one event's own verification, as verify-integrity prints it. */
 function writeEventResult(result: EventVerificationResult, quiet: boolean): void {
   if (result.verified) {
-    write(`ok    ${result.label}\n`);
     if (!quiet) {
+      write(`ok    ${result.label}\n`);
       writeChecks(result.checks, "        ");
     }
     return;

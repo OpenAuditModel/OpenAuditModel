@@ -338,7 +338,8 @@ auditmodel verify-integrity examples/integrity/valid/signed-event-ed25519.json \
 ```
 
 Exit codes are `0` verified, `1` a verification failed, `2` a usage, read or parse error — for
-`verify-checkpoint`, also a document that is not a checkpoint under its schema — and `3` when no
+`verify-checkpoint` and `verify-proof`, also a document that is not a checkpoint or a proof under its
+schema — and `3` when no
 verdict was produced: for `verify-chain`, no event could be assigned to a chain, so no chain was
 checked; for `verify-checkpoint`, the archive holds none of the chains the checkpoint names, so
 nothing was compared; for `verify-proof`, the event's hash cannot be established, so there is

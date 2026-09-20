@@ -25,7 +25,7 @@ import {
   resolveSchemaPath,
   validateSchemaDocument,
 } from "../src/validate.js";
-import { sealEvent } from "../src/integrity/digest.js";
+import { buildDigestInput, sealEvent } from "../src/integrity/digest.js";
 import { canonicalBytes } from "../src/integrity/canonicalize.js";
 import { documentSignatureInput } from "../src/integrity/signature.js";
 import { verifyChains, type ChainEventInput } from "../src/integrity/verify-chain.js";
@@ -314,6 +314,41 @@ describe("comparing an archive with a checkpoint", () => {
     assert.equal(report.chains[0]?.chain?.intact, true, "gaps are permitted");
     assert.deepEqual(kinds(report), ["checkpoint-head-missing"]);
     assert.match(report.chains[0]?.findings[0]?.message ?? "", /continues to sequence 9/);
+  });
+
+  test("a chain with no sequenced event cannot locate the head", () => {
+    const [only] = buildChain([1]);
+    const unsequenced = { ...(only as Document) };
+    delete unsequenced["sequence"];
+    const checkpoint = checkpointFor(only as Document);
+    const report = verify([sealEvent(unsequenced) as Document], checkpoint);
+
+    assert.equal(report.outcome, "disagrees");
+    assert.deepEqual(kinds(report), ["checkpoint-head-missing"]);
+    assert.match(
+      report.chains[0]?.findings[0]?.message ?? "",
+      /no event in the chain declares a sequence/,
+    );
+  });
+
+  test("an event whose own signature fails under the supplied key breaks the archive", () => {
+    const { privateKey } = generateKeyPairSync("ed25519");
+    const { publicKey: otherKey } = generateKeyPairSync("ed25519");
+    const chain = buildChain([1, 2, 3]);
+    const signed = structuredClone(chain[2] as Document);
+    const value = cryptoSign(null, canonicalBytes(buildDigestInput(signed)), privateKey);
+    (signed["integrity"] as Document)["signature"] = {
+      algorithm: "Ed25519",
+      value: value.toString("base64"),
+    };
+    const archive = [chain[0] as Document, chain[1] as Document, signed];
+    const checkpoint = checkpointFor(signed);
+
+    assert.equal(verify(archive, checkpoint).outcome, "agrees", "declared, not checked");
+    const report = verify(archive, checkpoint, otherKey);
+    assert.equal(report.outcome, "disagrees");
+    assert.equal(report.chains[0]?.chain?.intact, false);
+    assert.deepEqual(kinds(report), [], "the head itself matches");
   });
 
   test("a checkpoint under another algorithm cannot be compared", () => {

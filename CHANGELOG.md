@@ -11,7 +11,17 @@ While the project is **Experimental**, breaking changes are possible in any rele
 as such. A change that alters the meaning of an existing field or event name is never acceptable — a
 new name is introduced instead.
 
-## Unreleased
+## 0.5.0 - 2026-09-20
+
+Specification `0.1`, unchanged. Repository `0.5.0`.
+
+The theme of this release is the truncation gap. Since 0.1, integrity.md §8 has said that chain
+verification cannot see a deleted tail and that the remedy is a chain head recorded beyond the
+store's reach; this release gives that record a format and a verifier (`verify-checkpoint`), adds a
+per-event membership proof against a published tree root (`verify-proof`), reports each chain's
+head, and verifies the two signature algorithms the schema had recommended without implementing.
+Nothing normative changes, no existing verdict moves except the one the first entry names, and every
+new verdict ends by saying what it does not prove.
 
 ### Changed behaviour — ECDSA-P256-SHA256 and RSA-PSS-SHA256 signatures verify
 
@@ -26,7 +36,8 @@ rather than an addition.
 The key's type, curve and size must match the declared algorithm — `ed25519`, `ec` on P-256, or RSA
 with at least 2048 bits — and a mismatch is reported as `signature-invalid` naming both, not as a
 signature that "does not match". ECDSA signatures are expected in IEEE P1363 form (64 bytes);
-RSA-PSS is verified with the salt length recovered from the signature. ADR 0012 carries the
+RSA-PSS is verified with the salt length recovered from the signature, and a modulus that is not a
+multiple of eight bits is accepted at its rounded-up signature length. ADR 0012 carries the
 amendment.
 
 The fixture that demonstrates an unimplemented algorithm declared `ECDSA-P256-SHA256`, which no
@@ -85,16 +96,18 @@ dereferenced. `--public-key` verifies the checkpoint's own signature too, over t
 `/signature` removed. A checkpoint that lies under the same directory as the events is noted.
 
 The MCP server gains `verify_checkpoint`, with the same outcomes as data, and serves the checkpoint
-schema as a resource: nine tools, thirty-five resources. The site publishes the schema at its `$id`.
+schema as a resource. The site publishes the schema at its `$id`.
 `examples/integrity/checkpoints/` holds five generated documents and
 `examples/integrity/invalid/truncated-chain/` the deleted tail, which passes `verify-chain` and fails
 `verify-checkpoint` — the two records the conformance kit's new `checkpoints` family keeps side by
 side with the `chains` record that calls the same directory intact. `createValidatorFromSchemas`,
 `createCheckpointValidator`, `verifyCheckpoint`, `verifyDocumentSignature` and
 `documentSignatureInput` are new exports; nothing is removed. ADR 0014 records the decisions.
-`deploy/smoke-test.mjs` now expects nine tools and thirty-five resources, and a test keeps its
-pinned counts equal to what the server registers, so the next addition cannot fail the container
-job the way this one did.
+`deploy/smoke-test.mjs`'s pinned catalogue counts follow every such addition, and a test keeps them
+equal to what the server registers, so an addition cannot fail the container job the way this one
+first did. One key per run: `--public-key` and `publicKeyPem` verify the checkpoint's signature and
+every event's with the same key, so a checkpoint signed by a different party than the events is
+verified in two runs, one per key. A separate document key is planned, not shipped.
 
 ### Added — `verify-proof`, and the Merkle inclusion proof it checks
 
@@ -122,7 +135,8 @@ anchor's.
 The MCP server gains `verify_proof` and serves the proof schema: ten tools, thirty-six resources,
 and the deploy smoke test follows. The site publishes the schema at its `$id`. Two proofs are
 generated under `examples/integrity/proofs/`, and the conformance kit's new `proofs` family records
-five cases, including the same proof against the wrong event and against an event with no hash.
+six cases, including the same proof against the wrong event, against an event with no hash and
+against one under an algorithm the verifier does not implement.
 `merkleRoot`, `auditPath`, `expectedSides`, `rootFromPath`, `verifyProof`, `createProofValidator` and
 `checkDeclaredDocumentSignature` are new exports; `CheckpointSignatureResult` is now an alias of
 `DocumentSignatureResult`. ADR 0015 records the decisions.

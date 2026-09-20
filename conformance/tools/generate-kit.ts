@@ -224,6 +224,10 @@ const PROOF_CASES: readonly { readonly proof: string; readonly event: string }[]
     proof: "examples/integrity/proofs/three-event-chain.002.proof.json",
     event: "examples/valid/minimal-event.json",
   },
+  {
+    proof: "examples/integrity/proofs/three-event-chain.002.proof.json",
+    event: "examples/integrity/invalid/unsupported-algorithm.json",
+  },
 ];
 
 type Event = Record<string, unknown>;
