@@ -520,6 +520,36 @@ describe("tool parity with the conformance engines", () => {
     }
   });
 
+  test("verify_checkpoint refuses more events than the per-request limit", async () => {
+    const event = readEvent("examples/integrity/valid/three-event-chain", "001.json");
+    const events = Array.from({ length: MAX_EVENTS_PER_REQUEST + 1 }, () => event);
+    const checkpoint = readEvent(
+      "examples/integrity/checkpoints",
+      "three-event-chain.checkpoint.json",
+    );
+    const result = await rpc("tools/call", {
+      name: "verify_checkpoint",
+      arguments: { events, checkpoint },
+    });
+    const content = result["content"] as Array<{ type: string; text: string }>;
+    assert.equal(result["isError"], true);
+    assert.match(content[0]?.text ?? "", /exceeds the limit/);
+  });
+
+  test("verify_proof: an unreadable publicKeyPem is refused, without echoing the event", async () => {
+    const event = { specVersion: "0.1", metadata: { distinctiveMarker: "should-not-appear" } };
+    const proof = readEvent("examples/integrity/proofs", "three-event-chain.002.proof.json");
+    const result = await rpc("tools/call", {
+      name: "verify_proof",
+      arguments: { event, proof, publicKeyPem: "not a key" },
+    });
+    const content = result["content"] as Array<{ type: string; text: string }>;
+    const rendered = content[0]?.text ?? "";
+    assert.equal(result["isError"], true);
+    assert.match(rendered, /invalid-public-key/);
+    assert.doesNotMatch(rendered, /distinctiveMarker|should-not-appear/);
+  });
+
   test("verify_proof gives no verdict for an event whose hash cannot be established", async () => {
     const event = readEvent("examples/valid", "minimal-event.json");
     const proof = readEvent("examples/integrity/proofs", "three-event-chain.002.proof.json");

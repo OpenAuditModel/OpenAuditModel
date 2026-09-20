@@ -93,6 +93,8 @@ against the supplied key is the verdict.
   checkpoint's head; a producer who publishes both under one anchor has tied them, and a later stop
   can compare them.
 - The viewer is not touched.
+- One key per run, as for checkpoints (ADR 0014): `--public-key` verifies the root's signature and
+  the event's with the same key.
 
 ## Alternatives considered
 

@@ -25,7 +25,7 @@ import {
   resolveSchemaPath,
   validateSchemaDocument,
 } from "../src/validate.js";
-import { sealEvent } from "../src/integrity/digest.js";
+import { buildDigestInput, sealEvent } from "../src/integrity/digest.js";
 import { canonicalBytes } from "../src/integrity/canonicalize.js";
 import { documentSignatureInput } from "../src/integrity/signature.js";
 import {
@@ -384,6 +384,33 @@ describe("verifying an event against a proof", () => {
     assert.match(report.findings[0]?.detail?.[0] ?? "", /^integrity-missing:/);
   });
 
+  test("a schema-invalid event fails the proof, as it fails verify-integrity", () => {
+    const report = verify({ ...(events[1] as Document), extra: true }, proofFor(events, 1));
+    assert.equal(report.outcome, "failed");
+    assert.deepEqual(
+      report.event?.findings.map((f) => f.kind),
+      ["schema-invalid"],
+    );
+  });
+
+  test("an event whose own signature fails under the supplied key fails the proof", () => {
+    const { privateKey } = generateKeyPairSync("ed25519");
+    const { publicKey: otherKey } = generateKeyPairSync("ed25519");
+    const signed = structuredClone(events[1] as Document);
+    const integrity = signed["integrity"] as Document;
+    const value = cryptoSign(null, canonicalBytes(buildDigestInput(signed)), privateKey);
+    integrity["signature"] = { algorithm: "Ed25519", value: value.toString("base64") };
+
+    assert.equal(verify(signed, proofFor(events, 1)).outcome, "verified", "declared, not checked");
+    const report = verify(signed, proofFor(events, 1), otherKey);
+    assert.equal(report.outcome, "failed");
+    assert.deepEqual(
+      report.event?.findings.map((f) => f.kind),
+      ["signature-invalid"],
+    );
+    assert.deepEqual(kinds(report), [], "the proof itself is consistent");
+  });
+
   test("no leaf and a broken proof is a failed proof, not a missing verdict", () => {
     const bare = structuredClone(events[1] as Document);
     delete bare["integrity"];
@@ -477,5 +504,14 @@ describe("the published proof fixtures", () => {
   test("the proof names event 2's leaf, so event 1 does not verify against it", () => {
     const report = verify(loadFixture("valid", "three-event-chain", "001.json"), proof);
     assert.deepEqual(kinds(report), ["proof-leaf-mismatch"]);
+  });
+
+  test("an event under an algorithm this verifier does not implement has no leaf to prove", () => {
+    const report = verify(loadFixture("invalid", "unsupported-algorithm.json"), proof);
+    assert.equal(report.outcome, "no-leaf");
+    assert.deepEqual(
+      report.event?.findings.map((f) => f.kind),
+      ["unsupported-algorithm"],
+    );
   });
 });

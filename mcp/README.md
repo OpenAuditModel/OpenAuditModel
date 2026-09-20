@@ -85,7 +85,9 @@ declared signature in an algorithm this verifier does not implement fails verifi
 not a key is supplied. The key
 is public by definition, so passing it as
 a tool argument carries no confidentiality concern; nothing about the key is persisted or logged
-either way, the same as every other tool input. See
+either way, the same as every other tool input. One key per call: `verify_checkpoint` and
+`verify_proof` apply it to the document's own signature and to every event's, so a document signed by
+a different party than the events is verified in two calls, one per key. See
 [ADR 0012](../decisions/0012-ed25519-signature-verification.md).
 
 `verify_chain` returns each chain's `headHash` — the declared hash of its highest-sequence event, the

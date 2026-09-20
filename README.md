@@ -12,7 +12,7 @@
 |                           |                                                                  |
 | ------------------------- | ---------------------------------------------------------------- |
 | **Specification version** | 0.1                                                              |
-| **Tooling release**       | 0.4.2 — the CLI and MCP server, versioned in `package.json`      |
+| **Tooling release**       | 0.5.0 — the CLI and MCP server, versioned in `package.json`      |
 | **Project status**        | **Experimental**                                                 |
 | **Production readiness**  | **Not production-ready**                                         |
 | **Compliance**            | **No compliance guarantee**                                      |
@@ -532,8 +532,10 @@ tamper-evident as a hashed one. Without the flag, a declared signature is
 reported as present but not checked — never silently passed over — and an algorithm this verifier
 does not implement fails verification whether or not a key is supplied. A signature currently
 requires an accompanying `hash` to be checked at all. There is no key registry: `keyId` is never
-dereferenced, and a verifying party supplies the key it already trusts. See
-[ADR 0012](decisions/0012-ed25519-signature-verification.md).
+dereferenced, and a verifying party supplies the key it already trusts. One key per run:
+`verify-checkpoint` and `verify-proof` apply it to the document's own signature and to every event's,
+so a checkpoint or root signed by a different party than the events is verified in two runs, one per
+key. See [ADR 0012](decisions/0012-ed25519-signature-verification.md).
 
 ```bash
 auditmodel verify-integrity examples/integrity/valid/signed-event-ed25519.json \
@@ -723,7 +725,7 @@ and [ADR 0008](decisions/0008-declarative-profile-conformance.md).
 
 [ADR 0001](decisions/0001-specification-first.md) promises that "an implementation in any language can
 be checked against the same fixtures". [conformance-kit/manifest.json](conformance-kit/manifest.json)
-is what makes that actionable: for all 327 published fixtures, 7 chains, 8 checkpoint cases and 5 proof cases it records the verdict each
+is what makes that actionable: for all 327 published fixtures, 7 chains, 8 checkpoint cases and 6 proof cases it records the verdict each
 engine returns — rule identifiers, JSON Pointers, statuses, severities and finding kinds.
 
 Human-readable messages are deliberately absent. An implementation that words an error differently is

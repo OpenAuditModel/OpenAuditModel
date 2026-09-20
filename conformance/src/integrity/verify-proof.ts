@@ -40,10 +40,11 @@ export const PROOF_LABEL = "proof";
 
 /**
  * Event failures after which there is no hash to prove anything about. Every
- * other event failure is a verdict on the event, and the proof fails with it.
+ * other event failure — a schema-invalid event included, since verify-integrity
+ * fails it rather than declining to judge it — is a verdict on the event, and
+ * the proof fails with it.
  */
 const LEAF_UNAVAILABLE: ReadonlySet<EventFindingKind> = new Set<EventFindingKind>([
-  "schema-invalid",
   "integrity-missing",
   "hash-missing",
   "hash-algorithm-missing",
