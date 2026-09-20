@@ -92,6 +92,9 @@ schema as a resource: nine tools, thirty-five resources. The site publishes the 
 side with the `chains` record that calls the same directory intact. `createValidatorFromSchemas`,
 `createCheckpointValidator`, `verifyCheckpoint`, `verifyDocumentSignature` and
 `documentSignatureInput` are new exports; nothing is removed. ADR 0014 records the decisions.
+`deploy/smoke-test.mjs` now expects nine tools and thirty-five resources, and a test keeps its
+pinned counts equal to what the server registers, so the next addition cannot fail the container
+job the way this one did.
 
 ## 0.4.2 - 2026-09-18
 
