@@ -16,7 +16,11 @@ import {
   SPEC_VERSION,
   type EventValidator,
 } from "../../conformance/src/validator-interface.js";
-import type { ProfileDefinition } from "../../conformance/src/profiles/types.js";
+import {
+  implementsProfileVersion,
+  SUPPORTED_PROFILE_VERSIONS,
+  type ProfileDefinition,
+} from "../../conformance/src/profiles/types.js";
 import validateAuditEvent from "./schema-validator.generated.js";
 import validateCheckpoint from "./checkpoint-validator.generated.js";
 import validateProof from "./proof-validator.generated.js";
@@ -97,6 +101,17 @@ function bundledProfiles(): ReadonlyMap<string, ProfileDefinition> {
     if (profile.version !== match?.[2]) {
       throw new Error(
         `${resource.uri} advertises version ${match?.[2] ?? "(none)"}, but the profile declares ${profile.version}`,
+      );
+    }
+    // And the format version, which had no gate here at all. The profiles are
+    // compiled into the image from an allowlist, so a version this build does
+    // not implement is a build mistake, not a runtime input: refusing to start
+    // is the honest response, and the alternative — evaluating the rule
+    // properties this vocabulary happens to share with the next one — reports
+    // events as conforming because it could not read what was required.
+    if (!implementsProfileVersion(profile.profileVersion)) {
+      throw new Error(
+        `${resource.uri} is written in profile format ${String(profile.profileVersion)}, which this build does not implement (implemented: ${SUPPORTED_PROFILE_VERSIONS.join(", ")})`,
       );
     }
     found.set(name, profile);

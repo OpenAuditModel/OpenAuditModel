@@ -10,6 +10,32 @@
  * not a regulatory mapping. See decisions/0008-declarative-profile-conformance.md.
  */
 
+/**
+ * Profile definition format versions this build implements.
+ *
+ * `profileVersion` names the rule vocabulary a profile document is written in,
+ * and is not the profile's own `version`, which numbers its rules. A document
+ * declaring a format this build does not implement must be refused whole: the
+ * rule schema is closed, so an unknown vocabulary means unknown rule
+ * properties, and a reader that evaluated the ones it recognised would treat a
+ * requirement it cannot see as a requirement that is not there — reporting an
+ * event conforming because it failed to understand what was being asked.
+ *
+ * The profile definition schema pins the same list; a test asserts the two
+ * agree, so this cannot drift from what the schema accepts.
+ */
+export const SUPPORTED_PROFILE_VERSIONS = ["0.1"] as const;
+
+export type SupportedProfileVersion = (typeof SUPPORTED_PROFILE_VERSIONS)[number];
+
+/** Whether this build implements the format version a definition declares. */
+export function implementsProfileVersion(profileVersion: unknown): boolean {
+  return (
+    typeof profileVersion === "string" &&
+    (SUPPORTED_PROFILE_VERSIONS as readonly string[]).includes(profileVersion)
+  );
+}
+
 /** How a rule reports its violations. Unrelated to the privacy linter's severities. */
 export type RuleSeverity = "info" | "warning" | "error";
 

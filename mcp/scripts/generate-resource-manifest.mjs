@@ -19,6 +19,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import Ajv2020 from "ajv/dist/2020.js";
+import addFormats from "ajv-formats";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.dirname(here);
@@ -29,6 +31,49 @@ const OUTPUT_PATH = path.join(packageRoot, "src", "resource-manifest.generated.t
 const MARKDOWN = "text/markdown";
 const SCHEMA_JSON = "application/schema+json";
 const JSON_MIME = "application/json";
+
+/**
+ * Every bundled profile is validated against the profile definition schema
+ * before it is compiled in.
+ *
+ * The server cannot do this at run time — it validates with ahead-of-time
+ * compiled code and has no Ajv compiler — so a profile that is malformed, or
+ * written in a rule vocabulary this generation does not implement, would
+ * otherwise be enforced as whatever the engine happened to recognise in it.
+ * The check belongs here, where it turns into a build failure.
+ */
+function assertProfilesAreValid(entries) {
+  const schema = JSON.parse(
+    readFileSync(path.join(repoRoot, "profiles", "profile-definition.schema.json"), "utf8"),
+  );
+  const ajv = new Ajv2020.default({
+    strict: true,
+    allowUnionTypes: true,
+    strictRequired: false,
+    allErrors: true,
+  });
+  addFormats.default(ajv);
+  const validate = ajv.compile(schema);
+
+  const problems = [];
+  for (const [uri, source] of entries) {
+    if (!/^openauditmodel:\/\/profiles\/[a-z][a-z0-9-]*\/[0-9.]+$/.test(uri)) {
+      continue;
+    }
+    const definition = JSON.parse(readFileSync(path.join(repoRoot, source), "utf8"));
+    if (!validate(definition)) {
+      const first = validate.errors?.[0];
+      problems.push(`${source}: ${first?.instancePath || "/"} ${first?.message ?? "is invalid"}`);
+    }
+  }
+  if (problems.length > 0) {
+    process.stderr.write(`profile definitions rejected by their own schema:\n`);
+    for (const problem of problems) {
+      process.stderr.write(`  ${problem}\n`);
+    }
+    process.exit(1);
+  }
+}
 
 /** The complete set of documents this server exposes. Nothing else is readable. */
 const CATALOGUE = [
@@ -342,6 +387,8 @@ ${body}
 ];
 `;
 }
+
+assertProfilesAreValid(CATALOGUE);
 
 const generated = build();
 
