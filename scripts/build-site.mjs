@@ -8,6 +8,7 @@
  *
  *   /schemas/audit-event/0.1/schema.json        <- schemas/v0.1/audit-event.schema.json
  *   /schemas/profile-definition/0.1/schema.json <- profiles/profile-definition.schema.json
+ *   /schemas/checkpoint/0.1/schema.json         <- schemas/checkpoint/v0.1/checkpoint.schema.json
  *
  * The directory is `v0.1` but the URL segment is `0.1`, and the profile
  * definition schema does not live under `schemas/` at all. Copying directories
@@ -44,6 +45,9 @@ const auditEvent = JSON.parse(
 const profileDefinition = JSON.parse(
   readFileSync(path.join(root, "profiles", "profile-definition.schema.json"), "utf8"),
 );
+const checkpoint = JSON.parse(
+  readFileSync(path.join(root, "schemas", "checkpoint", "v0.1", "checkpoint.schema.json"), "utf8"),
+);
 
 /** Turns a canonical `$id` into the site-relative path it must be served from. */
 function pathForId(id) {
@@ -69,9 +73,10 @@ function publish(sitePath, sourceRelative) {
   copies.push([sitePath, sourceRelative]);
 }
 
-// The two canonical schemas, at the URLs their own $id declares.
+// The three schemas, at the URLs their own $id declares.
 publish(pathForId(auditEvent.$id), "schemas/v0.1/audit-event.schema.json");
 publish(pathForId(profileDefinition.$id), "profiles/profile-definition.schema.json");
+publish(pathForId(checkpoint.$id), "schemas/checkpoint/v0.1/checkpoint.schema.json");
 
 publish("assets/logo.png", "assets/logo.png");
 
@@ -294,6 +299,7 @@ npx @openauditmodel/cli check-profile audit-event.json --profile financial-trans
       <div class="grid">
         <a href="/schemas/audit-event/0.1/schema.json"><code>/schemas/audit-event/0.1/schema.json</code></a>
         <a href="/schemas/profile-definition/0.1/schema.json"><code>/schemas/profile-definition/0.1/schema.json</code></a>
+        <a href="/schemas/checkpoint/0.1/schema.json"><code>/schemas/checkpoint/0.1/schema.json</code></a>
       </div>
 
       <h2>${s.profilesTitle}</h2>
@@ -381,7 +387,7 @@ for (const [relative, contents] of files) {
 }
 
 // Prove the canonical identifiers resolve to the documents that declare them.
-for (const schema of [auditEvent, profileDefinition]) {
+for (const schema of [auditEvent, profileDefinition, checkpoint]) {
   const served = JSON.parse(readFileSync(path.join(out, pathForId(schema.$id)), "utf8"));
   if (served.$id !== schema.$id) {
     throw new Error(`served document at ${schema.$id} declares a different $id`);

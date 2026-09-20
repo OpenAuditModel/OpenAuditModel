@@ -1,0 +1,17 @@
+{
+  "checkpointVersion": "0.1",
+  "chainId": "chain-platform-control-service-instance-7c1a",
+  "hashAlgorithm": "SHA-256",
+  "canonicalization": "RFC8785",
+  "head": {
+    "sequence": 2,
+    "hash": "f7fbea247bdde9c24f07d81cb6ba82b60372f293b2d618066b065bac880dcbf1"
+  },
+  "eventCount": 2,
+  "createdAt": "2026-04-03T08:30:00Z",
+  "anchor": {
+    "type": "manual",
+    "reference": "change-10241: chain head recorded in the change ticket and countersigned by the approver",
+    "recordedAt": "2026-04-03T10:02:00Z"
+  }
+}

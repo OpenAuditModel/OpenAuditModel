@@ -1,0 +1,40 @@
+{
+  "checkpointVersion": "0.1",
+  "hashAlgorithm": "SHA-256",
+  "canonicalization": "RFC8785",
+  "chains": [
+    {
+      "chainId": "chain-platform-control-service-instance-7c1a",
+      "head": {
+        "sequence": 3,
+        "hash": "a7da7bab810f1386942e86d11b3277cbe56a5cc71f6bdc01da0eded57c829c00"
+      },
+      "eventCount": 3
+    },
+    {
+      "chainId": "chain-platform-control-service-instance-9e4b",
+      "head": {
+        "sequence": 3,
+        "hash": "585d48e74ca94410219d2fd6836022601d0dcffe1995c2fcae5a8d881da411e9"
+      },
+      "eventCount": 3
+    }
+  ],
+  "createdAt": "2026-04-03T10:00:00Z",
+  "anchor": {
+    "type": "publication",
+    "reference": "https://audit-archive.example/checkpoints/platform-control-service/2026-04-03",
+    "recordedAt": "2026-04-03T10:00:05Z"
+  },
+  "description": "Both instance chains of platform-control-service at the close of change window change-10241.",
+  "applications": ["platform-control-service"],
+  "timeRange": {
+    "from": "2026-04-03T08:00:12.500Z",
+    "to": "2026-04-03T09:47:02.310Z"
+  },
+  "signature": {
+    "algorithm": "Ed25519",
+    "value": "7TMyiHGqbUEjkct1H0SyJ1t88YcpDJd80VuV6eK0IFeKjW4+yBOTTx5p56sNzqMwXdocn08KPq9W6QYl+IDmCA==",
+    "keyId": "example-fixture-key-2026"
+  }
+}

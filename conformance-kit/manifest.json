@@ -262,6 +262,36 @@
       }
     },
     {
+      "fixture": "examples/integrity/invalid/truncated-chain/001.json",
+      "validate": {
+        "valid": true,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/integrity/invalid/truncated-chain/002.json",
+      "validate": {
+        "valid": true,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
       "fixture": "examples/integrity/invalid/unsupported-algorithm.json",
       "validate": {
         "valid": true,
@@ -8103,6 +8133,131 @@
           "eventCount": 3,
           "intact": false,
           "findings": ["hash-mismatch", "hash-mismatch", "broken-link", "broken-link"]
+        }
+      ]
+    },
+    {
+      "fixtures": "examples/integrity/invalid/truncated-chain",
+      "intact": true,
+      "eventCount": 2,
+      "chains": [
+        {
+          "eventCount": 2,
+          "intact": true,
+          "findings": []
+        }
+      ]
+    }
+  ],
+  "checkpoints": [
+    {
+      "checkpoint": "examples/integrity/checkpoints/three-event-chain.checkpoint.json",
+      "archive": ["examples/integrity/valid/three-event-chain"],
+      "outcome": "agrees",
+      "findings": [],
+      "chains": [
+        {
+          "chainId": "chain-platform-control-service-instance-7c1a",
+          "status": "agrees",
+          "findings": []
+        }
+      ]
+    },
+    {
+      "checkpoint": "examples/integrity/checkpoints/three-event-chain.checkpoint.json",
+      "archive": ["examples/integrity/invalid/truncated-chain"],
+      "outcome": "disagrees",
+      "findings": [],
+      "chains": [
+        {
+          "chainId": "chain-platform-control-service-instance-7c1a",
+          "status": "disagrees",
+          "findings": ["tail-truncated"]
+        }
+      ]
+    },
+    {
+      "checkpoint": "examples/integrity/checkpoints/three-event-chain.checkpoint.json",
+      "archive": ["examples/integrity/valid/chain-in-two-batches"],
+      "outcome": "no-chain",
+      "findings": [],
+      "chains": [
+        {
+          "chainId": "chain-platform-control-service-instance-7c1a",
+          "status": "missing",
+          "findings": ["checkpoint-chain-missing"]
+        }
+      ]
+    },
+    {
+      "checkpoint": "examples/integrity/checkpoints/three-event-chain.stale.checkpoint.json",
+      "archive": ["examples/integrity/valid/three-event-chain"],
+      "outcome": "agrees",
+      "findings": [],
+      "chains": [
+        {
+          "chainId": "chain-platform-control-service-instance-7c1a",
+          "status": "agrees",
+          "findings": []
+        }
+      ]
+    },
+    {
+      "checkpoint": "examples/integrity/checkpoints/three-event-chain.wrong-head.checkpoint.json",
+      "archive": ["examples/integrity/valid/three-event-chain"],
+      "outcome": "disagrees",
+      "findings": [],
+      "chains": [
+        {
+          "chainId": "chain-platform-control-service-instance-7c1a",
+          "status": "disagrees",
+          "findings": ["checkpoint-head-mismatch"]
+        }
+      ]
+    },
+    {
+      "checkpoint": "examples/integrity/checkpoints/three-event-chain.unanchored.checkpoint.json",
+      "archive": ["examples/integrity/valid/three-event-chain"],
+      "outcome": "invalid-checkpoint",
+      "findings": ["checkpoint-schema-invalid"],
+      "chains": []
+    },
+    {
+      "checkpoint": "examples/integrity/checkpoints/archive.checkpoint.json",
+      "archive": [
+        "examples/integrity/valid/three-event-chain",
+        "examples/integrity/valid/chain-in-two-batches"
+      ],
+      "outcome": "agrees",
+      "findings": [],
+      "chains": [
+        {
+          "chainId": "chain-platform-control-service-instance-7c1a",
+          "status": "agrees",
+          "findings": []
+        },
+        {
+          "chainId": "chain-platform-control-service-instance-9e4b",
+          "status": "agrees",
+          "findings": []
+        }
+      ]
+    },
+    {
+      "checkpoint": "examples/integrity/checkpoints/archive.checkpoint.json",
+      "archive": ["examples/integrity/valid/three-event-chain"],
+      "outcome": "disagrees",
+      "findings": [],
+      "chains": [
+        {
+          "chainId": "chain-platform-control-service-instance-7c1a",
+          "status": "agrees",
+          "findings": []
+        },
+        {
+          "chainId": "chain-platform-control-service-instance-9e4b",
+          "status": "missing",
+          "findings": ["checkpoint-chain-missing"]
         }
       ]
     }

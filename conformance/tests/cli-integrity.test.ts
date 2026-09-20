@@ -49,6 +49,9 @@ function writeScratch(name: string, contents: string): string {
 const VALID_EVENT = "examples/integrity/valid/single-event-sha256.json";
 const VALID_CHAIN = "examples/integrity/valid/three-event-chain";
 const BATCHED_CHAIN = "examples/integrity/valid/chain-in-two-batches";
+const TRUNCATED_CHAIN = "examples/integrity/invalid/truncated-chain";
+const CHECKPOINTS = "examples/integrity/checkpoints";
+const CHECKPOINT = `${CHECKPOINTS}/three-event-chain.checkpoint.json`;
 const SIGNED_EVENT = "examples/integrity/valid/signed-event-ed25519.json";
 const TEST_PUBLIC_KEY = "examples/integrity/keys/ed25519-test-public.pem";
 
@@ -351,12 +354,194 @@ describe("existing commands are unchanged", () => {
   });
 });
 
+describe("verify-checkpoint", () => {
+  test("exits 0 when the archive reaches the recorded head, and says what it did not prove", () => {
+    const result = auditmodel(
+      "verify-checkpoint",
+      VALID_CHAIN,
+      "--checkpoint",
+      CHECKPOINT,
+      "--public-key",
+      TEST_PUBLIC_KEY,
+    );
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /checkpoint schema valid/);
+    assert.match(result.stdout, /signature valid \(Ed25519\)/);
+    assert.match(result.stdout, /anchor: +manual — .*\(not dereferenced\)/);
+    assert.match(result.stdout, /event at sequence 3 matches the recorded head/);
+    assert.match(result.stdout, /1 chain named by the checkpoint: 1 agrees, 0 disagree, 0 missing/);
+    assert.match(
+      result.stdout,
+      /whether the checkpoint is genuine and its anchor real is for whoever holds the anchor/,
+    );
+  });
+
+  test("the deleted tail: verify-chain exits 0, verify-checkpoint exits 1 with tail-truncated", () => {
+    const asChain = auditmodel("verify-chain", TRUNCATED_CHAIN);
+    assert.equal(asChain.status, 0);
+    assert.match(asChain.stdout, /1 chain checked: 1 intact, 0 broken/);
+
+    const result = auditmodel("verify-checkpoint", TRUNCATED_CHAIN, "--checkpoint", CHECKPOINT);
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /\[tail-truncated\]/);
+    assert.match(
+      result.stdout,
+      /ends at sequence 2, but the checkpoint records a head at sequence 3/,
+    );
+    assert.match(result.stdout, /0 agree, 1 disagrees, 0 missing/);
+  });
+
+  test("a stale checkpoint exits 0 and the uncovered tail is a note", () => {
+    const result = auditmodel(
+      "verify-checkpoint",
+      VALID_CHAIN,
+      "--checkpoint",
+      `${CHECKPOINTS}/three-event-chain.stale.checkpoint.json`,
+    );
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /note: 1 event after the checkpoint is not covered by it/);
+  });
+
+  test("a wrong head exits 1 and shows both hashes", () => {
+    const result = auditmodel(
+      "verify-checkpoint",
+      VALID_CHAIN,
+      "--checkpoint",
+      `${CHECKPOINTS}/three-event-chain.wrong-head.checkpoint.json`,
+    );
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /\[checkpoint-head-mismatch\]/);
+    assert.match(result.stdout, /recorded head hash: [0-9a-f]{64}/);
+  });
+
+  test("a document that is not a checkpoint exits 2 and judges nothing", () => {
+    const result = auditmodel(
+      "verify-checkpoint",
+      VALID_CHAIN,
+      "--checkpoint",
+      `${CHECKPOINTS}/three-event-chain.unanchored.checkpoint.json`,
+    );
+    assert.equal(result.status, 2);
+    assert.match(result.stdout, /\[checkpoint-schema-invalid\]/);
+    assert.match(result.stdout, /\/anchor {2}missing required property/);
+    assert.match(result.stdout, /nothing about the archive was judged/);
+    assert.doesNotMatch(result.stdout, /agrees|disagrees/);
+  });
+
+  test("exits 3, never 0, when the archive holds none of the named chains", () => {
+    const result = auditmodel("verify-checkpoint", BATCHED_CHAIN, "--checkpoint", CHECKPOINT);
+    assert.equal(result.status, 3);
+    assert.match(result.stdout, /\[checkpoint-chain-missing\]/);
+    assert.match(
+      result.stderr,
+      /no verdict: the archive holds none of the chains the checkpoint names/,
+    );
+  });
+
+  test("the multi-chain form verifies every chain it names across several inputs", () => {
+    const archive = `${CHECKPOINTS}/archive.checkpoint.json`;
+    const both = auditmodel(
+      "verify-checkpoint",
+      VALID_CHAIN,
+      BATCHED_CHAIN,
+      "--checkpoint",
+      archive,
+    );
+    assert.equal(both.status, 0);
+    assert.match(both.stdout, /2 chains named by the checkpoint: 2 agree, 0 disagree, 0 missing/);
+
+    const one = auditmodel("verify-checkpoint", VALID_CHAIN, "--checkpoint", archive);
+    assert.equal(one.status, 1);
+    assert.match(one.stdout, /1 agrees, 0 disagree, 1 missing/);
+  });
+
+  test("--format json carries the outcome, the findings and the not-proven line", () => {
+    const result = auditmodel(
+      "verify-checkpoint",
+      TRUNCATED_CHAIN,
+      "--checkpoint",
+      CHECKPOINT,
+      "--format",
+      "json",
+    );
+    assert.equal(result.status, 1);
+    const report = JSON.parse(result.stdout) as {
+      tool: string;
+      outcome: string;
+      checkpoint: { schemaId: string; sharesLocationWithEvents: boolean };
+      chains: Array<{ status: string; findings: Array<{ kind: string }> }>;
+      notProven: string;
+    };
+    assert.equal(report.tool, "auditmodel verify-checkpoint");
+    assert.equal(report.outcome, "disagrees");
+    assert.match(report.checkpoint.schemaId, /schemas\/checkpoint\/0\.1/);
+    assert.equal(report.checkpoint.sharesLocationWithEvents, false);
+    assert.deepEqual(
+      report.chains[0]?.findings.map((finding) => finding.kind),
+      ["tail-truncated"],
+    );
+    assert.match(report.notProven, /whoever holds the anchor/);
+  });
+
+  test("a checkpoint kept beside the events is noted", () => {
+    const events = readFileSync(path.join(repoRoot, VALID_CHAIN, "001.json"), "utf8");
+    const checkpointText = readFileSync(
+      path.join(repoRoot, CHECKPOINTS, "three-event-chain.stale.checkpoint.json"),
+      "utf8",
+    );
+    // One event and the checkpoint taken at sequence 2 would not agree; only
+    // the note is under test here, so a checkpoint at sequence 1 is written.
+    const checkpoint = JSON.parse(checkpointText) as {
+      head: { sequence: number; hash: string };
+      eventCount: number;
+    };
+    const event = JSON.parse(events) as { integrity: { hash: string } };
+    checkpoint.head = { sequence: 1, hash: event.integrity.hash };
+    checkpoint.eventCount = 1;
+    const eventFile = writeScratch("beside-001.json", events);
+    const checkpointFile = writeScratch("beside.checkpoint.json", JSON.stringify(checkpoint));
+
+    const result = auditmodel("verify-checkpoint", eventFile, "--checkpoint", checkpointFile);
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /note: the checkpoint and the events come from the same location/);
+  });
+
+  test("exits 2 without --checkpoint, or with one that cannot be read", () => {
+    const missing = auditmodel("verify-checkpoint", VALID_CHAIN);
+    assert.equal(missing.status, 2);
+    assert.match(missing.stderr, /requires --checkpoint <file>/);
+
+    const unreadable = auditmodel(
+      "verify-checkpoint",
+      VALID_CHAIN,
+      "--checkpoint",
+      `${CHECKPOINTS}/no-such.checkpoint.json`,
+    );
+    assert.equal(unreadable.status, 2);
+    assert.match(unreadable.stderr, /cannot read --checkpoint/);
+  });
+
+  test("--checkpoint is refused by every other command rather than ignored", () => {
+    const result = auditmodel("verify-chain", VALID_CHAIN, "--checkpoint", CHECKPOINT);
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /--checkpoint is not supported by "verify-chain"/);
+  });
+
+  test("a report contains no event content", () => {
+    const result = auditmodel("verify-checkpoint", VALID_CHAIN, "--checkpoint", CHECKPOINT);
+    assert.doesNotMatch(result.output, /Time-bound platform administrator/);
+    assert.doesNotMatch(result.output, /just-in-time-access/);
+  });
+});
+
 describe("help and options", () => {
-  test("help documents both verification commands", () => {
+  test("help documents the three verification commands", () => {
     const result = auditmodel("--help");
     assert.equal(result.status, 0);
     assert.match(result.stdout, /auditmodel verify-integrity <path\.\.\.>/);
     assert.match(result.stdout, /auditmodel verify-chain <path\.\.\.>/);
+    assert.match(result.stdout, /auditmodel verify-checkpoint <path\.\.\.>/);
+    assert.match(result.stdout, /--checkpoint <file>/);
   });
 
   const formatUnsupported = ["validate", "verify-integrity", "verify-chain"] as const;
@@ -392,6 +577,7 @@ describe("help and options", () => {
       "validate",
       "verify-integrity",
       "verify-chain",
+      "verify-checkpoint",
       "lint-privacy",
       "check-profile",
       "check-coverage",

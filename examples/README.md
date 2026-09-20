@@ -53,6 +53,8 @@ validation, which is why they live apart from the sets above. See
 ```bash
 node dist/conformance/src/cli.js verify-integrity examples/integrity/valid/single-event-sha256.json
 node dist/conformance/src/cli.js verify-chain examples/integrity/valid/three-event-chain
+node dist/conformance/src/cli.js verify-checkpoint examples/integrity/valid/three-event-chain \
+  --checkpoint examples/integrity/checkpoints/three-event-chain.checkpoint.json
 ```
 
 ## Optional fields are optional

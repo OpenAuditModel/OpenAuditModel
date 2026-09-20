@@ -75,7 +75,7 @@ function count(written: string): number {
 
 /** The paragraph in README.md that describes what the MCP server exposes. */
 function surfaceParagraph(): string {
-  const match = /\n(Eight tools[\s\S]*?)\n\n/.exec(readme);
+  const match = /\n([A-Z][a-z]+ tools — [\s\S]*?)\n\n/.exec(readme);
   const paragraph = match?.[1];
   assert.ok(paragraph !== undefined, "README.md no longer describes the MCP surface");
   return paragraph;
@@ -114,6 +114,6 @@ describe("the README's description of the MCP surface", () => {
       /^openauditmodel:\/\/profiles\/[^/]+\/\d/.test(resource.uri),
     );
     assert.equal(profiles.length, 10);
-    assert.match(paragraph, /all ten profile definitions/);
+    assert.match(paragraph, /all ten profile\s+definitions/);
   });
 });

@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openauditmodel.org/schemas/checkpoint/0.1/schema.json",
+  "title": "OpenAuditModel Chain Checkpoint Schema",
+  "description": "A chain checkpoint records the head of one or more previous-hash chains at a moment in time, so that the head can be placed beyond the reach of whoever controls the event store. `auditmodel verify-checkpoint` compares an archive with a checkpoint and reports whether the archive still reaches the recorded head; a chain whose tail was deleted is internally consistent and only a checkpoint can show what is missing. A checkpoint is a tooling document versioned on its own. It is not part of the canonical audit event schema and never constrains an audit event. Its digest, identifier, timestamp and signature definitions are the audit event schema's own, by reference, so that a digest means one thing across both documents.",
+  "$comment": "The anchoring rule is the one constraint this schema enforces beyond shape: `anchor.type` and `anchor.reference` are required and may not be empty, because a checkpoint stored beside the events it describes verifies nothing (specification/integrity.md §8, items 4 and 11). The verifier never dereferences an anchor: whether the anchor is real is for whoever holds it. A signature covers the canonical form of this document with `/signature` removed, the same procedure an event uses. See decisions/0014-chain-checkpoints.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["checkpointVersion", "hashAlgorithm", "canonicalization", "createdAt", "anchor"],
+  "properties": {
+    "checkpointVersion": {
+      "description": "Version of this document format. Independent of the specification version and of the event schema.",
+      "const": "0.1"
+    },
+    "chainId": {
+      "description": "The chain this checkpoint records, in the single-chain form. Either `chainId` and `head` or `chains` is present, never both.",
+      "$ref": "https://openauditmodel.org/schemas/audit-event/0.1/schema.json#/$defs/identifier"
+    },
+    "head": {
+      "description": "The chain's head when the checkpoint was taken, in the single-chain form.",
+      "$ref": "#/$defs/head"
+    },
+    "eventCount": {
+      "description": "Number of events in the chain with a sequence at or below the head, when the checkpoint was taken. Optional; when present the verifier compares it.",
+      "$ref": "#/$defs/eventCount"
+    },
+    "chains": {
+      "description": "The multi-chain form: one head per chain, for an archive that holds several chains. This is what an archive manifest is — a set of checkpoints taken together — so it is one document rather than two.",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/chainHead" }
+    },
+    "hashAlgorithm": {
+      "description": "Hash algorithm the recorded head hashes were produced with. Must match the events' own `integrity.hashAlgorithm`; open vocabulary, matched case-sensitively.",
+      "$ref": "https://openauditmodel.org/schemas/audit-event/0.1/schema.json#/$defs/algorithmIdentifier"
+    },
+    "canonicalization": {
+      "description": "Canonicalization the events were sealed under. Must match the events' own `integrity.canonicalization`.",
+      "$ref": "https://openauditmodel.org/schemas/audit-event/0.1/schema.json#/$defs/algorithmIdentifier"
+    },
+    "createdAt": {
+      "description": "When the checkpoint was taken.",
+      "$ref": "https://openauditmodel.org/schemas/audit-event/0.1/schema.json#/$defs/timestamp"
+    },
+    "anchor": {
+      "description": "Where this checkpoint was placed beyond the store's reach. Required and non-empty: a checkpoint that names no anchor is not a checkpoint.",
+      "$ref": "#/$defs/anchor"
+    },
+    "description": {
+      "description": "Free text describing the archive or the occasion, for a human reader. Never evaluated.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048
+    },
+    "applications": {
+      "description": "Names of the applications whose events the archive holds, as `application.name` records them. Descriptive; never evaluated.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "https://openauditmodel.org/schemas/audit-event/0.1/schema.json#/$defs/identifier"
+      }
+    },
+    "timeRange": {
+      "description": "The span of event times the archive covers. Descriptive; never evaluated.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to"],
+      "properties": {
+        "from": {
+          "$ref": "https://openauditmodel.org/schemas/audit-event/0.1/schema.json#/$defs/timestamp"
+        },
+        "to": {
+          "$ref": "https://openauditmodel.org/schemas/audit-event/0.1/schema.json#/$defs/timestamp"
+        }
+      }
+    },
+    "signature": {
+      "description": "Signature over the canonical form of this document with `/signature` removed, in the same shape and under the same rules as an event's `integrity.signature`. A checkpoint signed by the producer binds the producer's claim, not the store.",
+      "$ref": "https://openauditmodel.org/schemas/audit-event/0.1/schema.json#/$defs/signature"
+    }
+  },
+  "oneOf": [
+    {
+      "required": ["chainId", "head"],
+      "not": { "required": ["chains"] }
+    },
+    {
+      "required": ["chains"],
+      "not": {
+        "anyOf": [
+          { "required": ["chainId"] },
+          { "required": ["head"] },
+          { "required": ["eventCount"] }
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "head": {
+      "title": "Chain head",
+      "description": "The highest-sequence event of the chain when the checkpoint was taken: its `sequence` and its declared `integrity.hash`.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sequence", "hash"],
+      "properties": {
+        "sequence": { "type": "integer", "minimum": 0 },
+        "hash": {
+          "$ref": "https://openauditmodel.org/schemas/audit-event/0.1/schema.json#/$defs/hexDigest"
+        }
+      }
+    },
+    "eventCount": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "chainHead": {
+      "title": "One chain's head, in the multi-chain form",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["chainId", "head"],
+      "properties": {
+        "chainId": {
+          "$ref": "https://openauditmodel.org/schemas/audit-event/0.1/schema.json#/$defs/identifier"
+        },
+        "head": { "$ref": "#/$defs/head" },
+        "eventCount": { "$ref": "#/$defs/eventCount" }
+      }
+    },
+    "anchor": {
+      "title": "Anchor",
+      "description": "Where the checkpoint was recorded outside the store's administrative control. `type` is an open vocabulary; recommended values are `publication` (a URL under different administrative control), `transparency-log` (log name and entry), `timestamp-authority` (an RFC 3161 token digest), `ledger` and `manual` (a ticket, a printed record, a countersigned message). `reference` says where, in whatever form the anchor has. Neither is dereferenced by the verifier.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "reference"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^\\S(.*\\S)?$",
+          "examples": ["publication", "transparency-log", "timestamp-authority", "ledger", "manual"]
+        },
+        "reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "^\\S(.*\\S)?$"
+        },
+        "recordedAt": {
+          "description": "When the anchor was made, if known.",
+          "$ref": "https://openauditmodel.org/schemas/audit-event/0.1/schema.json#/$defs/timestamp"
+        }
+      }
+    }
+  }
+}

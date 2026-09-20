@@ -442,6 +442,101 @@ const batched003: Event = inBatch(chain003, {
 });
 
 // ---------------------------------------------------------------------------
+// Checkpoints
+//
+// A checkpoint records a chain's head so that it can be kept somewhere the
+// store's administrators do not control. These documents are not events: they
+// validate against schemas/checkpoint/v0.1/checkpoint.schema.json, and
+// `verify-checkpoint` compares an archive with them.
+// ---------------------------------------------------------------------------
+
+/** A copy of `document` with `/signature` removed: the input a checkpoint signature covers. */
+function withoutDocumentSignature(document: Event): Event {
+  const copy = { ...document };
+  delete copy["signature"];
+  return copy;
+}
+
+/**
+ * Signs a checkpoint with the TEST-ONLY Ed25519 key over the canonical bytes of
+ * the document without `/signature` — the same procedure an event's signature
+ * uses, with the pointer at the document root instead of under `integrity`.
+ */
+function signDocument(document: Event): Event {
+  const data = canonicalBytes(withoutDocumentSignature(document));
+  const value = cryptoSign(null, data, testPrivateKey).toString("base64");
+  return {
+    ...document,
+    signature: { algorithm: "Ed25519", value, keyId: TEST_SIGNING_KEY_ID },
+  };
+}
+
+const CHECKPOINT_ANCHOR = {
+  type: "manual",
+  reference:
+    "change-10241: chain head recorded in the change ticket and countersigned by the approver",
+  recordedAt: "2026-04-03T10:02:00Z",
+};
+
+/** A single-chain checkpoint of the three-event chain at `head`. */
+function checkpointAt(head: Event, eventCount: number, createdAt: string): Event {
+  return {
+    checkpointVersion: "0.1",
+    chainId: CHAIN_ID,
+    hashAlgorithm: "SHA-256",
+    canonicalization: CANONICALIZATION_RFC8785,
+    head: { sequence: head["sequence"], hash: declaredHash(head) },
+    eventCount,
+    createdAt,
+    anchor: CHECKPOINT_ANCHOR,
+  };
+}
+
+/** The chain's head at sequence 3, anchored and signed: what a producer publishes. */
+const checkpoint: Event = signDocument(checkpointAt(chain003, 3, "2026-04-03T10:00:00Z"));
+
+/** Taken at sequence 2, before the third event existed: still true, and it leaves a tail uncovered. */
+const staleCheckpoint: Event = checkpointAt(chain002, 2, "2026-04-03T08:30:00Z");
+
+/** Names sequence 3 but records event 2's hash for it: a checkpoint taken against the wrong event. */
+const wrongHeadCheckpoint: Event = {
+  ...checkpointAt(chain003, 3, "2026-04-03T10:00:00Z"),
+  head: { sequence: 3, hash: declaredHash(chain002) },
+};
+
+/** No anchor at all. Schema-invalid on purpose: a checkpoint kept beside the events verifies nothing. */
+const unanchoredCheckpoint: Event = (() => {
+  const document = checkpointAt(chain003, 3, "2026-04-03T10:00:00Z");
+  delete document["anchor"];
+  return document;
+})();
+
+/** The multi-chain form: both instance chains of the service, taken together, as an archive manifest. */
+const archiveCheckpoint: Event = signDocument({
+  checkpointVersion: "0.1",
+  hashAlgorithm: "SHA-256",
+  canonicalization: CANONICALIZATION_RFC8785,
+  chains: [
+    { chainId: CHAIN_ID, head: { sequence: 3, hash: declaredHash(chain003) }, eventCount: 3 },
+    {
+      chainId: BATCHED_CHAIN_ID,
+      head: { sequence: 3, hash: declaredHash(batched003) },
+      eventCount: 3,
+    },
+  ],
+  createdAt: "2026-04-03T10:00:00Z",
+  anchor: {
+    type: "publication",
+    reference: "https://audit-archive.example/checkpoints/platform-control-service/2026-04-03",
+    recordedAt: "2026-04-03T10:00:05Z",
+  },
+  description:
+    "Both instance chains of platform-control-service at the close of change window change-10241.",
+  applications: ["platform-control-service"],
+  timeRange: { from: "2026-04-03T08:00:12.500Z", to: "2026-04-03T09:47:02.310Z" },
+});
+
+// ---------------------------------------------------------------------------
 // Invalid fixtures, all derived from the valid ones
 // ---------------------------------------------------------------------------
 
@@ -615,6 +710,27 @@ const FIXTURES: readonly Fixture[] = [
   ...chainFixtures(path.join("invalid", "duplicate-sequence"), duplicateSequence),
   ...chainFixtures(path.join("invalid", "missing-sequence"), missingSequence),
   ...chainFixtures(path.join("invalid", "reordered-chain"), reorderedChain),
+  // The deleted tail: events 1 and 2 of the three, and nothing else wrong. It
+  // passes `verify-chain`, because a truncated chain is internally consistent,
+  // and fails `verify-checkpoint` against the checkpoint taken at sequence 3.
+  ...chainFixtures(path.join("invalid", "truncated-chain"), [chain001, chain002]),
+  {
+    relativePath: path.join("checkpoints", "three-event-chain.checkpoint.json"),
+    content: checkpoint,
+  },
+  {
+    relativePath: path.join("checkpoints", "three-event-chain.stale.checkpoint.json"),
+    content: staleCheckpoint,
+  },
+  {
+    relativePath: path.join("checkpoints", "three-event-chain.wrong-head.checkpoint.json"),
+    content: wrongHeadCheckpoint,
+  },
+  {
+    relativePath: path.join("checkpoints", "three-event-chain.unanchored.checkpoint.json"),
+    content: unanchoredCheckpoint,
+  },
+  { relativePath: path.join("checkpoints", "archive.checkpoint.json"), content: archiveCheckpoint },
 ];
 
 /** Not JSON fixtures: the public halves of the TEST-ONLY signing keys, for

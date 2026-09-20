@@ -22,7 +22,7 @@ same as the reference implementation, on the cases this project chose to publish
 having and it is not a claim about the implementation's fitness, completeness or correctness in
 general.
 
-**The corpus is not the world.** 325 fixtures and 6 chains, chosen to cover the behaviour this
+**The corpus is not the world.** 327 fixtures, 7 chains and 8 checkpoint cases, chosen to cover the behaviour this
 repository decided to pin. An implementation can pass all of them and still differ on an input nobody
 here thought to write down.
 
@@ -51,17 +51,26 @@ the implementation's own.
 }
 ```
 
-| Key               | Present for                                         |
-| ----------------- | --------------------------------------------------- |
-| `validate`        | every fixture                                       |
-| `lintPrivacy`     | every fixture                                       |
-| `verifyIntegrity` | fixtures that declare an `integrity` object         |
-| `checkProfile`    | fixtures under `examples/profiles/<name>/`          |
-| `chains`          | directories verified as a set rather than per event |
+| Key               | Present for                                                   |
+| ----------------- | ------------------------------------------------------------- |
+| `validate`        | every fixture                                                 |
+| `lintPrivacy`     | every fixture                                                 |
+| `verifyIntegrity` | fixtures that declare an `integrity` object                   |
+| `checkProfile`    | fixtures under `examples/profiles/<name>/`                    |
+| `chains`          | directories verified as a set rather than per event           |
+| `checkpoints`     | a checkpoint document compared with named archive directories |
 
 `verifyIntegrity` is recorded only where the fixture declares integrity material, because
 `verify-integrity` reports "no integrity object" for everything else — a property of the command
 rather than of the fixture.
+
+A `checkpoints` record names a checkpoint document and the archive directories it was compared with,
+and records the outcome, the finding kinds on the document itself, and per named chain its status and
+comparison findings. The same document appears against several archives on purpose: the checkpoint
+that agrees with `examples/integrity/valid/three-event-chain` is the one that reports
+`examples/integrity/invalid/truncated-chain` as `tail-truncated` — while the `chains` record for
+that same directory says `intact`. Both are right, and an implementation has to reproduce both.
+Documents under `examples/integrity/checkpoints/` are not events and have no `fixtures` record.
 
 ## How to use it
 

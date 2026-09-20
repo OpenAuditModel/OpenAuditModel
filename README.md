@@ -107,6 +107,9 @@ The same contract across every command, so a CI job can branch on it:
   checked. The per-event findings name why — most commonly a missing `integrity.chainId`,
   `integrity.hash` or `sequence`, or a schema-invalid event. A set of events with no verifiable
   chain is not a broken chain; it is a set nothing was proven about.
+- `verify-checkpoint` returns it when **the archive holds none of the chains the checkpoint
+  names**, so nothing was compared. An archive the checkpoint does not describe is not a verified
+  archive.
 
 ```bash
 # conforming → 0        the profile's rules were checked and passed
@@ -316,6 +319,7 @@ See [ADR 0003](decisions/0003-backend-and-transport-independence.md).
 ```text
 specification/         15 normative documents defining the model
 schemas/v0.1/          the canonical JSON Schema (Draft 2020-12)
+schemas/checkpoint/    the chain checkpoint schema, a tooling document versioned on its own
 semantic-conventions/  recommended event names and vocabularies
 profiles/              ten enforceable domain profiles, 127 rules (113 error-severity, 14 advisory)
 mappings/              informative mappings to CloudEvents, OTel, ECS, OCSF, CADF
@@ -327,7 +331,7 @@ conformance/           the `auditmodel` CLI and its test suite
 conformance-kit/       every fixture's expected verdict, as data, for any language
 mcp/                   the remote MCP server, distributed as a container image
 deploy/                Docker Compose and reverse-proxy examples
-decisions/             13 architecture decision records
+decisions/             14 architecture decision records
 ```
 
 The core model requires seven fields — `specVersion`, `id`, `time`, `event`, `actor`, `resource`,
@@ -409,11 +413,13 @@ specification and are not detectable by any validator. See
 ## How is an event's integrity verified?
 
 An event MAY carry `integrity` material: a digest of itself, and a link to the previous event in a
-chain. Two commands check it, both entirely offline.
+chain. Three commands check it, all entirely offline.
 
 ```bash
 auditmodel verify-integrity examples/integrity/valid/single-event-sha256.json
 auditmodel verify-chain examples/integrity/valid/three-event-chain
+auditmodel verify-checkpoint examples/integrity/valid/three-event-chain \
+  --checkpoint examples/integrity/checkpoints/three-event-chain.checkpoint.json
 ```
 
 ```text
@@ -455,11 +461,36 @@ events declare in `integrity.batchId` are listed as a note: reported, never judg
 is the group sealed together and not a verification scope. See
 [ADR 0013](decisions/0013-batch-id-reported-not-judged.md).
 
-**What is not verified.** Whether the events you supplied are all the events that existed: chain
-verification proves consistency of the supplied set, and an attacker who removes the _end_ of a chain
-leaves something internally consistent. Detecting that needs an external checkpoint, which is out of
-scope. Key generation, storage, rotation, revocation and certificate parsing are likewise out of scope,
-regardless of whether a signature is present.
+**What chain verification cannot see.** Whether the events you supplied are all the events that
+existed: chain verification proves consistency of the supplied set, and an attacker who removes the
+_end_ of a chain leaves something internally consistent. Seeing that needs a **checkpoint** — the
+chain's head, recorded and kept somewhere the store's administrators do not control — and
+`verify-checkpoint` is the command that compares an archive with one. The published truncated chain
+shows the two commands disagreeing on purpose:
+
+```bash
+auditmodel verify-chain examples/integrity/invalid/truncated-chain        # exit 0: consistent
+auditmodel verify-checkpoint examples/integrity/invalid/truncated-chain \
+  --checkpoint examples/integrity/checkpoints/three-event-chain.checkpoint.json   # exit 1
+```
+
+```text
+  checkpoint: head at sequence 3
+  FAIL
+    the chain ends at sequence 2, but the checkpoint records a head at sequence 3  [tail-truncated]
+```
+
+A checkpoint is a small JSON document under its own schema
+([`/schemas/checkpoint/0.1/schema.json`](https://openauditmodel.org/schemas/checkpoint/0.1/schema.json)):
+the chain, the head's sequence and hash, when it was taken, optionally the event count and a
+signature, and an **anchor** naming where the record was put beyond the store's reach. The anchor is
+required by the schema and never dereferenced. The verdict is what the tool can honestly give, and it
+says so after every run: the archive is consistent with the checkpoint it was handed; whether the
+checkpoint is genuine and its anchor real is for whoever holds the anchor. A checkpoint from yesterday
+does not fail today's archive — events after the head are noted as not covered — and an archive that
+holds none of the chains the checkpoint names exits `3`, never `0`. Key generation, storage, rotation,
+revocation and certificate parsing remain out of scope, regardless of whether a signature is present.
+See [ADR 0014](decisions/0014-chain-checkpoints.md).
 
 **How the digest is calculated.** Deep-clone the event, remove exactly `/integrity/hash` and
 `/integrity/signature`, serialize with **RFC 8785** (the JSON Canonicalization Scheme), encode as
@@ -550,11 +581,12 @@ instrumentation can validate, privacy-lint and profile-check an event without cl
 claude mcp add --transport http openauditmodel https://mcp.openauditmodel.org/mcp
 ```
 
-Eight tools — `validate_event`, `verify_integrity`, `verify_chain`, `lint_privacy`,
-`check_profile`, `check_coverage`, `generate_event_template`, `get_event_guidance` —
-three prompts, and thirty-four read-only resources: seven specification chapters, both canonical
-schemas, the semantic-conventions index and twelve convention documents, the profile index and
-all ten profile definitions, and the examples index.
+Nine tools — `validate_event`, `verify_integrity`, `verify_chain`, `verify_checkpoint`,
+`lint_privacy`, `check_profile`, `check_coverage`, `generate_event_template`, `get_event_guidance` —
+three prompts, and thirty-five read-only resources: seven specification chapters, three schemas (the
+canonical audit event schema, the profile definition schema and the chain checkpoint schema), the
+semantic-conventions index and twelve convention documents, the profile index and all ten profile
+definitions, and the examples index.
 
 **It is a remote service, and this matters.** MCP tool inputs are processed ephemerally by the
 OpenAuditModel MCP service. The service does not intentionally persist audit event content or
@@ -673,7 +705,7 @@ and [ADR 0008](decisions/0008-declarative-profile-conformance.md).
 
 [ADR 0001](decisions/0001-specification-first.md) promises that "an implementation in any language can
 be checked against the same fixtures". [conformance-kit/manifest.json](conformance-kit/manifest.json)
-is what makes that actionable: for all 325 published fixtures and 6 chains it records the verdict each
+is what makes that actionable: for all 327 published fixtures, 7 chains and 8 checkpoint cases it records the verdict each
 engine returns — rule identifiers, JSON Pointers, statuses, severities and finding kinds.
 
 Human-readable messages are deliberately absent. An implementation that words an error differently is

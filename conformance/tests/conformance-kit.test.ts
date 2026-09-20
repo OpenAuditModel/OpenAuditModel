@@ -13,7 +13,7 @@ import path from "node:path";
 import test, { describe } from "node:test";
 import { resolveSchemaPath } from "../src/validate.js";
 import { availableProfiles } from "../src/profiles/load-profile.js";
-import { buildKit, checkKit } from "../tools/generate-kit.js";
+import { buildKit, checkKit, CHECKPOINT_DIRECTORY } from "../tools/generate-kit.js";
 
 const schemaPath = resolveSchemaPath();
 const repoRoot = path.dirname(path.dirname(path.dirname(schemaPath)));
@@ -40,7 +40,10 @@ describe("the conformance kit", () => {
 
   test("every published fixture is covered, and nothing else is", () => {
     const expected = publishedFixtures(path.join(repoRoot, "examples"))
-      .filter((file) => !file.startsWith("examples/integrity/keys/"))
+      .filter(
+        (file) =>
+          !file.startsWith("examples/integrity/keys/") && !file.startsWith(CHECKPOINT_DIRECTORY),
+      )
       .sort((left, right) => left.localeCompare(right, "en"));
     const covered = kit.fixtures
       .map((record) => record.fixture)
@@ -56,13 +59,41 @@ describe("the conformance kit", () => {
     for (const chain of kit.chains) {
       assert.ok(existsSync(path.join(repoRoot, chain.fixtures)), chain.fixtures);
     }
+    for (const record of kit.checkpoints) {
+      assert.ok(existsSync(path.join(repoRoot, record.checkpoint)), record.checkpoint);
+      for (const directory of record.archive) {
+        assert.ok(existsSync(path.join(repoRoot, directory)), directory);
+      }
+    }
+  });
+
+  test("every published checkpoint document is compared with at least one archive", () => {
+    const published = publishedFixtures(path.join(repoRoot, CHECKPOINT_DIRECTORY)).sort();
+    const recorded = [...new Set(kit.checkpoints.map((record) => record.checkpoint))].sort();
+    assert.ok(published.length > 0);
+    assert.deepEqual(recorded, published);
+  });
+
+  test("the deleted tail is recorded as intact by verify-chain and as truncated by the checkpoint", () => {
+    // The one case the whole checkpoint family exists for: two records about
+    // the same directory that disagree on purpose.
+    const truncated = "examples/integrity/invalid/truncated-chain";
+    const asChain = kit.chains.find((record) => record.fixtures === truncated);
+    assert.equal(asChain?.intact, true);
+
+    const againstCheckpoint = kit.checkpoints.find(
+      (record) => record.archive.length === 1 && record.archive[0] === truncated,
+    );
+    assert.equal(againstCheckpoint?.outcome, "disagrees");
+    assert.deepEqual(againstCheckpoint?.chains[0]?.findings, ["tail-truncated"]);
   });
 
   test("no human-readable message is recorded anywhere in it", () => {
     // Wording is not the contract. A kit that compared prose would fail every
     // translation and every improvement to a sentence, so the generator records
     // identifiers, pointers and statuses and nothing else.
-    const rendered = JSON.stringify(kit.fixtures) + JSON.stringify(kit.chains);
+    const rendered =
+      JSON.stringify(kit.fixtures) + JSON.stringify(kit.chains) + JSON.stringify(kit.checkpoints);
     for (const forbidden of ["message", "recommendation", "detail", "summary"]) {
       assert.doesNotMatch(rendered, new RegExp(`"${forbidden}"`), forbidden);
     }

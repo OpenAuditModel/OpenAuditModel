@@ -2,13 +2,14 @@
 /**
  * `auditmodel` — the OpenAuditModel conformance command line interface.
  *
- * v0.1 implements six commands:
- *   validate          check events against the canonical schema
- *   verify-integrity  recalculate and compare each event's own digest
- *   verify-chain      verify previous-hash chains across a set of events
- *   lint-privacy      report suspected privacy and secret-exposure risks
- *   check-profile     check events against a domain profile
- *   check-coverage    report how much of a profile a set of events reaches
+ * v0.1 implements seven commands:
+ *   validate           check events against the canonical schema
+ *   verify-integrity   recalculate and compare each event's own digest
+ *   verify-chain       verify previous-hash chains across a set of events
+ *   verify-checkpoint  compare an archive with a chain checkpoint
+ *   lint-privacy       report suspected privacy and secret-exposure risks
+ *   check-profile      check events against a domain profile
+ *   check-coverage     report how much of a profile a set of events reaches
  *
  * Exit codes:
  *   0  a verdict was produced and it passed
@@ -25,17 +26,35 @@
  * URL and executes nothing contained in an event.
  */
 import type { KeyObject } from "node:crypto";
-import { readFileSync, realpathSync } from "node:fs";
+import { readFileSync, realpathSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { createValidator, SPEC_VERSION, type Validator } from "./validate.js";
-import { loadEventDocuments, type DocumentLoadResult, type EventDocument } from "./sources.js";
+import {
+  createCheckpointValidator,
+  createValidator,
+  SPEC_VERSION,
+  type DocumentValidator,
+  type Validator,
+} from "./validate.js";
+import {
+  loadEventDocuments,
+  readJsonFile,
+  type DocumentLoadResult,
+  type EventDocument,
+} from "./sources.js";
 import { formatIssues } from "./format-errors.js";
 import { verifyEventIntegrity } from "./integrity/verify-event.js";
 import { verifyChains, type ChainEventInput } from "./integrity/verify-chain.js";
+import { verifyCheckpoint } from "./integrity/verify-checkpoint.js";
 import { loadPublicKey } from "./integrity/signature.js";
-import type { Finding, Note, PassedCheck } from "./integrity/types.js";
+import type {
+  ChainVerificationResult,
+  CheckpointReport,
+  Finding,
+  Note,
+  PassedCheck,
+} from "./integrity/types.js";
 import { lintEvent } from "./privacy/lint-event.js";
 import { summarise } from "./privacy/types.js";
 import { availableProfiles, loadProfile } from "./profiles/load-profile.js";
@@ -73,13 +92,26 @@ const IMPLEMENTED_COMMANDS = new Set([
   "validate",
   "verify-integrity",
   "verify-chain",
+  "verify-checkpoint",
   "lint-privacy",
   "check-profile",
   "check-coverage",
 ]);
 
 /** The commands --format applies to; every other implemented command refuses the flag. */
-const FORMAT_COMMANDS = new Set(["lint-privacy", "check-profile", "check-coverage"]);
+const FORMAT_COMMANDS = new Set([
+  "verify-checkpoint",
+  "lint-privacy",
+  "check-profile",
+  "check-coverage",
+]);
+
+/** The commands --public-key applies to. */
+const PUBLIC_KEY_COMMANDS = new Set(["verify-integrity", "verify-chain", "verify-checkpoint"]);
+
+/** The fixed line that follows every verify-checkpoint verdict, so that a pass is never read as more than it is. */
+const CHECKPOINT_NOT_PROVEN =
+  "this establishes that the archive is consistent with the supplied checkpoint; whether the checkpoint is genuine and its anchor real is for whoever holds the anchor";
 
 const USAGE = `auditmodel — OpenAuditModel conformance tooling (specification ${SPEC_VERSION}, experimental)
 
@@ -87,6 +119,8 @@ Usage:
   auditmodel validate <path...>          Validate events against the canonical schema
   auditmodel verify-integrity <path...>  Recalculate and compare each event's own digest
   auditmodel verify-chain <path...>      Verify previous-hash chains across a set of events
+  auditmodel verify-checkpoint <path...> Compare an archive with a chain checkpoint
+                                          (--checkpoint <file>)
   auditmodel lint-privacy <path...>      Report suspected privacy and secret-exposure risks
   auditmodel check-profile <path...>     Check events against a domain profile
   auditmodel check-coverage <path...>    Report how much of a profile a set of events reaches
@@ -99,12 +133,17 @@ those files.
 
 Options:
   -q, --quiet                            Only report failures
-      --format <text|json>               Output format for lint-privacy, check-profile and
-                                          check-coverage
+      --format <text|json>               Output format for verify-checkpoint, lint-privacy,
+                                          check-profile and check-coverage
       --profile <name>                   Profile to check against (check-profile,
                                           check-coverage)
+      --checkpoint <file>                Checkpoint document to compare the archive with
+                                          (verify-checkpoint). Its anchor is never
+                                          dereferenced.
       --public-key <path>                PEM public key to verify integrity.signature against
-                                          (verify-integrity, verify-chain): Ed25519,
+                                          (verify-integrity, verify-chain,
+                                          verify-checkpoint, where it also verifies the
+                                          checkpoint's own signature): Ed25519,
                                           ECDSA-P256-SHA256 or RSA-PSS-SHA256; the key must be
                                           of the declared algorithm's type. Without it,
                                           a declared signature is reported but not checked;
@@ -121,6 +160,9 @@ Exit codes:
        lint-privacy   the input is not an audit event and was NOT scanned
        verify-chain   no event could be assigned to a chain, so no chain
                       was checked
+       verify-checkpoint
+                      the archive holds none of the chains the checkpoint
+                      names, so nothing was compared
        check-coverage no event in the set is governed by the profile, so the
                       profile reached nothing
 
@@ -350,6 +392,308 @@ function runVerifyIntegrity(
   return failed > 0 ? EXIT_INVALID : EXIT_OK;
 }
 
+/** The text block for one verified chain, shared by verify-chain and verify-checkpoint. */
+function writeChainResult(chain: ChainVerificationResult, quiet: boolean): void {
+  const range =
+    chain.firstSequence === undefined || chain.lastSequence === undefined
+      ? "none"
+      : `${chain.firstSequence}..${chain.lastSequence}`;
+
+  write(`chain ${chain.chainId}\n`);
+  write(`  events:    ${chain.eventCount}\n`);
+  write(`  sequences: ${range}\n`);
+  if (chain.headHash !== undefined) {
+    write(`  head:      ${chain.headHash}\n`);
+  }
+
+  if (!quiet) {
+    writeChecks(
+      chain.checks.map((check) => ({ message: `ok    ${check.message}` })),
+      "  ",
+    );
+  }
+  if (chain.findings.length > 0) {
+    write("  FAIL\n");
+    writeFindings(chain.findings, "    ");
+  }
+  if (!quiet) {
+    writeNotes(chain.notes, "  ");
+  }
+}
+
+/**
+ * True when the checkpoint file lies in or under a directory the events were
+ * read from. The tool cannot know a store's boundaries, but it can see when
+ * the two paths coincide — and a checkpoint kept beside the events it
+ * describes is the case integrity.md §8 (item 11) warns about.
+ */
+function checkpointSharesLocation(checkpointFile: string, inputs: readonly string[]): boolean {
+  const checkpointDirectory = path.resolve(path.dirname(checkpointFile));
+  for (const input of inputs) {
+    let base: string;
+    try {
+      base = statSync(input).isDirectory()
+        ? path.resolve(input)
+        : path.dirname(path.resolve(input));
+    } catch {
+      continue;
+    }
+    if (checkpointDirectory === base || checkpointDirectory.startsWith(`${base}${path.sep}`)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function runVerifyCheckpoint(
+  inputs: readonly string[],
+  quiet: boolean,
+  format: string,
+  checkpointFile: string | undefined,
+  publicKey: KeyObject | undefined,
+): number {
+  if (checkpointFile === undefined) {
+    process.stderr.write("auditmodel: verify-checkpoint requires --checkpoint <file>\n\n");
+    process.stderr.write(USAGE);
+    return EXIT_ERROR;
+  }
+
+  const json = format === "json";
+  const loaded = loadInput(inputs, "verify-checkpoint", quiet || json);
+  if (typeof loaded === "number") {
+    return loaded;
+  }
+
+  const parsed = readJsonFile(checkpointFile);
+  if (!parsed.ok) {
+    process.stderr.write(
+      `auditmodel: cannot read --checkpoint "${checkpointFile}": ${parsed.error}\n`,
+    );
+    return EXIT_ERROR;
+  }
+
+  let checkpointValidator: DocumentValidator;
+  try {
+    checkpointValidator = createCheckpointValidator();
+  } catch (cause) {
+    process.stderr.write(`auditmodel: ${(cause as Error).message}\n`);
+    return EXIT_ERROR;
+  }
+
+  const events: ChainEventInput[] = loaded.documents.map((document) => ({
+    label: displayLabel(document),
+    event: document.event,
+  }));
+  const report = verifyCheckpoint(
+    events,
+    parsed.value,
+    { events: loaded.validator, checkpoint: checkpointValidator },
+    { publicKey },
+  );
+  const sharedLocation = checkpointSharesLocation(checkpointFile, inputs);
+
+  if (json) {
+    writeCheckpointJson(
+      report,
+      checkpointFile,
+      checkpointValidator.schemaId,
+      loaded,
+      sharedLocation,
+    );
+  } else {
+    writeCheckpointText(report, checkpointFile, quiet, loaded, sharedLocation);
+  }
+
+  if (report.outcome === "invalid-checkpoint" || loaded.failures.length > 0) {
+    return EXIT_ERROR;
+  }
+  if (report.outcome === "no-chain") {
+    process.stderr.write(
+      "auditmodel: no verdict: the archive holds none of the chains the checkpoint names, so nothing was compared\n",
+    );
+    return EXIT_NO_VERDICT;
+  }
+  return report.outcome === "agrees" ? EXIT_OK : EXIT_INVALID;
+}
+
+const SHARED_LOCATION_NOTE: Note = {
+  message: "the checkpoint and the events come from the same location",
+  detail: [
+    "a checkpoint kept beside the events it describes proves little: whoever can rewrite the store can rewrite it too",
+    "see specification/integrity.md §8, item 11",
+  ],
+};
+
+function writeCheckpointText(
+  report: CheckpointReport,
+  checkpointFile: string,
+  quiet: boolean,
+  loaded: LoadedInput,
+  sharedLocation: boolean,
+): void {
+  reportLoadFailures(loaded.failures);
+
+  const version =
+    report.checkpointVersion === undefined ? "" : ` (checkpoint ${report.checkpointVersion})`;
+  write(`checkpoint ${displayPath(checkpointFile)}${version}\n`);
+  if (!quiet) {
+    writeChecks(
+      report.checks.map((check) => ({ message: `ok    ${check.message}` })),
+      "  ",
+    );
+  }
+  if (report.findings.length > 0) {
+    write("  FAIL\n");
+    writeFindings(report.findings, "    ");
+  }
+  if (report.anchor !== undefined && !quiet) {
+    write(`  anchor:    ${report.anchor.type} — ${report.anchor.reference} (not dereferenced)\n`);
+  }
+  if (report.description !== undefined && !quiet) {
+    write(`  describes: ${report.description}\n`);
+  }
+  if (sharedLocation && !quiet) {
+    writeNotes([SHARED_LOCATION_NOTE], "  ");
+  }
+  write("\n");
+
+  if (report.outcome === "invalid-checkpoint") {
+    write("the document is not a checkpoint, so nothing about the archive was judged\n");
+    return;
+  }
+
+  const archive = report.archive;
+  if (archive !== undefined && archive.unassigned.length > 0) {
+    write("events that could not be assigned to a chain\n");
+    writeFindings(archive.unassigned, "  ");
+    write("\n");
+  }
+
+  for (const entry of report.chains) {
+    if (entry.chain === undefined) {
+      write(`chain ${entry.claim.chainId}\n`);
+      write("  not in the archive\n");
+    } else {
+      writeChainResult(entry.chain, quiet);
+    }
+    write(`  checkpoint: head at sequence ${entry.claim.headSequence}\n`);
+    if (!quiet) {
+      writeChecks(
+        entry.checks.map((check) => ({ message: `ok    ${check.message}` })),
+        "  ",
+      );
+    }
+    if (entry.findings.length > 0) {
+      write("  FAIL\n");
+      writeFindings(entry.findings, "    ");
+    }
+    if (!quiet) {
+      writeNotes(entry.notes, "  ");
+    }
+    write(
+      `  ${entry.status === "agrees" ? "agrees with" : entry.status === "missing" ? "missing from the archive named by" : "disagrees with"} the checkpoint\n\n`,
+    );
+  }
+
+  // Chains the archive holds that the checkpoint says nothing about are
+  // reported as verify-chain reports them: a broken one keeps the archive
+  // from agreeing with anything, and a reader should not have to run a second
+  // command to learn that.
+  const named = new Set(report.chains.map((entry) => entry.claim.chainId));
+  const unnamed = (archive?.chains ?? []).filter((chain) => !named.has(chain.chainId));
+  for (const chain of unnamed) {
+    writeChainResult(chain, quiet);
+    write("  not named by the checkpoint\n\n");
+  }
+
+  const agrees = report.chains.filter((entry) => entry.status === "agrees").length;
+  const missing = report.chains.filter((entry) => entry.status === "missing").length;
+  const disagrees = report.chains.length - agrees - missing;
+  const chainNoun = report.chains.length === 1 ? "chain" : "chains";
+  write(
+    `${report.chains.length} ${chainNoun} named by the checkpoint: ${agrees} ${agrees === 1 ? "agrees" : "agree"}, ${disagrees} ${disagrees === 1 ? "disagrees" : "disagree"}, ${missing} missing (${archive?.eventCount ?? 0} events in the archive)\n`,
+  );
+  write(`${CHECKPOINT_NOT_PROVEN}\n`);
+}
+
+function writeCheckpointJson(
+  report: CheckpointReport,
+  checkpointFile: string,
+  checkpointSchemaId: string,
+  loaded: LoadedInput,
+  sharedLocation: boolean,
+): void {
+  const finding = (entry: Finding) => ({
+    kind: entry.kind,
+    ...(entry.label === undefined ? {} : { label: entry.label }),
+    message: entry.message,
+    ...(entry.detail === undefined ? {} : { detail: entry.detail }),
+  });
+  const payload = {
+    tool: "auditmodel verify-checkpoint",
+    specVersion: SPEC_VERSION,
+    schemaId: loaded.validator.schemaId,
+    checkpoint: {
+      file: displayPath(checkpointFile),
+      schemaId: checkpointSchemaId,
+      ...(report.checkpointVersion === undefined ? {} : { version: report.checkpointVersion }),
+      ...(report.anchor === undefined ? {} : { anchor: report.anchor }),
+      ...(report.signature === undefined ? {} : { signature: report.signature }),
+      ...(report.description === undefined ? {} : { description: report.description }),
+      checks: report.checks.map((check) => check.message),
+      findings: report.findings.map(finding),
+      sharesLocationWithEvents: sharedLocation,
+    },
+    outcome: report.outcome,
+    ...(report.archive === undefined
+      ? {}
+      : {
+          archive: {
+            eventCount: report.archive.eventCount,
+            chainCount: report.archive.chains.length,
+            intact: report.archive.intact,
+            unassigned: report.archive.unassigned.map(finding),
+          },
+        }),
+    chains: report.chains.map((entry) => ({
+      chainId: entry.claim.chainId,
+      status: entry.status,
+      claim: {
+        headSequence: entry.claim.headSequence,
+        headHash: entry.claim.headHash,
+        ...(entry.claim.eventCount === undefined ? {} : { eventCount: entry.claim.eventCount }),
+      },
+      ...(entry.chain === undefined
+        ? {}
+        : {
+            chain: {
+              eventCount: entry.chain.eventCount,
+              ...(entry.chain.firstSequence === undefined
+                ? {}
+                : { firstSequence: entry.chain.firstSequence }),
+              ...(entry.chain.lastSequence === undefined
+                ? {}
+                : { lastSequence: entry.chain.lastSequence }),
+              ...(entry.chain.headHash === undefined ? {} : { headHash: entry.chain.headHash }),
+              intact: entry.chain.intact,
+              checks: entry.chain.checks.map((check) => check.message),
+              findings: entry.chain.findings.map(finding),
+              notes: entry.chain.notes.map((note) => note.message),
+            },
+          }),
+      checks: entry.checks.map((check) => check.message),
+      findings: entry.findings.map(finding),
+      notes: entry.notes.map((note) => note.message),
+    })),
+    unreadable: loaded.failures.map((failure) => ({
+      file: displayPath(failure.file),
+      error: failure.error,
+    })),
+    notProven: CHECKPOINT_NOT_PROVEN,
+  };
+  write(`${JSON.stringify(payload, null, 2)}\n`);
+}
+
 function runVerifyChain(
   inputs: readonly string[],
   quiet: boolean,
@@ -376,31 +720,7 @@ function runVerifyChain(
   }
 
   for (const chain of report.chains) {
-    const range =
-      chain.firstSequence === undefined || chain.lastSequence === undefined
-        ? "none"
-        : `${chain.firstSequence}..${chain.lastSequence}`;
-
-    write(`chain ${chain.chainId}\n`);
-    write(`  events:    ${chain.eventCount}\n`);
-    write(`  sequences: ${range}\n`);
-    if (chain.headHash !== undefined) {
-      write(`  head:      ${chain.headHash}\n`);
-    }
-
-    if (!quiet) {
-      writeChecks(
-        chain.checks.map((check) => ({ message: `ok    ${check.message}` })),
-        "  ",
-      );
-    }
-    if (chain.findings.length > 0) {
-      write("  FAIL\n");
-      writeFindings(chain.findings, "    ");
-    }
-    if (!quiet) {
-      writeNotes(chain.notes, "  ");
-    }
+    writeChainResult(chain, quiet);
     write("\n");
   }
 
@@ -794,6 +1114,7 @@ export function run(argv: readonly string[]): number {
         // default is applied where the value is read.
         format: { type: "string" },
         profile: { type: "string" },
+        checkpoint: { type: "string" },
         "public-key": { type: "string" },
       },
     });
@@ -846,11 +1167,20 @@ export function run(argv: readonly string[]): number {
     return EXIT_ERROR;
   }
 
-  let publicKey: KeyObject | undefined;
+  // The same honesty for --checkpoint: it means one thing to one command.
   if (
-    typeof values["public-key"] === "string" &&
-    (command === "verify-integrity" || command === "verify-chain")
+    typeof values.checkpoint === "string" &&
+    IMPLEMENTED_COMMANDS.has(command) &&
+    command !== "verify-checkpoint"
   ) {
+    process.stderr.write(
+      `auditmodel: --checkpoint is not supported by "${command}"; it applies to verify-checkpoint\n`,
+    );
+    return EXIT_ERROR;
+  }
+
+  let publicKey: KeyObject | undefined;
+  if (typeof values["public-key"] === "string" && PUBLIC_KEY_COMMANDS.has(command)) {
     const keyPath = values["public-key"];
     let pemText: string;
     try {
@@ -877,6 +1207,15 @@ export function run(argv: readonly string[]): number {
   }
   if (command === "verify-chain") {
     return runVerifyChain(rest, quiet, publicKey);
+  }
+  if (command === "verify-checkpoint") {
+    return runVerifyCheckpoint(
+      rest,
+      quiet,
+      format,
+      typeof values.checkpoint === "string" ? values.checkpoint : undefined,
+      publicKey,
+    );
   }
   if (command === "lint-privacy") {
     return runLintPrivacy(rest, quiet, format);

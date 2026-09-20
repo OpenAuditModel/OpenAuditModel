@@ -77,6 +77,43 @@ export function verifyEventSignature(
   value: string,
   publicKey: KeyObject,
 ): SignatureCheckResult {
+  return verifySignature(canonicalBytes(buildDigestInput(event)), algorithm, value, publicKey);
+}
+
+/**
+ * The input a document-level signature covers: a deep clone of the document
+ * with `/signature` removed and nothing else touched. A checkpoint is signed
+ * this way — the same procedure as an event, with the pointer at the root.
+ */
+export function documentSignatureInput(document: unknown): unknown {
+  const clone = structuredClone(document);
+  if (clone !== null && typeof clone === "object" && !Array.isArray(clone)) {
+    delete (clone as Record<string, unknown>)["signature"];
+  }
+  return clone;
+}
+
+/** Verifies a document-level `signature`, such as a checkpoint's, under the event rules. */
+export function verifyDocumentSignature(
+  document: unknown,
+  algorithm: string,
+  value: string,
+  publicKey: KeyObject,
+): SignatureCheckResult {
+  return verifySignature(
+    canonicalBytes(documentSignatureInput(document)),
+    algorithm,
+    value,
+    publicKey,
+  );
+}
+
+function verifySignature(
+  data: Uint8Array,
+  algorithm: string,
+  value: string,
+  publicKey: KeyObject,
+): SignatureCheckResult {
   if (!isSupportedSignatureAlgorithm(algorithm)) {
     return {
       ok: false,
@@ -132,8 +169,6 @@ export function verifyEventSignature(
       message: `declared signature is ${signatureBytes.length} bytes, but ${algorithm} produces ${expectedLength}`,
     };
   }
-
-  const data = canonicalBytes(buildDigestInput(event));
 
   let valid: boolean;
   try {

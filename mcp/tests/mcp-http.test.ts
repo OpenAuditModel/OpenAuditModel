@@ -20,9 +20,14 @@ import { RESOURCE_URIS } from "../src/register-resources.js";
 import { BUNDLED_RESOURCES } from "../src/resource-manifest.generated.js";
 import { validator, iamProfile } from "../src/engines.js";
 import { MAX_EVENTS_PER_REQUEST } from "../src/output-safety.js";
-import { resolveSchemaPath, createValidator } from "../../conformance/src/validate.js";
+import {
+  createCheckpointValidator,
+  createValidator,
+  resolveSchemaPath,
+} from "../../conformance/src/validate.js";
 import { verifyEventIntegrity } from "../../conformance/src/integrity/verify-event.js";
 import { verifyChains } from "../../conformance/src/integrity/verify-chain.js";
+import { verifyCheckpoint } from "../../conformance/src/integrity/verify-checkpoint.js";
 import { buildDigestInput, sealEvent } from "../../conformance/src/integrity/digest.js";
 import { canonicalBytes } from "../../conformance/src/integrity/canonicalize.js";
 import { lintEvent } from "../../conformance/src/privacy/lint-event.js";
@@ -32,6 +37,7 @@ import { summariseCoverage } from "../../conformance/src/profiles/coverage.js";
 const schemaPath = resolveSchemaPath();
 const repoRoot = path.dirname(path.dirname(path.dirname(schemaPath)));
 const cliValidator = createValidator(schemaPath);
+const cliCheckpointValidator = createCheckpointValidator(schemaPath);
 
 const ORIGIN = "https://openauditmodel.org";
 
@@ -247,9 +253,9 @@ describe("protocol", () => {
     assert.equal(info["version"], SERVER_VERSION);
   });
 
-  test("exactly eight tools are listed", async () => {
+  test("exactly nine tools are listed", async () => {
     const tools = (await rpc("tools/list"))["tools"] as Array<{ name: string }>;
-    assert.equal(tools.length, 8);
+    assert.equal(tools.length, 9);
     assert.deepEqual(tools.map((tool) => tool.name).sort(), [...TOOL_NAMES].sort());
   });
 
@@ -389,6 +395,88 @@ describe("tool parity with the conformance engines", () => {
 
       const chains = actual["chains"] as Array<Record<string, unknown>>;
       assert.equal(chains[0]?.["headHash"], expected.chains[0]?.headHash ?? null, directory);
+    }
+  });
+
+  test("verify_checkpoint agrees with the checkpoint taken at the chain's head", async () => {
+    const directory = "examples/integrity/valid/three-event-chain";
+    const events = ["001.json", "002.json", "003.json"].map((file) => readEvent(directory, file));
+    const checkpoint = readEvent(
+      "examples/integrity/checkpoints",
+      "three-event-chain.checkpoint.json",
+    );
+    const publicKeyPem = readFileSync(
+      path.join(repoRoot, "examples", "integrity", "keys", "ed25519-test-public.pem"),
+      "utf8",
+    );
+
+    const actual = await callTool("verify_checkpoint", { events, checkpoint, publicKeyPem });
+    assert.equal(actual["outcome"], "agrees");
+    assert.equal(actual["agrees"], true);
+    assert.equal((actual["signature"] as Json)["status"], "valid");
+    const chains = actual["chains"] as Array<Record<string, unknown>>;
+    assert.equal(chains[0]?.["status"], "agrees");
+    assert.ok((actual["note"] as string).includes("whoever holds the anchor"));
+  });
+
+  test("verify_checkpoint catches the deleted tail that verify_chain cannot see", async () => {
+    const directory = "examples/integrity/invalid/truncated-chain";
+    const events = ["001.json", "002.json"].map((file) => readEvent(directory, file));
+    const checkpoint = readEvent(
+      "examples/integrity/checkpoints",
+      "three-event-chain.checkpoint.json",
+    );
+
+    const asChain = await callTool("verify_chain", { events });
+    assert.equal(asChain["valid"], true, "the truncated chain is internally consistent");
+
+    const actual = await callTool("verify_checkpoint", { events, checkpoint });
+    assert.equal(actual["outcome"], "disagrees");
+    const chains = actual["chains"] as Array<Record<string, unknown>>;
+    assert.deepEqual(
+      (chains[0]?.["findings"] as Array<{ kind: string }>).map((finding) => finding.kind),
+      ["tail-truncated"],
+    );
+  });
+
+  test("verify_checkpoint reports a document that is not a checkpoint as such, not as an error", async () => {
+    const directory = "examples/integrity/valid/three-event-chain";
+    const events = ["001.json", "002.json", "003.json"].map((file) => readEvent(directory, file));
+    const checkpoint = readEvent(
+      "examples/integrity/checkpoints",
+      "three-event-chain.unanchored.checkpoint.json",
+    );
+
+    const actual = await callTool("verify_checkpoint", { events, checkpoint });
+    assert.equal(actual["outcome"], "invalid-checkpoint");
+    assert.equal(actual["archive"], null, "nothing about the archive is judged");
+    assert.deepEqual(
+      (actual["findings"] as Array<{ kind: string }>).map((finding) => finding.kind),
+      ["checkpoint-schema-invalid"],
+    );
+  });
+
+  test("verify_checkpoint matches the checkpoint verifier", async () => {
+    const directory = "examples/integrity/valid/three-event-chain";
+    const events = ["001.json", "002.json", "003.json"].map((file) => readEvent(directory, file));
+    for (const file of [
+      "three-event-chain.stale.checkpoint.json",
+      "three-event-chain.wrong-head.checkpoint.json",
+      "archive.checkpoint.json",
+    ]) {
+      const checkpoint = readEvent("examples/integrity/checkpoints", file);
+      const expected = verifyCheckpoint(
+        events.map((event, index) => ({ label: `events[${index}]`, event })),
+        checkpoint,
+        { events: cliValidator, checkpoint: cliCheckpointValidator },
+      );
+      const actual = await callTool("verify_checkpoint", { events, checkpoint });
+      assert.equal(actual["outcome"], expected.outcome, file);
+      assert.deepEqual(
+        (actual["chains"] as Array<Record<string, unknown>>).map((entry) => entry["status"]),
+        expected.chains.map((entry) => entry.status),
+        file,
+      );
     }
   });
 

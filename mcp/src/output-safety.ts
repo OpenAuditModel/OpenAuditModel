@@ -18,7 +18,7 @@
 /** Largest single event, measured as serialized JSON. */
 export const MAX_EVENT_BYTES = 256_000;
 
-/** Largest number of events accepted by `verify_chain` in one request. */
+/** Largest number of events accepted by `verify_chain` or `verify_checkpoint` in one request. */
 export const MAX_EVENTS_PER_REQUEST = 200;
 
 /**
