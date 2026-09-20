@@ -13,6 +13,7 @@ import type { AnySchemaObject, ErrorObject, ValidateFunction } from "ajv";
 import formatsModule from "ajv-formats";
 import { toIssues, type ValidationIssue } from "./format-errors.js";
 import {
+  CHECKPOINT_SCHEMA_ID,
   createValidatorFromCompiled,
   SCHEMA_ID,
   SPEC_VERSION,
@@ -22,7 +23,7 @@ import {
 // Re-exported so that existing import sites keep working. Code that only needs
 // a precompiled validator should import ./validator-interface.js directly, which
 // keeps Ajv out of its bundle entirely.
-export { createValidatorFromCompiled, SCHEMA_ID, SPEC_VERSION };
+export { CHECKPOINT_SCHEMA_ID, createValidatorFromCompiled, SCHEMA_ID, SPEC_VERSION };
 export type { EventValidator };
 
 /** `ajv-formats` is published as CommonJS; this is its ESM-interop entry point. */
@@ -63,13 +64,30 @@ export function validateSchemaDocument(schema: AnySchemaObject): ValidationIssue
  * {@link createValidatorFromCompiled}.
  */
 export function createValidatorFromSchema(schema: AnySchemaObject): EventValidator {
+  return createValidatorFromSchemas(schema, []);
+}
+
+/**
+ * Compiles a schema that refers to other schemas by their `$id` — the
+ * checkpoint schema's references into the audit event schema's `$defs`, for
+ * instance. The referenced schemas are registered first; Ajv never fetches a
+ * `$ref`, so a reference to a schema that is not registered fails here, at
+ * compile time, rather than being resolved over the network.
+ */
+export function createValidatorFromSchemas(
+  schema: AnySchemaObject,
+  referenced: readonly AnySchemaObject[],
+): EventValidator {
   const ajv = createAjv();
+  for (const other of referenced) {
+    ajv.addSchema(other);
+  }
   const compiled: ValidateFunction = ajv.compile(schema);
   const schemaId = typeof schema["$id"] === "string" ? schema["$id"] : SCHEMA_ID;
 
   return {
     schemaId,
-    validateEvent: (event) => (compiled(event) ? [] : toIssues(compiled.errors)),
+    validateEvent: (document) => (compiled(document) ? [] : toIssues(compiled.errors)),
   };
 }
 

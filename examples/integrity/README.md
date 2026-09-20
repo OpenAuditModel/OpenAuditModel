@@ -24,10 +24,14 @@ auditmodel verify-integrity examples/integrity/valid/single-event-sha256.json
 auditmodel verify-chain examples/integrity/valid/three-event-chain
 auditmodel verify-integrity examples/integrity/valid/signed-event-ed25519.json \
   --public-key examples/integrity/keys/ed25519-test-public.pem
+auditmodel verify-checkpoint examples/integrity/valid/three-event-chain \
+  --checkpoint examples/integrity/checkpoints/three-event-chain.checkpoint.json
 ```
 
-Every fixture in this directory, valid and invalid alike, is a **schema-valid** event. The invalid
-ones fail verification, not validation — that is the point of separating the two commands.
+Every event fixture in this directory, valid and invalid alike, is a **schema-valid** event. The
+invalid ones fail verification, not validation — that is the point of separating the two commands.
+The documents under [checkpoints/](checkpoints/) are not events; they validate against the
+[checkpoint schema](../../schemas/checkpoint/v0.1/checkpoint.schema.json).
 
 ## Keys
 
@@ -77,17 +81,18 @@ Each fails verification for one documented reason. The expectations are asserted
 [`integrity-event.test.ts`](../../conformance/tests/integrity-event.test.ts) and
 [`integrity-chain.test.ts`](../../conformance/tests/integrity-chain.test.ts).
 
-| Fixture                                                                              | Defect                                                                    | Finding                           |
-| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- | --------------------------------- |
-| [tampered-event.json](invalid/tampered-event.json)                                   | Content changed after sealing; declared hash untouched                    | `hash-mismatch`                   |
-| [wrong-declared-hash.json](invalid/wrong-declared-hash.json)                         | Content untouched; declared hash is a digest of another event             | `hash-mismatch`                   |
-| [unsupported-algorithm.json](invalid/unsupported-algorithm.json)                     | Declares `BLAKE3`, which the v0.1 verifier does not implement             | `unsupported-algorithm`           |
-| [tampered-signed-event.json](invalid/tampered-signed-event.json)                     | Content changed after signing; hash fails before the signature is reached | `hash-mismatch`                   |
-| [unsupported-signature-algorithm.json](invalid/unsupported-signature-algorithm.json) | Declares `ECDSA-P384-SHA384`, which this verifier does not implement      | `unsupported-signature-algorithm` |
-| [broken-previous-hash/](invalid/broken-previous-hash/)                               | Event 3 re-linked past event 2 and re-sealed                              | `broken-link`                     |
-| [duplicate-sequence/](invalid/duplicate-sequence/)                                   | Two events declare sequence 2                                             | `duplicate-sequence`              |
-| [missing-sequence/](invalid/missing-sequence/)                                       | Event 2 declares no sequence                                              | `sequence-missing`                |
-| [reordered-chain/](invalid/reordered-chain/)                                         | Events 2 and 3 swap sequence numbers without re-sealing                   | `hash-mismatch`                   |
+| Fixture                                                                              | Defect                                                                    | Finding                                                             |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| [tampered-event.json](invalid/tampered-event.json)                                   | Content changed after sealing; declared hash untouched                    | `hash-mismatch`                                                     |
+| [wrong-declared-hash.json](invalid/wrong-declared-hash.json)                         | Content untouched; declared hash is a digest of another event             | `hash-mismatch`                                                     |
+| [unsupported-algorithm.json](invalid/unsupported-algorithm.json)                     | Declares `BLAKE3`, which the v0.1 verifier does not implement             | `unsupported-algorithm`                                             |
+| [tampered-signed-event.json](invalid/tampered-signed-event.json)                     | Content changed after signing; hash fails before the signature is reached | `hash-mismatch`                                                     |
+| [unsupported-signature-algorithm.json](invalid/unsupported-signature-algorithm.json) | Declares `ECDSA-P384-SHA384`, which this verifier does not implement      | `unsupported-signature-algorithm`                                   |
+| [broken-previous-hash/](invalid/broken-previous-hash/)                               | Event 3 re-linked past event 2 and re-sealed                              | `broken-link`                                                       |
+| [duplicate-sequence/](invalid/duplicate-sequence/)                                   | Two events declare sequence 2                                             | `duplicate-sequence`                                                |
+| [missing-sequence/](invalid/missing-sequence/)                                       | Event 2 declares no sequence                                              | `sequence-missing`                                                  |
+| [reordered-chain/](invalid/reordered-chain/)                                         | Events 2 and 3 swap sequence numbers without re-sealing                   | `hash-mismatch`                                                     |
+| [truncated-chain/](invalid/truncated-chain/)                                         | Events 1 and 2 of the three; the tail is gone                             | none from `verify-chain`; `tail-truncated` from `verify-checkpoint` |
 
 ### Why some of these look similar
 
@@ -116,8 +121,48 @@ which is precisely the reason chain metadata is inside the digest. See
 is never reached. The signature would in fact also fail — the content changed after both sealing and
 signing — but the tool reports the first problem it finds, not every problem that exists.
 
+**`truncated-chain` is not broken.** It is the first two events of `three-event-chain`, exactly as
+sealed, and `verify-chain` reports it intact — a chain whose tail was deleted is internally
+consistent, which is what [integrity.md](../../specification/integrity.md) §8 (item 4) warns about.
+Only a checkpoint can show what is missing; see below.
+
+## Checkpoints
+
+A checkpoint records a chain's head so that it can be kept somewhere the store's administrators do
+not control. The documents under [checkpoints/](checkpoints/) are generated by the same tool as the
+events, from the same hashes, and are compared with an archive by `verify-checkpoint`.
+
+| Document                                                                                                 | Against                       | Outcome                                     |
+| -------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------------------------------- |
+| [three-event-chain.checkpoint.json](checkpoints/three-event-chain.checkpoint.json)                       | `valid/three-event-chain/`    | agrees; signed with the Ed25519 test key    |
+| the same document                                                                                        | `invalid/truncated-chain/`    | exit 1, `tail-truncated`                    |
+| the same document                                                                                        | `valid/chain-in-two-batches/` | exit 3: the archive holds no such chain     |
+| [three-event-chain.stale.checkpoint.json](checkpoints/three-event-chain.stale.checkpoint.json)           | `valid/three-event-chain/`    | agrees, with one event noted as not covered |
+| [three-event-chain.wrong-head.checkpoint.json](checkpoints/three-event-chain.wrong-head.checkpoint.json) | `valid/three-event-chain/`    | exit 1, `checkpoint-head-mismatch`          |
+| [three-event-chain.unanchored.checkpoint.json](checkpoints/three-event-chain.unanchored.checkpoint.json) | anything                      | exit 2: not a checkpoint, nothing judged    |
+| [archive.checkpoint.json](checkpoints/archive.checkpoint.json)                                           | both `valid/` chains together | agrees; the multi-chain form                |
+
+The pair worth running is the second one, because the two commands disagree on purpose:
+
+```bash
+auditmodel verify-chain examples/integrity/invalid/truncated-chain          # exit 0
+auditmodel verify-checkpoint examples/integrity/invalid/truncated-chain \
+  --checkpoint examples/integrity/checkpoints/three-event-chain.checkpoint.json   # exit 1
+```
+
+**The anchoring rule is a schema constraint.** `anchor.type` and `anchor.reference` are required and
+may not be blank, which is why `three-event-chain.unanchored.checkpoint.json` exits `2` rather than
+`1`: a checkpoint that names no place beyond the store's reach is not a checkpoint, and nothing about
+the archive is judged against it. The verifier never dereferences an anchor.
+
+**What a passing run establishes** is printed after every verdict: the archive is consistent with the
+checkpoint it was handed. Whether the checkpoint is genuine and its anchor real is for whoever holds
+the anchor. A checkpoint kept beside the events it describes is noted as such, because whoever can
+rewrite the store can rewrite it too.
+
 ## What these fixtures cannot show
 
-No fixture demonstrates tail truncation, because a truncated chain is internally consistent and there
-is nothing to detect. That limitation is real, is not an implementation defect, and is stated in
-[integrity.md](../../specification/integrity.md) §8.
+Nothing here demonstrates a checkpoint whose anchor was itself forged or withdrawn, because that is
+not something an offline tool can see. The tool compares an archive with the checkpoint in front of
+it; the anchor's provenance is the holder's. That limitation is real, is not an implementation
+defect, and is stated in [integrity.md](../../specification/integrity.md) §8, item 11.

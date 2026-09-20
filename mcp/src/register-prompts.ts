@@ -96,7 +96,9 @@ Work in this order.
 4. If the event carries an integrity object, call verify_integrity. Describe the outcome as
    tamper-evidence: a valid digest means the event has not been altered since it was sealed. It does
    not prove the event was ever stored, is still stored, or belongs to a complete chain. For a set of
-   chained events, call verify_chain.
+   chained events, call verify_chain. When a checkpoint for the chain exists, call verify_checkpoint
+   as well: it is the only check that can show a deleted tail, and what it establishes is consistency
+   with the checkpoint supplied, not that the checkpoint is genuine.
 
 5. Explain what each finding means for the audit purpose — what question the trail can no longer
    answer — rather than only restating the rule.

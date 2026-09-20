@@ -111,7 +111,17 @@ export type ChainFindingKind =
   | "broken-link"
   | "algorithm-mismatch";
 
-export type FindingKind = EventFindingKind | ChainFindingKind;
+/** Why an archive disagrees with a checkpoint, or why no verdict could be reached. */
+export type CheckpointFindingKind =
+  | "checkpoint-schema-invalid"
+  | "checkpoint-chain-missing"
+  | "checkpoint-algorithm-mismatch"
+  | "tail-truncated"
+  | "checkpoint-head-mismatch"
+  | "checkpoint-head-missing"
+  | "checkpoint-count-mismatch";
+
+export type FindingKind = EventFindingKind | ChainFindingKind | CheckpointFindingKind;
 
 /** A single reason verification did not succeed. */
 export interface Finding {
@@ -173,4 +183,75 @@ export interface ChainReport {
   readonly unassigned: readonly Finding[];
   readonly eventCount: number;
   readonly intact: boolean;
+}
+
+/** What a checkpoint records about one chain. */
+export interface CheckpointClaim {
+  readonly chainId: string;
+  readonly headSequence: number;
+  readonly headHash: string;
+  /** Events at or below the head, when the checkpoint states it. */
+  readonly eventCount?: number;
+}
+
+/**
+ * How one chain named by the checkpoint compares with the archive. `missing`
+ * means the archive holds no chain with that identifier at all.
+ */
+export type CheckpointChainStatus = "agrees" | "disagrees" | "missing";
+
+/** Outcome for one chain the checkpoint names. */
+export interface CheckpointChainResult {
+  readonly claim: CheckpointClaim;
+  readonly status: CheckpointChainStatus;
+  /** The chain as `verifyChains` saw it; absent when the archive holds no such chain. */
+  readonly chain?: ChainVerificationResult;
+  /** Checks the comparison passed. The chain's own checks are in `chain`. */
+  readonly checks: readonly PassedCheck[];
+  /** Findings of the comparison. The chain's own findings are in `chain`. */
+  readonly findings: readonly Finding[];
+  readonly notes: readonly Note[];
+}
+
+/** What the checkpoint's signature turned out to be, when it declares one. */
+export interface CheckpointSignatureResult {
+  readonly algorithm: string;
+  readonly status: "valid" | "not-checked" | "invalid";
+  readonly message: string;
+}
+
+/**
+ * The verdict on the whole comparison.
+ *
+ * - `agrees`: every chain the checkpoint names is in the archive, intact, and
+ *   reaches the recorded head.
+ * - `disagrees`: something the checkpoint records is not what the archive
+ *   holds, a named chain is broken or absent while others are present, or the
+ *   checkpoint's signature failed against the supplied key.
+ * - `no-chain`: the archive holds none of the chains the checkpoint names, so
+ *   nothing was compared. No verdict, and never an approval.
+ * - `invalid-checkpoint`: the document is not a checkpoint under its schema;
+ *   nothing about the archive was judged.
+ */
+export type CheckpointOutcome = "agrees" | "disagrees" | "no-chain" | "invalid-checkpoint";
+
+/** Outcome of comparing an archive with a checkpoint. */
+export interface CheckpointReport {
+  readonly outcome: CheckpointOutcome;
+  readonly checkpointVersion?: string;
+  readonly anchor?: {
+    readonly type: string;
+    readonly reference: string;
+    readonly recordedAt?: string;
+  };
+  readonly signature?: CheckpointSignatureResult;
+  readonly description?: string;
+  /** Checks on the checkpoint document itself. */
+  readonly checks: readonly PassedCheck[];
+  /** Findings on the checkpoint document itself: schema and signature. */
+  readonly findings: readonly Finding[];
+  /** The archive as `verifyChains` reports it; absent when the checkpoint was not valid. */
+  readonly archive?: ChainReport;
+  /** One entry per chain the checkpoint names, in the checkpoint's order. */
+  readonly chains: readonly CheckpointChainResult[];
 }

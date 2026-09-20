@@ -98,6 +98,13 @@ const CATALOGUE = [
     "Profile Definition Schema 0.1",
     "Schema for profile documents. Never constrains an audit event.",
   ],
+  [
+    "openauditmodel://schema/checkpoint/0.1",
+    "schemas/checkpoint/v0.1/checkpoint.schema.json",
+    SCHEMA_JSON,
+    "Chain Checkpoint Schema 0.1",
+    "Schema for chain checkpoint documents, the reference verify_checkpoint compares an archive with. A tooling document versioned on its own; never constrains an audit event.",
+  ],
 
   // Semantic conventions
   [

@@ -250,8 +250,9 @@ This section is normative in the sense that documentation and tooling MUST NOT c
    historical chain was supplied.
 4. **Tail truncation may be undetectable.** An attacker who removes the most recent events leaves a
    shorter chain that is internally perfectly consistent. Detecting this requires an external
-   checkpoint — a chain head published somewhere the attacker does not control — which is out of
-   scope for v0.1.
+   checkpoint — a chain head recorded somewhere the attacker does not control. This specification
+   defines no checkpoint; the tooling implements one as a separately versioned document and
+   compares archives with it (§9), and item 11 applies to it in full.
 5. **Head truncation is reported, not prevented.** A segment that does not begin at a genesis event is
    flagged, but a verifier cannot know what preceded it.
 6. **Hash chaining does not replace WORM storage.** A party that can rewrite the store can also
@@ -272,12 +273,14 @@ This section is normative in the sense that documentation and tooling MUST NOT c
 
 ## 9. Verifying with the conformance tooling
 
-Two commands are implemented in v0.1. Both are offline: they resolve no remote reference, fetch no
-evidence URL and execute nothing contained in an event.
+Three commands are implemented. All are offline: they resolve no remote reference, fetch no
+evidence URL, dereference no anchor and execute nothing contained in an event.
 
 ```bash
 auditmodel verify-integrity examples/integrity/valid/single-event-sha256.json
 auditmodel verify-chain examples/integrity/valid/three-event-chain
+auditmodel verify-checkpoint examples/integrity/valid/three-event-chain \
+  --checkpoint examples/integrity/checkpoints/three-event-chain.checkpoint.json
 ```
 
 `verify-integrity` validates the event against the canonical schema, confirms the declared
@@ -291,7 +294,19 @@ of its highest-sequence event, the value §10 asks producers to publish — and 
 batches the events declare as a note. Batches are reported, not judged
 ([ADR 0013](../decisions/0013-batch-id-reported-not-judged.md)).
 
-Both commands accept `--public-key <path>`, a PEM-encoded public key for the declared algorithm —
+`verify-checkpoint` compares an archive with a **chain checkpoint**: a document under its own schema,
+`https://openauditmodel.org/schemas/checkpoint/0.1/schema.json`, versioned independently of this
+specification, that records a chain's head — sequence and hash — at the moment it was taken, and an
+anchor naming where that record was placed beyond the store's reach. The command verifies the
+archive exactly as `verify-chain` does, then requires the event at the recorded sequence to carry the
+recorded hash. A chain that ends before the head is reported `tail-truncated`, the one failure §8
+item 4 says chain verification cannot see; events after the head are noted as not covered, never
+failed. The anchor is required by the schema and never dereferenced. What the command establishes is
+that the archive is consistent with the checkpoint it was handed, and it says so after every verdict;
+whether the checkpoint is genuine and its anchor real is for whoever holds the anchor. See
+[ADR 0014](../decisions/0014-chain-checkpoints.md).
+
+All three commands accept `--public-key <path>`, a PEM-encoded public key for the declared algorithm —
 `Ed25519`, `ECDSA-P256-SHA256` or `RSA-PSS-SHA256`. When it is supplied and
 an event declares `integrity.signature`, the signature is verified against the same digest input as
 the hash. Without it, `verify-integrity` reports a declared signature in an implemented algorithm as
@@ -299,24 +314,32 @@ present but not checked — the verdict rests on the hash alone, and silence nev
 check; `verify-chain` reports chain-level checks, not per-event ones. A declared
 signature in an algorithm this verifier does not implement fails verification whether or not a key is
 supplied, as §6.1 requires: a signature that can never be checked here must not read as verified.
+`verify-checkpoint` applies the same key to the checkpoint's own `signature`, which covers the
+canonical form of the document with `/signature` removed.
 
 ```bash
 auditmodel verify-integrity examples/integrity/valid/signed-event-ed25519.json \
   --public-key examples/integrity/keys/ed25519-test-public.pem
 ```
 
-Exit codes are `0` verified, `1` a verification failed, `2` a usage, read or parse error, and — for
-`verify-chain` — `3` when no event could be assigned to a chain, so no chain was checked and
-nothing was proven.
+Exit codes are `0` verified, `1` a verification failed, `2` a usage, read or parse error — for
+`verify-checkpoint`, also a document that is not a checkpoint under its schema — and `3` when no
+verdict was produced: for `verify-chain`, no event could be assigned to a chain, so no chain was
+checked; for `verify-checkpoint`, the archive holds none of the chains the checkpoint names, so
+nothing was compared. Neither `3` is an approval.
 
 **Implemented:** Ed25519, ECDSA-P256-SHA256 and RSA-PSS-SHA256 signature verification, given a
 public key supplied out of band — there is no key registry to resolve `keyId` against. ECDSA
 signatures are expected in IEEE P1363 form (`r ‖ s`, 64 bytes); RSA-PSS signatures are verified with
 the salt length recovered from the signature, and keys under 2048 bits are refused.
 
+**Implemented, as tooling:** chain checkpoints — the document format above and `verify-checkpoint`.
+The specification defines neither; the tooling versions the document on its own.
+
 **Not implemented**, and not to be inferred from the presence of the fields that would support them:
 signing, key generation, key storage, key management integrations, certificate parsing, trust
-stores, transparency logs, timestamp authorities, WORM storage and remote verification services.
+stores, transparency logs, timestamp authorities, anchor resolution of any kind, WORM storage and
+remote verification services.
 
 ## 10. Practical guidance
 

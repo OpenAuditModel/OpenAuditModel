@@ -99,6 +99,24 @@ jobs:
           node dist/conformance/src/cli.js verify-chain examples/integrity/valid/three-event-chain
           node dist/conformance/src/cli.js verify-chain examples/integrity/valid/chain-in-two-batches
 
+      - name: Verify the archive against its checkpoint, with the test public key
+        run: |
+          node dist/conformance/src/cli.js verify-checkpoint examples/integrity/valid/three-event-chain \
+            --checkpoint examples/integrity/checkpoints/three-event-chain.checkpoint.json \
+            --public-key examples/integrity/keys/ed25519-test-public.pem
+
+      - name: Confirm the deleted tail passes verify-chain and fails verify-checkpoint
+        # The one case checkpoints exist for. A truncated chain is internally
+        # consistent, so verify-chain must pass it; the checkpoint taken at its
+        # real head must not.
+        run: |
+          node dist/conformance/src/cli.js verify-chain examples/integrity/invalid/truncated-chain --quiet
+          if node dist/conformance/src/cli.js verify-checkpoint examples/integrity/invalid/truncated-chain \
+            --checkpoint examples/integrity/checkpoints/three-event-chain.checkpoint.json --quiet; then
+            echo "::error::expected the truncated chain to disagree with its checkpoint, but it agreed"
+            exit 1
+          fi
+
       - name: Verify an Ed25519-signed event with the test public key
         run: |
           node dist/conformance/src/cli.js verify-integrity \
@@ -123,6 +141,8 @@ jobs:
             fi
           done
           for directory in examples/integrity/invalid/*/; do
+            # Consistent by design; it is checked against its checkpoint above.
+            case "$directory" in */truncated-chain/) continue ;; esac
             if node dist/conformance/src/cli.js verify-chain "$directory" --quiet; then
               echo "::error::expected chain $directory to fail verification, but it passed"
               status=1

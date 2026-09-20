@@ -40,10 +40,16 @@ import { deepStrictEqual } from "node:assert";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
-import { createValidator, resolveSchemaPath, SPEC_VERSION } from "../src/validate.js";
+import {
+  createCheckpointValidator,
+  createValidator,
+  resolveSchemaPath,
+  SPEC_VERSION,
+} from "../src/validate.js";
 import { lintEvent } from "../src/privacy/lint-event.js";
 import { verifyEventIntegrity } from "../src/integrity/verify-event.js";
 import { verifyChains } from "../src/integrity/verify-chain.js";
+import { verifyCheckpoint } from "../src/integrity/verify-checkpoint.js";
 import { availableProfiles, loadProfile } from "../src/profiles/load-profile.js";
 import { checkProfile } from "../src/profiles/check-profile.js";
 import type { ProfileDefinition } from "../src/profiles/types.js";
@@ -52,6 +58,10 @@ const schemaPath = resolveSchemaPath();
 const repoRoot = path.dirname(path.dirname(path.dirname(schemaPath)));
 const kitRoot = path.join(repoRoot, "conformance-kit");
 const validator = createValidator(schemaPath);
+const checkpointValidator = createCheckpointValidator(schemaPath);
+
+/** Published documents that are not events and are recorded by their own family instead. */
+const CHECKPOINT_DIRECTORY = "examples/integrity/checkpoints/";
 
 /** A JSON Pointer and the schema keyword that rejected it. */
 interface SchemaIssue {
@@ -103,6 +113,69 @@ interface ChainRecord {
     readonly findings: readonly string[];
   }[];
 }
+
+interface CheckpointRecord {
+  /** The checkpoint document, relative to the repository root. */
+  readonly checkpoint: string;
+  /** The directories compared with it as one archive, relative to the repository root. */
+  readonly archive: readonly string[];
+  readonly outcome: string;
+  /** Finding kinds on the document itself: its schema and its signature. */
+  readonly findings: readonly string[];
+  /** One entry per chain the checkpoint names; a chain's own findings are in `chains`. */
+  readonly chains: readonly {
+    readonly chainId: string;
+    readonly status: string;
+    readonly findings: readonly string[];
+  }[];
+}
+
+/**
+ * Which archive each published checkpoint is compared with. A checkpoint on
+ * its own records nothing; the pairing is the case. The same document appears
+ * against several archives on purpose: the checkpoint that agrees with the
+ * full chain is the one that catches the truncated copy of it.
+ */
+const CHECKPOINT_CASES: readonly {
+  readonly checkpoint: string;
+  readonly archive: readonly string[];
+}[] = [
+  {
+    checkpoint: "examples/integrity/checkpoints/three-event-chain.checkpoint.json",
+    archive: ["examples/integrity/valid/three-event-chain"],
+  },
+  {
+    checkpoint: "examples/integrity/checkpoints/three-event-chain.checkpoint.json",
+    archive: ["examples/integrity/invalid/truncated-chain"],
+  },
+  {
+    checkpoint: "examples/integrity/checkpoints/three-event-chain.checkpoint.json",
+    archive: ["examples/integrity/valid/chain-in-two-batches"],
+  },
+  {
+    checkpoint: "examples/integrity/checkpoints/three-event-chain.stale.checkpoint.json",
+    archive: ["examples/integrity/valid/three-event-chain"],
+  },
+  {
+    checkpoint: "examples/integrity/checkpoints/three-event-chain.wrong-head.checkpoint.json",
+    archive: ["examples/integrity/valid/three-event-chain"],
+  },
+  {
+    checkpoint: "examples/integrity/checkpoints/three-event-chain.unanchored.checkpoint.json",
+    archive: ["examples/integrity/valid/three-event-chain"],
+  },
+  {
+    checkpoint: "examples/integrity/checkpoints/archive.checkpoint.json",
+    archive: [
+      "examples/integrity/valid/three-event-chain",
+      "examples/integrity/valid/chain-in-two-batches",
+    ],
+  },
+  {
+    checkpoint: "examples/integrity/checkpoints/archive.checkpoint.json",
+    archive: ["examples/integrity/valid/three-event-chain"],
+  },
+];
 
 type Event = Record<string, unknown>;
 
@@ -250,6 +323,36 @@ function recordChain(directory: string): ChainRecord {
   };
 }
 
+function recordCheckpoint(testCase: (typeof CHECKPOINT_CASES)[number]): CheckpointRecord {
+  const events = testCase.archive.flatMap((directory) =>
+    jsonFiles(path.join(repoRoot, directory)).map((file) => ({
+      label: relative(file),
+      event: JSON.parse(readFileSync(file, "utf8")) as Event,
+    })),
+  );
+  const checkpoint = JSON.parse(
+    readFileSync(path.join(repoRoot, testCase.checkpoint), "utf8"),
+  ) as unknown;
+  const report = verifyCheckpoint(events, checkpoint, {
+    events: validator,
+    checkpoint: checkpointValidator,
+  });
+
+  return {
+    checkpoint: testCase.checkpoint,
+    archive: testCase.archive,
+    outcome: report.outcome,
+    findings: report.findings.map((finding) => finding.kind),
+    chains: report.chains.map((entry) => ({
+      chainId: entry.claim.chainId,
+      status: entry.status,
+      findings: entry.findings.map((finding) => finding.kind),
+    })),
+  };
+}
+
+export { CHECKPOINT_CASES, CHECKPOINT_DIRECTORY };
+
 export interface ConformanceKit {
   readonly specVersion: string;
   readonly schemaId: string;
@@ -257,6 +360,7 @@ export interface ConformanceKit {
   readonly profiles: readonly { readonly name: string; readonly version: string }[];
   readonly fixtures: readonly FixtureRecord[];
   readonly chains: readonly ChainRecord[];
+  readonly checkpoints: readonly CheckpointRecord[];
 }
 
 /** Builds the kit from the published fixtures and the engines. */
@@ -269,8 +373,12 @@ export function buildKit(): ConformanceKit {
     }
   }
 
+  // Keys are not JSON and checkpoints are not events; the latter have a
+  // family of their own below.
   const files = jsonFiles(path.join(repoRoot, "examples")).filter(
-    (file) => !relative(file).startsWith("examples/integrity/keys/"),
+    (file) =>
+      !relative(file).startsWith("examples/integrity/keys/") &&
+      !relative(file).startsWith(CHECKPOINT_DIRECTORY),
   );
 
   return {
@@ -289,6 +397,7 @@ export function buildKit(): ConformanceKit {
     })),
     fixtures: files.map((file) => recordFixture(file, profiles)),
     chains: chainDirectories().map((directory) => recordChain(directory)),
+    checkpoints: CHECKPOINT_CASES.map((testCase) => recordCheckpoint(testCase)),
   };
 }
 
@@ -321,7 +430,7 @@ function main(): number {
     if (drifted.length === 0) {
       const kit = buildKit();
       process.stdout.write(
-        `conformance kit is current (${kit.fixtures.length} fixtures, ${kit.chains.length} chains)\n`,
+        `conformance kit is current (${kit.fixtures.length} fixtures, ${kit.chains.length} chains, ${kit.checkpoints.length} checkpoint cases)\n`,
       );
       return 0;
     }
@@ -337,7 +446,7 @@ function main(): number {
   mkdirSync(kitRoot, { recursive: true });
   writeFileSync(MANIFEST, `${JSON.stringify(kit, null, 2)}\n`, "utf8");
   process.stdout.write(
-    `wrote conformance-kit/manifest.json (${kit.fixtures.length} fixtures, ${kit.chains.length} chains)\n`,
+    `wrote conformance-kit/manifest.json (${kit.fixtures.length} fixtures, ${kit.chains.length} chains, ${kit.checkpoints.length} checkpoint cases)\n`,
   );
   return 0;
 }

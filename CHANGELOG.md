@@ -54,6 +54,48 @@ ADR 0013 records why the alternatives were refused. `examples/integrity/valid/ch
 is added to show the note; the conformance kit gains its chain record, and nothing recorded for an
 existing fixture changes.
 
+### Added — `verify-checkpoint`, and the checkpoint document it compares an archive with
+
+Chain verification proves that the events it is given are consistent with each other; it cannot see
+a deleted tail, because a truncated chain is a shorter chain that verifies perfectly. integrity.md §8
+has said so since 0.1 and named the remedy: a chain head recorded somewhere the store's
+administrators do not control. That record now has a format and a verifier.
+
+The **checkpoint** is a tooling document with its own schema at
+`https://openauditmodel.org/schemas/checkpoint/0.1/schema.json`, versioned independently of the
+specification, which does not change. It records a chain's head — sequence and hash — when it was
+taken, optionally the event count and a signature, and an **anchor** naming where it was placed
+beyond the store's reach; the anchor is required and may not be blank, so a checkpoint kept beside
+the events is not a checkpoint. A multi-chain form records one head per chain for a whole archive,
+which is what an archive manifest is, so there is one document rather than two. Digest, identifier,
+timestamp and signature definitions are the event schema's own, by reference.
+
+`verify-checkpoint <path...> --checkpoint <file> [--public-key] [--format json]` verifies the archive
+exactly as `verify-chain` does and then compares every chain the checkpoint names: the event at the
+recorded sequence must carry the recorded hash, and the count is compared when stated. A chain that
+ends before the head is `tail-truncated`; a head the archive skips is `checkpoint-head-missing`; a
+different hash is `checkpoint-head-mismatch`; a checkpoint under another algorithm is
+`checkpoint-algorithm-mismatch`. Events after the head are a note, never a failure — a checkpoint
+from yesterday does not fail today's archive. Exit `0` when the archive agrees, `1` when it does not
+or the archive itself is broken, `2` when the document is not a checkpoint, and `3` when the archive
+holds none of the chains the checkpoint names, so nothing was compared. Every report ends with the
+line that says what was not proven: the archive is consistent with the supplied checkpoint; whether
+the checkpoint is genuine and its anchor real is for whoever holds the anchor. The anchor is never
+dereferenced. `--public-key` verifies the checkpoint's own signature too, over the document with
+`/signature` removed. A checkpoint that lies under the same directory as the events is noted.
+
+The MCP server gains `verify_checkpoint`, with the same outcomes as data, and serves the checkpoint
+schema as a resource: nine tools, thirty-five resources. The site publishes the schema at its `$id`.
+`examples/integrity/checkpoints/` holds five generated documents and
+`examples/integrity/invalid/truncated-chain/` the deleted tail, which passes `verify-chain` and fails
+`verify-checkpoint` — the two records the conformance kit's new `checkpoints` family keeps side by
+side with the `chains` record that calls the same directory intact. `createValidatorFromSchemas`,
+`createCheckpointValidator`, `verifyCheckpoint`, `verifyDocumentSignature` and
+`documentSignatureInput` are new exports; nothing is removed. ADR 0014 records the decisions.
+`deploy/smoke-test.mjs` now expects nine tools and thirty-five resources, and a test keeps its
+pinned counts equal to what the server registers, so the next addition cannot fail the container
+job the way this one did.
+
 ## 0.4.2 - 2026-09-18
 
 Specification `0.1`, unchanged. Repository `0.4.2`.

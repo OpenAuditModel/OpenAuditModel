@@ -9,6 +9,7 @@
  */
 import type { ValidateFunction } from "ajv";
 import {
+  CHECKPOINT_SCHEMA_ID,
   createValidatorFromCompiled,
   SCHEMA_ID,
   SPEC_VERSION,
@@ -16,9 +17,10 @@ import {
 } from "../../conformance/src/validator-interface.js";
 import type { ProfileDefinition } from "../../conformance/src/profiles/types.js";
 import validateAuditEvent from "./schema-validator.generated.js";
+import validateCheckpoint from "./checkpoint-validator.generated.js";
 import { BUNDLED_RESOURCES } from "./resource-manifest.generated.js";
 
-export { SCHEMA_ID, SPEC_VERSION };
+export { CHECKPOINT_SCHEMA_ID, SCHEMA_ID, SPEC_VERSION };
 
 /**
  * The canonical validator, built from Ajv's own ahead-of-time compiled code.
@@ -31,6 +33,17 @@ export { SCHEMA_ID, SPEC_VERSION };
 export const validator: EventValidator = createValidatorFromCompiled(
   validateAuditEvent as unknown as ValidateFunction,
   SCHEMA_ID,
+);
+
+/**
+ * The checkpoint validator, compiled the same way. The checkpoint schema refers
+ * into the event schema's `$defs`; the generator registers the event schema
+ * before compiling, so the references are resolved at build time and nothing
+ * is fetched at run time.
+ */
+export const checkpointValidator: EventValidator = createValidatorFromCompiled(
+  validateCheckpoint as unknown as ValidateFunction,
+  CHECKPOINT_SCHEMA_ID,
 );
 
 export const IAM_PROFILE_NAME = "identity-and-access-management";

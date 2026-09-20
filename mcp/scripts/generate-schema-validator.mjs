@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Generates a standalone Ajv validator for the canonical audit event schema.
+ * Generates standalone Ajv validators for the canonical audit event schema and
+ * for the chain checkpoint schema, which refers into the event schema's $defs.
  *
  * The validator is compiled ahead of time so that no schema compilation
  * happens at runtime, in any deployment. Ajv's standalone generator emits that
@@ -28,8 +29,31 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.dirname(here);
 const repoRoot = path.dirname(packageRoot);
 
-const SCHEMA_PATH = path.join(repoRoot, "schemas", "v0.1", "audit-event.schema.json");
-const OUTPUT_PATH = path.join(packageRoot, "src", "schema-validator.generated.ts");
+const EVENT_SCHEMA_PATH = path.join(repoRoot, "schemas", "v0.1", "audit-event.schema.json");
+const CHECKPOINT_SCHEMA_PATH = path.join(
+  repoRoot,
+  "schemas",
+  "checkpoint",
+  "v0.1",
+  "checkpoint.schema.json",
+);
+
+/** One generated module per schema. `referenced` schemas are registered for `$ref` resolution. */
+const TARGETS = [
+  {
+    schema: EVENT_SCHEMA_PATH,
+    referenced: [],
+    output: path.join(packageRoot, "src", "schema-validator.generated.ts"),
+    source: "schemas/v0.1/audit-event.schema.json",
+  },
+  {
+    schema: CHECKPOINT_SCHEMA_PATH,
+    referenced: [EVENT_SCHEMA_PATH],
+    output: path.join(packageRoot, "src", "checkpoint-validator.generated.ts"),
+    source:
+      "schemas/checkpoint/v0.1/checkpoint.schema.json, with the audit event schema registered for its $refs",
+  },
+];
 
 /** Ajv options here MUST match `createAjv()` in conformance/src/validate-core.ts. */
 const AJV_OPTIONS = {
@@ -40,7 +64,7 @@ const AJV_OPTIONS = {
 };
 
 /** Rewrites Ajv's CJS `require` helpers into ESM imports. */
-function toEsm(code) {
+function toEsm(code, source) {
   const specifiers = new Map();
   let next = 0;
 
@@ -67,7 +91,7 @@ function toEsm(code) {
  * GENERATED FILE — DO NOT EDIT.
  *
  * Produced by mcp/scripts/generate-schema-validator.mjs from
- * schemas/v0.1/audit-event.schema.json. Regenerate with:
+ * ${source}. Regenerate with:
  *
  *   npm run generate --workspace mcp
  *
@@ -80,34 +104,44 @@ ${rewritten}
 `;
 }
 
-function generate() {
-  const schema = JSON.parse(readFileSync(SCHEMA_PATH, "utf8"));
+function generate(target) {
+  const schema = JSON.parse(readFileSync(target.schema, "utf8"));
   const ajv = new Ajv2020.default({ ...AJV_OPTIONS, code: { source: true, esm: true } });
   addFormats.default(ajv);
-  return toEsm(standaloneCode.default(ajv, ajv.compile(schema)));
+  for (const referenced of target.referenced) {
+    ajv.addSchema(JSON.parse(readFileSync(referenced, "utf8")));
+  }
+  return toEsm(standaloneCode.default(ajv, ajv.compile(schema)), target.source);
 }
 
-const generated = generate();
 const check = process.argv.includes("--check");
+let stale = false;
+
+for (const target of TARGETS) {
+  const generated = generate(target);
+  const shown = path.relative(repoRoot, target.output);
+  if (check) {
+    let current;
+    try {
+      current = readFileSync(target.output, "utf8");
+    } catch {
+      process.stderr.write(`missing ${shown}\n`);
+      stale = true;
+      continue;
+    }
+    if (current !== generated) {
+      process.stderr.write(`${shown} is stale; run: npm run generate --workspace mcp\n`);
+      stale = true;
+    }
+  } else {
+    writeFileSync(target.output, generated, "utf8");
+    process.stdout.write(`wrote ${shown} (${generated.length} bytes)\n`);
+  }
+}
 
 if (check) {
-  let current = "";
-  try {
-    current = readFileSync(OUTPUT_PATH, "utf8");
-  } catch {
-    process.stderr.write(`missing ${path.relative(repoRoot, OUTPUT_PATH)}\n`);
+  if (stale) {
     process.exit(1);
   }
-  if (current !== generated) {
-    process.stderr.write(
-      "the generated schema validator is stale; run: npm run generate --workspace mcp\n",
-    );
-    process.exit(1);
-  }
-  process.stdout.write("schema validator is current\n");
-} else {
-  writeFileSync(OUTPUT_PATH, generated, "utf8");
-  process.stdout.write(
-    `wrote ${path.relative(repoRoot, OUTPUT_PATH)} (${generated.length} bytes)\n`,
-  );
+  process.stdout.write("schema validators are current\n");
 }

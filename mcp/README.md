@@ -61,21 +61,22 @@ and no claim is made about one that has not been tried.
 
 ## Tools
 
-Eight, all deterministic, read-only, stateless and offline. Each delegates to the same engine the
+Nine, all deterministic, read-only, stateless and offline. Each delegates to the same engine the
 `auditmodel` CLI uses; parity is asserted by test rather than assumed.
 
-| Tool                      | Purpose                                                                    |
-| ------------------------- | -------------------------------------------------------------------------- |
-| `validate_event`          | Validate against the canonical schema; returns failures with JSON Pointers |
-| `verify_integrity`        | Recalculate an event's digest and compare it with the declared hash        |
-| `verify_chain`            | Verify previous-hash chains across a set of events                         |
-| `lint_privacy`            | Report values shaped like credentials or unminimized payloads              |
-| `check_profile`           | Check against any of the ten bundled domain profiles                       |
-| `check_coverage`          | Report how much of a profile a set of events reaches, and what it misses   |
-| `generate_event_template` | Produce a placeholder skeleton for an event name                           |
-| `get_event_guidance`      | Explain what an event name requires, from schema, conventions and profile  |
+| Tool                      | Purpose                                                                        |
+| ------------------------- | ------------------------------------------------------------------------------ |
+| `validate_event`          | Validate against the canonical schema; returns failures with JSON Pointers     |
+| `verify_integrity`        | Recalculate an event's digest and compare it with the declared hash            |
+| `verify_chain`            | Verify previous-hash chains across a set of events                             |
+| `verify_checkpoint`       | Compare an archive with a chain checkpoint; the check that sees a deleted tail |
+| `lint_privacy`            | Report values shaped like credentials or unminimized payloads                  |
+| `check_profile`           | Check against any of the ten bundled domain profiles                           |
+| `check_coverage`          | Report how much of a profile a set of events reaches, and what it misses       |
+| `generate_event_template` | Produce a placeholder skeleton for an event name                               |
+| `get_event_guidance`      | Explain what an event name requires, from schema, conventions and profile      |
 
-`verify_integrity` and `verify_chain` accept an optional `publicKeyPem` argument — a PEM-encoded
+`verify_integrity`, `verify_chain` and `verify_checkpoint` accept an optional `publicKeyPem` argument — a PEM-encoded
 public key for the declared algorithm: `Ed25519`, `ECDSA-P256-SHA256` or `RSA-PSS-SHA256` — to
 additionally verify `integrity.signature`, the same way the CLI's `--public-key` does. Without it, a
 declared signature in an implemented algorithm is reported as declared but not checked, and a
@@ -91,6 +92,14 @@ value a published chain head or checkpoint names — and lists the sealing batch
 in `notes`. A batch is reported, not judged, and never changes `valid`; see
 [ADR 0013](../decisions/0013-batch-id-reported-not-judged.md).
 
+`verify_checkpoint` takes the events and a checkpoint document, verifies the events as `verify_chain`
+does, and compares every chain the checkpoint names with the archive. Its `outcome` is one of
+`agrees`, `disagrees`, `no-chain` (the archive holds none of the named chains; nothing was compared)
+and `invalid-checkpoint` (not a checkpoint under its schema; nothing about the archive was judged).
+The anchor is returned and never dereferenced, and the result carries the same line the CLI prints:
+consistency with the supplied checkpoint is what was established, not the checkpoint's provenance.
+See [ADR 0014](../decisions/0014-chain-checkpoints.md).
+
 No tool returns the event it was given. `lint_privacy` never returns a matched value, a preview, a
 prefix, a suffix or a decoded token claim. `verify_integrity` never returns canonicalized content or
 digest input.
@@ -102,9 +111,10 @@ contributed no requirements.
 
 ## Resources
 
-Thirty-four read-only documents under `openauditmodel://`: seven specification chapters, both
-canonical schemas, the semantic conventions index and twelve convention documents, the profile index,
-all ten profile definitions and the examples index.
+Thirty-five read-only documents under `openauditmodel://`: seven specification chapters, three
+schemas — the canonical audit event schema, the profile definition schema and the chain checkpoint
+schema — the semantic conventions index and twelve convention documents, the profile index, all ten
+profile definitions and the examples index.
 
 Content is compiled in at build time from an allowlist in
 [scripts/generate-resource-manifest.mjs](scripts/generate-resource-manifest.mjs). The server reads no
@@ -167,13 +177,13 @@ docker build --tag openauditmodel-mcp:local --file Dockerfile .
 
 ## Limits
 
-| Limit                     | Default         | Variable                |
-| ------------------------- | --------------- | ----------------------- |
-| Request body              | 1,000,000 bytes | `OAM_MAX_REQUEST_BYTES` |
-| Single event              | 256,000 bytes   | `OAM_MAX_EVENT_BYTES`   |
-| Events per `verify_chain` | 200             | `OAM_MAX_CHAIN_EVENTS`  |
-| JSON depth                | 200             | —                       |
-| Tool output               | 512,000 bytes   | —                       |
+| Limit                                            | Default         | Variable                |
+| ------------------------------------------------ | --------------- | ----------------------- |
+| Request body                                     | 1,000,000 bytes | `OAM_MAX_REQUEST_BYTES` |
+| Single event                                     | 256,000 bytes   | `OAM_MAX_EVENT_BYTES`   |
+| Events per `verify_chain` or `verify_checkpoint` | 200             | `OAM_MAX_CHAIN_EVENTS`  |
+| JSON depth                                       | 200             | —                       |
+| Tool output                                      | 512,000 bytes   | —                       |
 
 Exceeding a limit returns a structured error. Input is never silently truncated: validating part of an
 event and reporting a verdict on the whole would be worse than refusing it.
@@ -196,7 +206,7 @@ any host.
 Application logs carry a generated request identifier, the route, the tool name, a result category, a
 status code and a duration — and nothing else. There is no parameter through which a request body, an
 event identifier, an actor, a resource, a digest or a privacy finding could be logged. `toolName` is
-one of eight published names and says which analysis ran; an _event_ name is excluded, because that
+one of nine published names and says which analysis ran; an _event_ name is excluded, because that
 would describe the caller's business operations.
 
 Set `OAM_LOG_LEVEL=error` or `silent` to reduce or disable output.

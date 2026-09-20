@@ -85,6 +85,10 @@ try {
     existsSync(path.join(installed, "schemas", "v0.1", "audit-event.schema.json")),
     "canonical schema shipped inside the package",
   );
+  check(
+    existsSync(path.join(installed, "schemas", "checkpoint", "v0.1", "checkpoint.schema.json")),
+    "checkpoint schema shipped inside the package",
+  );
   const profiles = existsSync(path.join(installed, "profiles"))
     ? readdirSync(path.join(installed, "profiles"), { withFileTypes: true })
         .filter(
@@ -123,6 +127,23 @@ try {
         result.status === 0,
         "a shipped fixture validates through the installed CLI",
         `${valid.fixture} exited ${result.status}`,
+      );
+    }
+
+    // verify-checkpoint reads a second schema at runtime; an agreeing case from
+    // the kit proves it is found where the package put it.
+    const agreeing = (kit.checkpoints ?? []).find((entry) => entry.outcome === "agrees");
+    if (agreeing !== undefined) {
+      const archive = agreeing.archive
+        .map((directory) => `"${path.join(installed, directory)}"`)
+        .join(" ");
+      const result = cli(
+        `verify-checkpoint ${archive} --checkpoint "${path.join(installed, agreeing.checkpoint)}"`,
+      );
+      check(
+        result.status === 0,
+        "a shipped checkpoint agrees with its archive through the installed CLI",
+        `${agreeing.checkpoint} exited ${result.status}`,
       );
     }
   }

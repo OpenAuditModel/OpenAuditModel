@@ -32,6 +32,7 @@ const problems = [];
 const REQUIRED = [
   "dist/conformance/src/cli.js",
   "schemas/v0.1/audit-event.schema.json",
+  "schemas/checkpoint/v0.1/checkpoint.schema.json",
   "profiles/profile-definition.schema.json",
   "conformance-kit/manifest.json",
 ];

@@ -1,5 +1,5 @@
 /**
- * The eight OpenAuditModel MCP tools.
+ * The nine OpenAuditModel MCP tools.
  *
  * Every tool is deterministic, read-only, stateless and offline. None calls a
  * model, opens a socket, touches a filesystem or keeps anything between
@@ -11,6 +11,8 @@ import type { KeyObject } from "node:crypto";
 import type { McpServer } from "@modelcontextprotocol/server";
 import { verifyEventIntegrity } from "../../conformance/src/integrity/verify-event.js";
 import { verifyChains } from "../../conformance/src/integrity/verify-chain.js";
+import { verifyCheckpoint } from "../../conformance/src/integrity/verify-checkpoint.js";
+import type { Finding } from "../../conformance/src/integrity/types.js";
 import { loadPublicKey } from "../../conformance/src/integrity/signature.js";
 import { lintEvent } from "../../conformance/src/privacy/lint-event.js";
 import { checkProfile } from "../../conformance/src/profiles/check-profile.js";
@@ -18,6 +20,7 @@ import { selectRules } from "../../conformance/src/profiles/select-rules.js";
 import { summariseCoverage } from "../../conformance/src/profiles/coverage.js";
 import type { ProfileRule } from "../../conformance/src/profiles/types.js";
 import {
+  checkpointValidator,
   ENFORCEABLE_PROFILES,
   IAM_PROFILE_NAME,
   iamProfile,
@@ -45,6 +48,14 @@ const PRIVACY_NOTE =
 
 const MATCHED_RULES_NOTE =
   "matchedRules lists rules selected by the event-name selector. A conditional rule appears here when it governs the event even if its condition did not hold, in which case it contributed no requirements.";
+
+const CHECKPOINT_NOTE =
+  "This establishes that the archive is consistent with the supplied checkpoint. Whether the checkpoint is genuine and its anchor real is for whoever holds the anchor; nothing was dereferenced.";
+
+/** A finding as every tool returns it: kind, where, and the fixed message — never event content. */
+function findingOut(finding: Finding) {
+  return { kind: finding.kind, label: finding.label ?? null, message: finding.message };
+}
 
 /** Event name grammar, mirroring the canonical schema's eventName definition. */
 const EVENT_NAME = /^[a-z][a-z0-9]*(-[a-z0-9]+)*(\.[a-z][a-z0-9]*(-[a-z0-9]+)*)+$/;
@@ -235,6 +246,76 @@ export function registerTools(server: McpServer, limits: EventLimits = DEFAULT_E
             label: finding.label ?? null,
             message: finding.message,
           })),
+          limits: { maxEventsPerRequest: limits.maxEventsPerRequest },
+        };
+      }),
+  );
+
+  server.registerTool(
+    "verify_checkpoint",
+    {
+      title: "Compare an archive with a chain checkpoint",
+      description:
+        "Verifies the chains in a set of events exactly as verify_chain does, then compares every chain the checkpoint names with what the archive holds: the event at the recorded head sequence must carry the recorded hash, and the event count is compared when the checkpoint states one. This is what catches a deleted tail, which verify_chain cannot see. Outcomes: agrees; disagrees (a recorded head is not reached, a named chain is broken or absent while others are present, or the checkpoint's signature failed against the supplied key); no-chain (the archive holds none of the named chains, so nothing was compared — never an approval); invalid-checkpoint (the document is not a checkpoint under its schema, so nothing about the archive was judged). The anchor is reported and never dereferenced. publicKeyPem, when supplied, verifies the checkpoint's own signature and every event's signature under the same rules as verify_chain. What this establishes is that the archive is consistent with the supplied checkpoint; whether the checkpoint is genuine and its anchor real is for whoever holds the anchor.",
+      inputSchema: z.object({
+        events: z.array(eventSchema),
+        checkpoint: z.record(z.string(), z.unknown()),
+        publicKeyPem: z.string().optional(),
+      }),
+    },
+    ({ events, checkpoint, publicKeyPem }) =>
+      runTool(() => {
+        assertEventsWithinLimits(events, limits);
+        assertEventWithinLimits(checkpoint, "checkpoint", limits);
+        const publicKey = resolvePublicKey(publicKeyPem);
+        const report = verifyCheckpoint(
+          events.map((event, index) => ({ label: `events[${index}]`, event })),
+          checkpoint,
+          { events: validator, checkpoint: checkpointValidator },
+          { publicKey },
+        );
+
+        return {
+          outcome: report.outcome,
+          agrees: report.outcome === "agrees",
+          checkpointVersion: report.checkpointVersion ?? null,
+          anchor: report.anchor ?? null,
+          signature: report.signature ?? null,
+          checks: report.checks.map((check) => check.message),
+          findings: report.findings.map(findingOut),
+          archive:
+            report.archive === undefined
+              ? null
+              : {
+                  eventCount: report.archive.eventCount,
+                  chainCount: report.archive.chains.length,
+                  intact: report.archive.intact,
+                  unassigned: report.archive.unassigned.map(findingOut),
+                },
+          chains: report.chains.map((entry) => ({
+            chainId: entry.claim.chainId,
+            status: entry.status,
+            claim: {
+              headSequence: entry.claim.headSequence,
+              headHash: entry.claim.headHash,
+              eventCount: entry.claim.eventCount ?? null,
+            },
+            chain:
+              entry.chain === undefined
+                ? null
+                : {
+                    eventCount: entry.chain.eventCount,
+                    firstSequence: entry.chain.firstSequence ?? null,
+                    lastSequence: entry.chain.lastSequence ?? null,
+                    headHash: entry.chain.headHash ?? null,
+                    intact: entry.chain.intact,
+                    findings: entry.chain.findings.map(findingOut),
+                  },
+            checks: entry.checks.map((check) => check.message),
+            findings: entry.findings.map(findingOut),
+            notes: entry.notes.map((note) => note.message),
+          })),
+          note: CHECKPOINT_NOTE,
           limits: { maxEventsPerRequest: limits.maxEventsPerRequest },
         };
       }),
@@ -597,6 +678,7 @@ export const TOOL_NAMES: readonly string[] = [
   "validate_event",
   "verify_integrity",
   "verify_chain",
+  "verify_checkpoint",
   "lint_privacy",
   "check_profile",
   "check_coverage",

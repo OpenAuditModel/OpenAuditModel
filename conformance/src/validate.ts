@@ -13,21 +13,31 @@ import type { AnySchemaObject } from "ajv";
 import type { ValidationIssue } from "./format-errors.js";
 import { expandInputPaths, readJsonFile } from "./sources.js";
 import {
+  CHECKPOINT_SCHEMA_ID,
   createAjv,
   createValidatorFromSchema,
+  createValidatorFromSchemas,
   SCHEMA_ID,
   SPEC_VERSION,
   validateSchemaDocument,
   type EventValidator,
 } from "./validate-core.js";
 
-export { createAjv, SCHEMA_ID, SPEC_VERSION, validateSchemaDocument };
+export { CHECKPOINT_SCHEMA_ID, createAjv, SCHEMA_ID, SPEC_VERSION, validateSchemaDocument };
 export type { EventValidator };
 
 export const SCHEMA_RELATIVE_PATH = path.join(
   "schemas",
   `v${SPEC_VERSION}`,
   "audit-event.schema.json",
+);
+
+/** The checkpoint schema, versioned on its own; 0.1 is its first version. */
+export const CHECKPOINT_SCHEMA_RELATIVE_PATH = path.join(
+  "schemas",
+  "checkpoint",
+  "v0.1",
+  "checkpoint.schema.json",
 );
 
 /** Outcome of validating a single file. */
@@ -99,6 +109,43 @@ export function createValidator(schemaPath?: string): Validator {
   };
 
   return { schemaId, schemaPath: resolvedPath, validateEvent, validateFile };
+}
+
+/** A validator for a document other than an event, with the schema it was read from. */
+export interface DocumentValidator extends EventValidator {
+  readonly schemaPath: string;
+}
+
+/**
+ * Locates the checkpoint schema from the event schema's location: the two ship
+ * together, under the same `schemas/` directory, in the repository and in the
+ * installed package alike.
+ */
+export function resolveCheckpointSchemaPath(schemaPath?: string): string {
+  const eventSchemaPath = schemaPath ?? resolveSchemaPath();
+  const root = path.dirname(path.dirname(path.dirname(eventSchemaPath)));
+  const candidate = path.join(root, CHECKPOINT_SCHEMA_RELATIVE_PATH);
+  if (!existsSync(candidate)) {
+    throw new Error(
+      `Unable to locate ${CHECKPOINT_SCHEMA_RELATIVE_PATH} beside ${eventSchemaPath}.`,
+    );
+  }
+  return candidate;
+}
+
+/**
+ * Compiles the checkpoint schema. It refers to the audit event schema's
+ * `$defs` for digests, identifiers, timestamps and signatures, so the event
+ * schema is registered alongside it and a digest means one thing in both.
+ */
+export function createCheckpointValidator(schemaPath?: string): DocumentValidator {
+  const eventSchemaPath = schemaPath ?? resolveSchemaPath();
+  const checkpointSchemaPath = resolveCheckpointSchemaPath(eventSchemaPath);
+  const checkpointSchema = JSON.parse(
+    readFileSync(checkpointSchemaPath, "utf8"),
+  ) as AnySchemaObject;
+  const core = createValidatorFromSchemas(checkpointSchema, [loadSchema(eventSchemaPath)]);
+  return { ...core, schemaPath: checkpointSchemaPath };
 }
 
 /** Re-exported so that consumers of the validator keep a single import site. */

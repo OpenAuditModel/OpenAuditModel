@@ -17,6 +17,7 @@ import { resolveSchemaPath } from "../../conformance/src/validate.js";
 
 const repoRoot = path.dirname(path.dirname(path.dirname(resolveSchemaPath())));
 const readme = readFileSync(path.join(repoRoot, "README.md"), "utf8");
+const smokeTest = readFileSync(path.join(repoRoot, "deploy", "smoke-test.mjs"), "utf8");
 
 const UNITS = [
   "zero",
@@ -75,7 +76,7 @@ function count(written: string): number {
 
 /** The paragraph in README.md that describes what the MCP server exposes. */
 function surfaceParagraph(): string {
-  const match = /\n(Eight tools[\s\S]*?)\n\n/.exec(readme);
+  const match = /\n([A-Z][a-z]+ tools — [\s\S]*?)\n\n/.exec(readme);
   const paragraph = match?.[1];
   assert.ok(paragraph !== undefined, "README.md no longer describes the MCP surface");
   return paragraph;
@@ -114,6 +115,30 @@ describe("the README's description of the MCP surface", () => {
       /^openauditmodel:\/\/profiles\/[^/]+\/\d/.test(resource.uri),
     );
     assert.equal(profiles.length, 10);
-    assert.match(paragraph, /all ten profile definitions/);
+    assert.match(paragraph, /all ten profile\s+definitions/);
+  });
+});
+
+describe("the deploy smoke test's pinned catalogue", () => {
+  // deploy/smoke-test.mjs is dependency-free by design and cannot import the
+  // server, so its expected counts are literals. This is what keeps them true:
+  // the 0.5.0 checkpoint work added a tool and a resource, and the smoke test
+  // failed the container job until the literals followed.
+  const match = /const EXPECTED = \{ tools: (\d+), prompts: (\d+), resources: (\d+) \};/.exec(
+    smokeTest,
+  );
+  assert.ok(match, "deploy/smoke-test.mjs no longer pins its expected catalogue");
+  const [, tools, prompts, resources] = match;
+
+  test("expects exactly the tools the server registers", () => {
+    assert.equal(Number(tools), TOOL_NAMES.length);
+  });
+
+  test("expects exactly the prompts the server registers", () => {
+    assert.equal(Number(prompts), PROMPT_NAMES.length);
+  });
+
+  test("expects exactly the resources the manifest bundles", () => {
+    assert.equal(Number(resources), BUNDLED_RESOURCES.length);
   });
 });
