@@ -20,6 +20,7 @@ import { RESOURCE_URIS } from "../src/register-resources.js";
 import { BUNDLED_RESOURCES } from "../src/resource-manifest.generated.js";
 import { ENFORCEABLE_PROFILES, iamProfile, profileByName, validator } from "../src/engines.js";
 import { availableProfiles } from "../../conformance/src/profiles/load-profile.js";
+import { implementsProfileVersion } from "../../conformance/src/profiles/types.js";
 import { MAX_EVENTS_PER_REQUEST } from "../src/output-safety.js";
 import {
   createCheckpointValidator,
@@ -989,6 +990,27 @@ describe("build artifacts", () => {
     );
     for (const name of served) {
       assert.notEqual(profileByName(name), undefined, name);
+    }
+  });
+
+  test("every bundled profile is in a format version this build implements", () => {
+    // The server validates with precompiled code and cannot compile the
+    // profile definition schema at run time, so the gate is the format version
+    // and the generator's build-time validation behind it. Before both, a
+    // profile in a vocabulary this build could not read would have been
+    // enforced as whatever the engine recognised in it — a rule whose only
+    // requirement used an unknown property would demand nothing, and the event
+    // would be reported conforming.
+    for (const resource of BUNDLED_RESOURCES) {
+      if (!/^openauditmodel:\/\/profiles\/[a-z][a-z0-9-]*\/[0-9.]+$/.test(resource.uri)) {
+        continue;
+      }
+      const definition = JSON.parse(resource.text) as { profileVersion?: unknown };
+      assert.equal(
+        implementsProfileVersion(definition.profileVersion),
+        true,
+        `${resource.uri} declares profileVersion ${String(definition.profileVersion)}`,
+      );
     }
   });
 

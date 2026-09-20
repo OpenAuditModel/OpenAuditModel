@@ -13,6 +13,30 @@ new name is introduced instead.
 
 ## Unreleased
 
+### Fixed — the MCP server checks which rule vocabulary a bundled profile is written in
+
+`profileVersion` names the rule vocabulary a profile document uses, and the rule schema is closed:
+an unknown vocabulary means unknown rule properties. The CLI has always refused a document it
+cannot read, and the viewer refuses one and says which. The MCP server had no such gate at all — it
+parsed each bundled profile straight into a definition and enforced it. With every shipped profile
+at format `0.1` that was harmless, and it would have stopped being harmless the first time a
+profile moved: the engine would have evaluated the rule properties it recognised and passed over
+the ones it did not, so a rule whose only requirement used a new property would have demanded
+nothing and the event would have been reported conforming. A requirement a reader cannot see is not
+a requirement that is absent.
+
+The server now refuses to start when a bundled profile declares a format version it does not
+implement, naming the profile and both versions. Refusing to start is right for this input: the
+profiles are compiled into the image from an allowlist, so a mismatch is a build mistake rather
+than something a caller sent. Behind that, the generator validates every profile against the
+profile definition schema before it is bundled, which the server itself cannot do — it validates
+with ahead-of-time compiled code and has no schema compiler. A malformed or unreadable profile now
+fails the build instead of reaching the image.
+
+`SUPPORTED_PROFILE_VERSIONS` and `implementsProfileVersion` are new exports, and a test asserts the
+list against what the profile definition schema accepts, so the constant cannot drift from the
+schema the CLI validates with.
+
 ### Fixed — the supported-versions table names the release that is actually current
 
 `SECURITY.md` still listed `0.4.x` as the current release after 0.5.0 and 0.5.1 shipped, so the

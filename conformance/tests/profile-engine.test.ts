@@ -29,7 +29,12 @@ import {
 import { ruleMatches, selectRules, eventName } from "../src/profiles/select-rules.js";
 import { conditionHolds, evaluateRule } from "../src/profiles/evaluate-rule.js";
 import { checkProfile } from "../src/profiles/check-profile.js";
-import type { ProfileDefinition, ProfileRule } from "../src/profiles/types.js";
+import {
+  implementsProfileVersion,
+  SUPPORTED_PROFILE_VERSIONS,
+  type ProfileDefinition,
+  type ProfileRule,
+} from "../src/profiles/types.js";
 
 const validator = createValidator(resolveSchemaPath());
 
@@ -103,6 +108,54 @@ describe("profile definition schema", () => {
 
   test("a valid definition passes", () => {
     assert.deepEqual(validateProfileDefinition(definition()), []);
+  });
+
+  test("the implemented format versions are the ones the schema accepts", () => {
+    // `SUPPORTED_PROFILE_VERSIONS` is what a reader without the schema — the
+    // MCP server, which validates with precompiled code and has no Ajv — uses
+    // to decide whether it can evaluate a document at all. If it drifted from
+    // the schema, that reader would either refuse a profile this repository
+    // publishes or enforce one it cannot read.
+    const schema = loadProfileDefinitionSchema() as Record<string, Record<string, unknown>>;
+    const declared = (schema["properties"] as Record<string, Record<string, unknown>>)[
+      "profileVersion"
+    ];
+    const accepted =
+      declared?.["const"] !== undefined
+        ? [String(declared["const"])]
+        : ((declared?.["enum"] ?? []) as unknown[]).map(String);
+
+    assert.deepEqual([...SUPPORTED_PROFILE_VERSIONS], accepted);
+  });
+
+  test("a format version the schema does not accept is refused, whole", () => {
+    // Whole, not partly: the rule schema is closed, so an unknown vocabulary
+    // means unknown rule properties, and evaluating the recognised ones would
+    // read a requirement it cannot see as a requirement that is not there.
+    for (const version of ["0.2", "1.0", "", "0.1.0"]) {
+      assert.equal(implementsProfileVersion(version), false, version);
+      assert.notEqual(
+        validateProfileDefinition({ ...definition(), profileVersion: version }).length,
+        0,
+        version,
+      );
+    }
+    for (const version of SUPPORTED_PROFILE_VERSIONS) {
+      assert.equal(implementsProfileVersion(version), true, version);
+    }
+    for (const value of [undefined, null, 0.1, ["0.1"]]) {
+      assert.equal(implementsProfileVersion(value), false, JSON.stringify(value));
+    }
+  });
+
+  test("every shipped profile is written in a format version this build implements", () => {
+    for (const name of availableProfiles()) {
+      const loaded = loadProfile(name);
+      assert.equal(loaded.ok, true, name);
+      if (loaded.ok) {
+        assert.equal(implementsProfileVersion(loaded.profile.profileVersion), true, name);
+      }
+    }
   });
 
   const rejected: ReadonlyArray<readonly [string, Record<string, unknown>]> = [
