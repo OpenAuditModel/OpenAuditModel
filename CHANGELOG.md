@@ -13,6 +13,26 @@ new name is introduced instead.
 
 ## Unreleased
 
+### Added — `profiles/REQUIREMENTS.md`, the profiles read from the producer's side
+
+The profiles are the contract and they are ten documents holding 127 rules between them. A producer
+deciding what to emit has one question — "I record this operation; what does the model want from
+it?" — and could answer it only by opening ten files and reading a rule vocabulary first. That is
+the same gap the conformance kit closed for implementers in another language: the information
+existed and was not reachable.
+
+`profiles/REQUIREMENTS.md` is that contract from the other side. Every event name any profile
+selects, with the rules that govern it; every rule with what it requires, what it recommends, and
+the condition it fires under; and the pointers the ten profiles ask for most, because a producer
+whose event type cannot express the top of that list cannot satisfy most profiles whatever its event
+names are. It closes by saying what a profile rule cannot check — that a present field holds the
+right value — so that nothing here reads as more assurance than it is.
+
+It is generated from the profile documents by `conformance/tools/generate-requirements.ts` and
+checked by `npm run verify`, for the reason every other generated artifact here is: a hand-written
+table of a hundred pointers is stale one profile revision later, and a stale requirement is worse
+than an absent one because a producer would build to it.
+
 ### Fixed — the MCP server checks which rule vocabulary a bundled profile is written in
 
 `profileVersion` names the rule vocabulary a profile document uses, and the rule schema is closed:

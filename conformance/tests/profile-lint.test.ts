@@ -12,8 +12,12 @@
  * and this corpus *is* clean of every error, so that failure would be invisible.
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import test, { describe } from "node:test";
+import { resolveSchemaPath } from "../src/validate.js";
 import { availableProfiles, loadProfile } from "../src/profiles/load-profile.js";
+import { generate as generateRequirements } from "../tools/generate-requirements.js";
 import { validateProfileDefinition } from "../src/profiles/validate-profile-definition.js";
 import type { ProfileDefinition, ProfileRule } from "../src/profiles/types.js";
 import { lintAllProfiles, lintProfile } from "../tools/lint-profiles.js";
@@ -226,6 +230,49 @@ describe("the lint can fail", () => {
       ),
       [],
     );
+  });
+});
+
+const repoRoot = path.dirname(path.dirname(path.dirname(resolveSchemaPath())));
+
+describe("the generated requirements reference", () => {
+  // The profiles are the contract and they are ten documents holding 127 rules.
+  // REQUIREMENTS.md is that contract read from the producer's side, and it is
+  // generated for the same reason the conformance kit is: a hand-written table
+  // of a hundred pointers is stale one profile revision later, and a stale
+  // requirement is worse than an absent one because a producer would build to
+  // it.
+  test("the checked-in document is what the profiles currently say", () => {
+    const generated = generateRequirements();
+    const onDisk = readFileSync(path.join(repoRoot, "profiles", "REQUIREMENTS.md"), "utf8");
+    assert.equal(onDisk, generated, 'profiles/REQUIREMENTS.md drifted; run "npm run requirements"');
+  });
+
+  test("it names every profile, every rule and every selector", () => {
+    const document = generateRequirements();
+    for (const name of availableProfiles()) {
+      const loaded = loadProfile(name);
+      assert.equal(loaded.ok, true, name);
+      if (!loaded.ok) {
+        continue;
+      }
+      assert.ok(document.includes(`### ${name} ${loaded.profile.version}`), name);
+      for (const rule of loaded.profile.rules) {
+        assert.ok(document.includes(rule.id), `${name} ${rule.id}`);
+        for (const selector of [...(rule.events ?? []), ...(rule.eventPrefixes ?? [])]) {
+          assert.ok(document.includes(selector), `${name} ${rule.id} ${selector}`);
+        }
+      }
+    }
+  });
+
+  test("it says what the rule vocabulary cannot check", () => {
+    // The document exists to be acted on, so the one thing it must not leave a
+    // reader believing is that a satisfied rule means a correct value.
+    const document = generateRequirements();
+    assert.match(document.replaceAll("\n", " "), /It cannot check that the value is the right one/);
+    assert.match(document, /Nothing here is a compliance requirement/);
+    assert.match(document, /Generated — do not edit/);
   });
 });
 
