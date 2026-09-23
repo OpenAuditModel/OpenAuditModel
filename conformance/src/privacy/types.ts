@@ -86,33 +86,75 @@ export function emptySeverityCounts(): Record<Severity, number> {
   return { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
 }
 
-/** Summarises a set of results. */
-export function summarise(results: readonly EventLintResult[]): LintSummary {
-  const bySeverity = emptySeverityCounts();
-  const categories = new Map<string, number>();
-  let findings = 0;
+/**
+ * Counts results one at a time.
+ *
+ * A command that reads its events as a stream never holds them all, and it
+ * must not hold every result either, or it has only moved the problem. It
+ * counts into a tally instead and keeps nothing but the counts.
+ */
+export interface LintTally {
+  events: number;
+  clean: number;
+  withFindings: number;
+  schemaInvalid: number;
+  findings: number;
+  readonly bySeverity: Record<Severity, number>;
+  readonly categories: Map<string, number>;
+}
 
-  for (const result of results) {
-    for (const finding of result.findings) {
-      bySeverity[finding.severity] += 1;
-      const category = finding.category ?? UNCATEGORISED;
-      categories.set(category, (categories.get(category) ?? 0) + 1);
-      findings += 1;
-    }
+export function startLintTally(): LintTally {
+  return {
+    events: 0,
+    clean: 0,
+    withFindings: 0,
+    schemaInvalid: 0,
+    findings: 0,
+    bySeverity: emptySeverityCounts(),
+    categories: new Map<string, number>(),
+  };
+}
+
+export function addToLintTally(tally: LintTally, result: EventLintResult): void {
+  tally.events += 1;
+  if (result.status === "clean") {
+    tally.clean += 1;
+  } else if (result.status === "findings") {
+    tally.withFindings += 1;
+  } else if (result.status === "schema-invalid") {
+    tally.schemaInvalid += 1;
   }
 
+  for (const finding of result.findings) {
+    tally.bySeverity[finding.severity] += 1;
+    const category = finding.category ?? UNCATEGORISED;
+    tally.categories.set(category, (tally.categories.get(category) ?? 0) + 1);
+    tally.findings += 1;
+  }
+}
+
+export function finishLintTally(tally: LintTally): LintSummary {
   return {
-    events: results.length,
-    clean: results.filter((result) => result.status === "clean").length,
-    withFindings: results.filter((result) => result.status === "findings").length,
-    schemaInvalid: results.filter((result) => result.status === "schema-invalid").length,
-    findings,
-    bySeverity,
-    byCategory: [...categories.entries()]
+    events: tally.events,
+    clean: tally.clean,
+    withFindings: tally.withFindings,
+    schemaInvalid: tally.schemaInvalid,
+    findings: tally.findings,
+    bySeverity: { ...tally.bySeverity },
+    byCategory: [...tally.categories.entries()]
       .map(([category, count]) => ({ category, findings: count }))
       .sort(
         (left, right) =>
           right.findings - left.findings || left.category.localeCompare(right.category, "en"),
       ),
   };
+}
+
+/** Summarises a set of results. The same count, over an array already in hand. */
+export function summarise(results: readonly EventLintResult[]): LintSummary {
+  const tally = startLintTally();
+  for (const result of results) {
+    addToLintTally(tally, result);
+  }
+  return finishLintTally(tally);
 }

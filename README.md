@@ -12,7 +12,7 @@
 |                           |                                                                  |
 | ------------------------- | ---------------------------------------------------------------- |
 | **Specification version** | 0.1                                                              |
-| **Tooling release**       | 0.5.1 — the CLI and MCP server, versioned in `package.json`      |
+| **Tooling release**       | 0.6.0 — the CLI and MCP server, versioned in `package.json`      |
 | **Project status**        | **Experimental**                                                 |
 | **Production readiness**  | **Not production-ready**                                         |
 | **Compliance**            | **No compliance guarantee**                                      |
@@ -405,6 +405,19 @@ ok    examples/valid/minimal-event.json
 
 A path may be a JSON file holding one event, a JSON file holding an array of events, a `.jsonl` or
 `.ndjson` file holding one event per line, or a directory of those files.
+
+`validate`, `verify-integrity`, `lint-privacy`, `check-profile` and `verify-chain` read a `.jsonl`
+or `.ndjson` file a line at a time, and it may be any size: one event is held at a time, so a year
+of production is checked with the memory one event needs. `verify-checkpoint`, `verify-proof` and
+`check-coverage` need the whole set at once and still refuse a file above 8 MB.
+
+A single JSON document is limited to 8 MB whichever command reads it, because a document whose shape
+is unknown until its closing brace cannot be parsed in pieces; the same 8 MB is the limit for one
+line. If a line cannot be parsed, reading that file stops there and it is reported with the line
+number — the events read before it are still checked and counted, and the exit code is still `2`.
+`verify-checkpoint` is the exception that proves the rule: it makes no comparison at all on an
+archive it could not read in full, because an event that was not read is indistinguishable from one
+that was deleted. See [ADR 0016](decisions/0016-events-are-read-as-a-stream.md).
 
 A failure reports the JSON Pointer of every problem:
 

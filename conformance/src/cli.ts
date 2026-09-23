@@ -41,13 +41,21 @@ import {
 } from "./validate.js";
 import {
   loadEventDocuments,
+  streamEventDocuments,
   readJsonFile,
+  type DocumentLoadFailure,
   type DocumentLoadResult,
   type EventDocument,
 } from "./sources.js";
 import { formatIssues } from "./format-errors.js";
 import { verifyEventIntegrity } from "./integrity/verify-event.js";
-import { verifyChains, type ChainEventInput } from "./integrity/verify-chain.js";
+import {
+  addChainEvent,
+  finishChains,
+  startChainIntake,
+  type ChainEventInput,
+  type ChainIntake,
+} from "./integrity/verify-chain.js";
 import { verifyCheckpoint } from "./integrity/verify-checkpoint.js";
 import { verifyProof } from "./integrity/verify-proof.js";
 import { loadPublicKey } from "./integrity/signature.js";
@@ -61,10 +69,21 @@ import type {
   ProofReport,
 } from "./integrity/types.js";
 import { lintEvent } from "./privacy/lint-event.js";
-import { summarise } from "./privacy/types.js";
+import {
+  addToLintTally,
+  finishLintTally,
+  startLintTally,
+  type EventLintResult,
+} from "./privacy/types.js";
 import { availableProfiles, loadProfile } from "./profiles/load-profile.js";
 import { checkProfile } from "./profiles/check-profile.js";
-import { summariseProfileResults, type ProfileFinding } from "./profiles/types.js";
+import {
+  addToProfileTally,
+  finishProfileTally,
+  startProfileTally,
+  type ProfileCheckResult,
+  type ProfileFinding,
+} from "./profiles/types.js";
 import { summariseCoverage } from "./profiles/coverage.js";
 
 export const EXIT_OK = 0;
@@ -275,8 +294,13 @@ interface LoadedInput {
 }
 
 /**
- * Expands the given paths, reads every event they contain and compiles the
- * schema. Returns an exit code when the command cannot proceed at all.
+ * Expands the given paths, reads every event they contain into memory and
+ * compiles the schema. Returns an exit code when the command cannot proceed
+ * at all.
+ *
+ * For the commands that judge a whole set at once — chain verification,
+ * checkpoints, proofs. A command that judges one event at a time reads
+ * {@link streamInput} instead, which holds one event rather than all of them.
  */
 function loadInput(
   inputs: readonly string[],
@@ -323,20 +347,97 @@ function reportLoadFailures(failures: DocumentLoadResult["failures"]): void {
   }
 }
 
-function runValidate(inputs: readonly string[], quiet: boolean): number {
-  const loaded = loadInput(inputs, "validate", quiet);
-  if (typeof loaded === "number") {
-    return loaded;
+/** What a streamed run knows once the stream is spent. */
+interface StreamedInput {
+  readonly validator: Validator;
+  readonly failures: readonly DocumentLoadFailure[];
+  /** Events read. Not `documents.length`: no list of documents was kept. */
+  readonly total: number;
+}
+
+/**
+ * Reads the events one at a time, handing each to `onEvent`.
+ *
+ * Only one event is held at a time, so the size of the input is bounded by the
+ * largest single event rather than by the run. What the command keeps after
+ * that is the command's business: `validate` keeps two counters, and the
+ * commands with a `--format json` report keep one result per event, because
+ * the report names every event and cannot be written any other way.
+ *
+ * A file that cannot be read is collected either way, and in text mode written
+ * where it occurred — between the events before it and the events after it,
+ * which is where it happened. Reading is lazy, so a path that does not exist
+ * raises on the first read and not before.
+ */
+function streamInput(
+  inputs: readonly string[],
+  command: string,
+  quiet: boolean,
+  reportFailures: boolean,
+  onEvent: (document: EventDocument, validator: Validator) => void,
+): StreamedInput | number {
+  if (inputs.length === 0) {
+    process.stderr.write(`auditmodel: ${command} requires at least one file or directory\n\n`);
+    process.stderr.write(USAGE);
+    return EXIT_ERROR;
   }
 
-  reportLoadFailures(loaded.failures);
+  let validator: Validator;
+  try {
+    validator = createValidator();
+  } catch (cause) {
+    process.stderr.write(`auditmodel: ${(cause as Error).message}\n`);
+    return EXIT_ERROR;
+  }
 
+  const failures: DocumentLoadFailure[] = [];
+  let total = 0;
+  // Held back until something arrives, so that a run finding nothing to read
+  // prints its error alone rather than under a header for work never done.
+  let headerWritten = false;
+  const writeHeader = (): void => {
+    if (headerWritten) {
+      return;
+    }
+    headerWritten = true;
+    if (!quiet) {
+      write(`schema: ${validator.schemaId} (${displayPath(validator.schemaPath)})\n\n`);
+    }
+  };
+
+  try {
+    for (const item of streamEventDocuments(inputs)) {
+      writeHeader();
+      if (item.kind === "failure") {
+        failures.push(item.failure);
+        if (reportFailures) {
+          write(`ERROR ${displayPath(item.failure.file)}\n    ${item.failure.error}\n`);
+        }
+        continue;
+      }
+      total += 1;
+      onEvent(item.document, validator);
+    }
+  } catch (cause) {
+    process.stderr.write(`auditmodel: ${(cause as Error).message}\n`);
+    return EXIT_ERROR;
+  }
+
+  if (total === 0 && failures.length === 0) {
+    process.stderr.write("auditmodel: no events found in the given paths\n");
+    return EXIT_ERROR;
+  }
+
+  return { validator, failures, total };
+}
+
+function runValidate(inputs: readonly string[], quiet: boolean): number {
   let valid = 0;
   let invalid = 0;
 
-  for (const document of loaded.documents) {
+  const loaded = streamInput(inputs, "validate", quiet, true, (document, validator) => {
     const label = displayLabel(document);
-    const issues = loaded.validator.validateEvent(document.event);
+    const issues = validator.validateEvent(document.event);
 
     if (issues.length === 0) {
       valid += 1;
@@ -347,12 +448,14 @@ function runValidate(inputs: readonly string[], quiet: boolean): number {
       invalid += 1;
       write(`FAIL  ${label}\n${formatIssues(issues)}\n`);
     }
+  });
+  if (typeof loaded === "number") {
+    return loaded;
   }
 
-  const total = loaded.documents.length;
-  const noun = total === 1 ? "event" : "events";
+  const noun = loaded.total === 1 ? "event" : "events";
   write(
-    `\n${total} ${noun} checked: ${valid} valid, ${invalid} invalid, ${loaded.failures.length} unreadable\n`,
+    `\n${loaded.total} ${noun} checked: ${valid} valid, ${invalid} invalid, ${loaded.failures.length} unreadable\n`,
   );
 
   if (loaded.failures.length > 0) {
@@ -366,19 +469,12 @@ function runVerifyIntegrity(
   quiet: boolean,
   publicKey: KeyObject | undefined,
 ): number {
-  const loaded = loadInput(inputs, "verify-integrity", quiet);
-  if (typeof loaded === "number") {
-    return loaded;
-  }
-
-  reportLoadFailures(loaded.failures);
-
   let verified = 0;
   let failed = 0;
 
-  for (const document of loaded.documents) {
+  const loaded = streamInput(inputs, "verify-integrity", quiet, true, (document, validator) => {
     const label = displayLabel(document);
-    const result = verifyEventIntegrity(document.event, label, loaded.validator, { publicKey });
+    const result = verifyEventIntegrity(document.event, label, validator, { publicKey });
 
     if (result.verified) {
       verified += 1;
@@ -403,11 +499,13 @@ function runVerifyIntegrity(
         "        ",
       );
     }
+  });
+  if (typeof loaded === "number") {
+    return loaded;
   }
 
-  const total = loaded.documents.length;
-  const noun = total === 1 ? "event" : "events";
-  write(`\n${total} ${noun} checked: ${verified} verified, ${failed} failed\n`);
+  const noun = loaded.total === 1 ? "event" : "events";
+  write(`\n${loaded.total} ${noun} checked: ${verified} verified, ${failed} failed\n`);
 
   if (loaded.failures.length > 0) {
     return EXIT_ERROR;
@@ -494,6 +592,20 @@ function runVerifyCheckpoint(
   const loaded = loadInput(inputs, "verify-checkpoint", quiet || json);
   if (typeof loaded === "number") {
     return loaded;
+  }
+
+  // A checkpoint comparison is a statement about what is missing from an
+  // archive, and every event that was not read is missing in exactly the way
+  // a deleted one is. Comparing a partly read archive would report a file the
+  // tool could not open as a truncated chain — the one finding in this command
+  // that means somebody removed events. So it does not compare at all: it says
+  // what it could not read and produces no verdict.
+  if (loaded.failures.length > 0) {
+    reportLoadFailures(loaded.failures);
+    process.stderr.write(
+      "auditmodel: no comparison was made: the archive could not be read in full, and an unread event is indistinguishable from a deleted one\n",
+    );
+    return EXIT_ERROR;
   }
 
   const parsed = readJsonFile(checkpointFile);
@@ -913,19 +1025,19 @@ function runVerifyChain(
   quiet: boolean,
   publicKey: KeyObject | undefined,
 ): number {
-  const loaded = loadInput(inputs, "verify-chain", quiet);
+  // A chain cannot be judged one event at a time, but it does not need the
+  // events kept: each is reduced to its links on arrival and released. See
+  // decision 0016.
+  let intake: ChainIntake | undefined;
+  const loaded = streamInput(inputs, "verify-chain", quiet, true, (document, validator) => {
+    intake ??= startChainIntake(validator, publicKey);
+    addChainEvent(intake, { label: displayLabel(document), event: document.event });
+  });
   if (typeof loaded === "number") {
     return loaded;
   }
 
-  reportLoadFailures(loaded.failures);
-
-  const events: ChainEventInput[] = loaded.documents.map((document) => ({
-    label: displayLabel(document),
-    event: document.event,
-  }));
-
-  const report = verifyChains(events, loaded.validator, publicKey);
+  const report = finishChains(intake ?? startChainIntake(loaded.validator, publicKey));
 
   if (report.unassigned.length > 0) {
     write("events that could not be assigned to a chain\n");
@@ -962,28 +1074,58 @@ function runVerifyChain(
   return report.intact ? EXIT_OK : EXIT_INVALID;
 }
 
-function runLintPrivacy(inputs: readonly string[], quiet: boolean, format: string): number {
-  const loaded = loadInput(inputs, "lint-privacy", quiet || format === "json");
-  if (typeof loaded === "number") {
-    return loaded;
+/** One event's privacy result, in text. */
+function writeLintResult(result: EventLintResult, quiet: boolean): void {
+  if (result.status === "clean") {
+    if (!quiet) {
+      write(`ok    ${result.label}\n`);
+    }
+    return;
   }
 
-  const results = loaded.documents.map((document) =>
-    lintEvent(document.event, displayLabel(document), loaded.validator),
-  );
-  const summary = summarise(results);
+  if (result.status === "schema-invalid") {
+    write(`FAIL  ${result.label}  (not an OpenAuditModel event: NOT scanned)\n`);
+    for (const issue of result.schemaIssues) {
+      write(`        ${issue}\n`);
+    }
+    return;
+  }
 
-  if (format === "json") {
-    const report = {
-      tool: "auditmodel lint-privacy",
-      specVersion: SPEC_VERSION,
-      schemaId: loaded.validator.schemaId,
-      summary,
-      unreadable: loaded.failures.map((failure) => ({
-        file: displayPath(failure.file),
-        error: failure.error,
-      })),
-      results: results.map((result) => ({
+  const noun = result.findings.length === 1 ? "finding" : "findings";
+  write(`FAIL  ${result.label}  (${result.findings.length} ${noun})\n`);
+  for (const entry of result.findings) {
+    write(
+      `        ${entry.severity.toUpperCase()}  ${entry.ruleId}  confidence ${entry.confidence}  ${entry.path}\n`,
+    );
+    write(`          ${entry.message}\n`);
+    if (entry.recommendation !== undefined) {
+      write(`          recommendation: ${entry.recommendation}\n`);
+    }
+  }
+}
+
+function runLintPrivacy(inputs: readonly string[], quiet: boolean, format: string): number {
+  const json = format === "json";
+  const tally = startLintTally();
+  // Text mode keeps nothing but the tally. The JSON report names every event,
+  // so it keeps one entry per event — the findings, never the event.
+  const entries: unknown[] = [];
+
+  const loaded = streamInput(
+    inputs,
+    "lint-privacy",
+    quiet || json,
+    !json,
+    (document, validator) => {
+      const result = lintEvent(document.event, displayLabel(document), validator);
+      addToLintTally(tally, result);
+
+      if (!json) {
+        writeLintResult(result, quiet);
+        return;
+      }
+
+      entries.push({
         file: result.label,
         ...(result.eventId === undefined ? {} : { eventId: result.eventId }),
         status: result.status,
@@ -998,41 +1140,29 @@ function runLintPrivacy(inputs: readonly string[], quiet: boolean, format: strin
           message: entry.message,
           recommendation: entry.recommendation,
         })),
+      });
+    },
+  );
+  if (typeof loaded === "number") {
+    return loaded;
+  }
+
+  const summary = finishLintTally(tally);
+
+  if (json) {
+    const report = {
+      tool: "auditmodel lint-privacy",
+      specVersion: SPEC_VERSION,
+      schemaId: loaded.validator.schemaId,
+      summary,
+      unreadable: loaded.failures.map((failure) => ({
+        file: displayPath(failure.file),
+        error: failure.error,
       })),
+      results: entries,
     };
     write(`${JSON.stringify(report, null, 2)}\n`);
   } else {
-    reportLoadFailures(loaded.failures);
-
-    for (const result of results) {
-      if (result.status === "clean") {
-        if (!quiet) {
-          write(`ok    ${result.label}\n`);
-        }
-        continue;
-      }
-
-      if (result.status === "schema-invalid") {
-        write(`FAIL  ${result.label}  (not an OpenAuditModel event: NOT scanned)\n`);
-        for (const issue of result.schemaIssues) {
-          write(`        ${issue}\n`);
-        }
-        continue;
-      }
-
-      const noun = result.findings.length === 1 ? "finding" : "findings";
-      write(`FAIL  ${result.label}  (${result.findings.length} ${noun})\n`);
-      for (const entry of result.findings) {
-        write(
-          `        ${entry.severity.toUpperCase()}  ${entry.ruleId}  confidence ${entry.confidence}  ${entry.path}\n`,
-        );
-        write(`          ${entry.message}\n`);
-        if (entry.recommendation !== undefined) {
-          write(`          recommendation: ${entry.recommendation}\n`);
-        }
-      }
-    }
-
     const eventNoun = summary.events === 1 ? "event" : "events";
     write(
       `\n${summary.events} ${eventNoun} checked: ${summary.clean} clean, ${summary.withFindings} with findings, ${summary.schemaInvalid} schema-invalid, ${loaded.failures.length} unreadable\n`,
@@ -1075,6 +1205,42 @@ function runLintPrivacy(inputs: readonly string[], quiet: boolean, format: strin
   return summary.schemaInvalid > 0 ? EXIT_NO_VERDICT : EXIT_OK;
 }
 
+/** One event's profile result, in text. */
+function writeProfileResult(result: ProfileCheckResult, quiet: boolean): void {
+  if (result.status === "conforming") {
+    if (!quiet) {
+      write(`ok    ${result.label}  (${result.matchedRules.join(", ")})\n`);
+      writeProfileFindings(result.warnings, "        ");
+    }
+    return;
+  }
+
+  if (result.status === "not-applicable") {
+    if (!quiet) {
+      write(`n/a   ${result.label}  (no rule in this profile governs this event)\n`);
+    }
+    return;
+  }
+
+  if (result.status === "core-invalid") {
+    write(`FAIL  ${result.label}  (core-invalid: profile rules not evaluated)\n`);
+    for (const issue of result.coreIssues) {
+      write(`        ${issue}\n`);
+    }
+    return;
+  }
+
+  const noun = result.errors.length === 1 ? "violation" : "violations";
+  write(`FAIL  ${result.label}  (${result.errors.length} ${noun})\n`);
+  if (!quiet && result.matchedRules.length > 0) {
+    write(`        matched rules: ${result.matchedRules.join(", ")}\n`);
+  }
+  writeProfileFindings(result.errors, "        ");
+  if (!quiet) {
+    writeProfileFindings(result.warnings, "        ");
+  }
+}
+
 function runCheckProfile(
   inputs: readonly string[],
   quiet: boolean,
@@ -1097,18 +1263,46 @@ function runCheckProfile(
     return EXIT_ERROR;
   }
 
-  const input = loadInput(inputs, "check-profile", quiet || format === "json");
+  const json = format === "json";
+  const { profile } = loaded;
+  const tally = startProfileTally();
+  // Text mode keeps nothing but the tally; the JSON report names every event.
+  const results: ProfileCheckResult[] = [];
+  // The profile line belongs above the first result, and `streamInput` writes
+  // the schema line at that same moment, so it is written from inside the
+  // first call rather than before the stream is opened.
+  let profileLineWritten = false;
+
+  const input = streamInput(
+    inputs,
+    "check-profile",
+    quiet || json,
+    !json,
+    (document, validator) => {
+      const result = checkProfile(document.event, displayLabel(document), profile, validator);
+      addToProfileTally(tally, result);
+
+      if (json) {
+        results.push(result);
+        return;
+      }
+
+      if (!profileLineWritten) {
+        profileLineWritten = true;
+        if (!quiet) {
+          write(`profile: ${profile.name} ${profile.version} (${profile.status})\n\n`);
+        }
+      }
+      writeProfileResult(result, quiet);
+    },
+  );
   if (typeof input === "number") {
     return input;
   }
 
-  const { profile } = loaded;
-  const results = input.documents.map((document) =>
-    checkProfile(document.event, displayLabel(document), profile, input.validator),
-  );
-  const summary = summariseProfileResults(results);
+  const summary = finishProfileTally(tally);
 
-  if (format === "json") {
+  if (json) {
     write(
       `${JSON.stringify(
         {
@@ -1128,45 +1322,8 @@ function runCheckProfile(
       )}\n`,
     );
   } else {
-    reportLoadFailures(input.failures);
-
-    if (!quiet) {
+    if (!profileLineWritten && !quiet) {
       write(`profile: ${profile.name} ${profile.version} (${profile.status})\n\n`);
-    }
-
-    for (const result of results) {
-      if (result.status === "conforming") {
-        if (!quiet) {
-          write(`ok    ${result.label}  (${result.matchedRules.join(", ")})\n`);
-          writeProfileFindings(result.warnings, "        ");
-        }
-        continue;
-      }
-
-      if (result.status === "not-applicable") {
-        if (!quiet) {
-          write(`n/a   ${result.label}  (no rule in this profile governs this event)\n`);
-        }
-        continue;
-      }
-
-      if (result.status === "core-invalid") {
-        write(`FAIL  ${result.label}  (core-invalid: profile rules not evaluated)\n`);
-        for (const issue of result.coreIssues) {
-          write(`        ${issue}\n`);
-        }
-        continue;
-      }
-
-      const noun = result.errors.length === 1 ? "violation" : "violations";
-      write(`FAIL  ${result.label}  (${result.errors.length} ${noun})\n`);
-      if (!quiet && result.matchedRules.length > 0) {
-        write(`        matched rules: ${result.matchedRules.join(", ")}\n`);
-      }
-      writeProfileFindings(result.errors, "        ");
-      if (!quiet) {
-        writeProfileFindings(result.warnings, "        ");
-      }
     }
 
     const noun = summary.events === 1 ? "event" : "events";
