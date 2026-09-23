@@ -20,7 +20,16 @@ export interface ChainEventInput {
 
 interface ChainMember {
   readonly label: string;
-  readonly event: unknown;
+  /**
+   * What this event's own digest check found, kept instead of the event.
+   *
+   * A chain is a property of a set, so the members must be held until the last
+   * one has arrived — but what has to be held is the link metadata and this
+   * verdict, not the event that produced them. Keeping the event would make
+   * the memory a run needs proportional to the size of the archive; keeping
+   * this makes it proportional to the number of events in it.
+   */
+  readonly digestFindings: readonly Finding[];
   readonly sequence?: number;
   readonly hash?: string;
   readonly previousHash?: string;
@@ -79,8 +88,6 @@ function compareMembers(left: ChainMember, right: ChainMember): number {
 function verifyOneChain(
   chainId: string,
   members: readonly ChainMember[],
-  validator: EventValidator,
-  publicKey: KeyObject | undefined,
   batchChains: BatchChains,
 ): ChainVerificationResult {
   const findings: Finding[] = [];
@@ -93,13 +100,9 @@ function verifyOneChain(
   // included, so a signed link is exactly as tamper-evident as a hashed one.
   let digestsValid = true;
   for (const member of members) {
-    const result = verifyEventIntegrity(member.event, member.label, validator, {
-      validateSchema: false,
-      publicKey,
-    });
-    if (!result.verified) {
+    if (member.digestFindings.length > 0) {
       digestsValid = false;
-      findings.push(...result.findings);
+      findings.push(...member.digestFindings);
     }
   }
   if (digestsValid && members.length > 0) {
@@ -296,25 +299,43 @@ function verifyOneChain(
 }
 
 /**
- * Verifies every chain present in a set of events.
+ * Chains under construction, between the first event and the last.
  *
- * Events are grouped by `integrity.chainId`; a set containing several chains is
- * verified as several independent chains, which is the intended model — a
- * single global chain is never required.
+ * Chain verification cannot judge an event as it arrives: a link is a relation
+ * between two events, and the second may be in another file. What it can do is
+ * reduce each event to what the chain needs — its links, its ordering and the
+ * verdict on its own digest — and let the event itself go. This holds that
+ * reduction. See decision 0016.
  */
-export function verifyChains(
-  inputs: readonly ChainEventInput[],
+export interface ChainIntake {
+  readonly validator: EventValidator;
+  readonly publicKey: KeyObject | undefined;
+  readonly unassigned: Finding[];
+  readonly groups: Map<string, ChainMember[]>;
+  eventCount: number;
+}
+
+export function startChainIntake(
   validator: EventValidator,
   publicKey?: KeyObject | undefined,
-): ChainReport {
-  const unassigned: Finding[] = [];
-  const groups = new Map<string, ChainMember[]>();
+): ChainIntake {
+  return {
+    validator,
+    publicKey,
+    unassigned: [],
+    groups: new Map<string, ChainMember[]>(),
+    eventCount: 0,
+  };
+}
 
-  for (const input of inputs) {
-    const issues = validator.validateEvent(input.event);
+/** Reduces one event to its chain membership and releases it. */
+export function addChainEvent(intake: ChainIntake, input: ChainEventInput): void {
+  intake.eventCount += 1;
+  {
+    const issues = intake.validator.validateEvent(input.event);
     if (issues.length > 0) {
       const shown = issues.slice(0, 3).map((issue) => `${issue.path}  ${issue.message}`);
-      unassigned.push({
+      intake.unassigned.push({
         kind: "schema-invalid",
         label: input.label,
         message: "event does not conform to the canonical schema",
@@ -323,28 +344,39 @@ export function verifyChains(
             ? [...shown, `and ${issues.length - shown.length} further schema issues`]
             : shown,
       });
-      continue;
+      return;
     }
 
     const integrity = readIntegrity(input.event);
     if (integrity === undefined) {
-      unassigned.push({
+      intake.unassigned.push({
         kind: "integrity-missing",
         label: input.label,
         message: "event carries no integrity object and cannot belong to a chain",
       });
-      continue;
+      return;
     }
 
     const chainId = asString(integrity.chainId);
     if (chainId === undefined) {
-      unassigned.push({
+      intake.unassigned.push({
         kind: "chain-id-missing",
         label: input.label,
         message: "event declares no integrity.chainId, so it cannot be assigned to a chain",
       });
-      continue;
+      return;
     }
+
+    // Every event's own digest must hold before its links mean anything, and
+    // that is a property of the event alone — checked here, while the event is
+    // in hand, rather than later from a copy of it. A signature, when a key was
+    // supplied to check it, is verified alongside: it covers the same
+    // canonicalized input as the hash, chain metadata included, so a signed
+    // link is exactly as tamper-evident as a hashed one.
+    const digest = verifyEventIntegrity(input.event, input.label, intake.validator, {
+      validateSchema: false,
+      publicKey: intake.publicKey,
+    });
 
     const sequence = asSequence((input.event as Record<string, unknown>)["sequence"]);
     const hash = asString(integrity.hash);
@@ -355,7 +387,7 @@ export function verifyChains(
 
     const member: ChainMember = {
       label: input.label,
-      event: input.event,
+      digestFindings: digest.verified ? [] : digest.findings,
       ...(sequence === undefined ? {} : { sequence }),
       ...(hash === undefined ? {} : { hash }),
       ...(previousHash === undefined ? {} : { previousHash }),
@@ -364,13 +396,18 @@ export function verifyChains(
       ...(batchId === undefined ? {} : { batchId }),
     };
 
-    const group = groups.get(chainId);
+    const group = intake.groups.get(chainId);
     if (group === undefined) {
-      groups.set(chainId, [member]);
+      intake.groups.set(chainId, [member]);
     } else {
       group.push(member);
     }
   }
+}
+
+/** Verifies the chains that the events seen so far have built. */
+export function finishChains(intake: ChainIntake): ChainReport {
+  const { groups, unassigned } = intake;
 
   const batchChains = new Map<string, Set<string>>();
   for (const [chainId, members] of groups) {
@@ -388,14 +425,35 @@ export function verifyChains(
 
   const chains = [...groups.entries()]
     .sort((left, right) => left[0].localeCompare(right[0], "en"))
-    .map(([chainId, members]) =>
-      verifyOneChain(chainId, members, validator, publicKey, batchChains),
-    );
+    .map(([chainId, members]) => verifyOneChain(chainId, members, batchChains));
 
   return {
     chains,
     unassigned,
-    eventCount: inputs.length,
+    eventCount: intake.eventCount,
     intact: unassigned.length === 0 && chains.every((chain) => chain.intact),
   };
+}
+
+/**
+ * Verifies every chain present in a set of events.
+ *
+ * Events are grouped by `integrity.chainId`; a set containing several chains is
+ * verified as several independent chains, which is the intended model — a
+ * single global chain is never required.
+ *
+ * The events are read once, in order, and released as they are read, so this
+ * accepts anything iterable — an array in hand, or a reader still working
+ * through a file.
+ */
+export function verifyChains(
+  inputs: Iterable<ChainEventInput>,
+  validator: EventValidator,
+  publicKey?: KeyObject | undefined,
+): ChainReport {
+  const intake = startChainIntake(validator, publicKey);
+  for (const input of inputs) {
+    addChainEvent(intake, input);
+  }
+  return finishChains(intake);
 }

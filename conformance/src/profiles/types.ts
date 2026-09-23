@@ -128,18 +128,60 @@ export interface ProfileCheckSummary {
   readonly warnings: number;
 }
 
+/**
+ * Counts results one at a time, for a command that reads its events as a
+ * stream and so must not keep a result per event either.
+ */
+export interface ProfileTally {
+  events: number;
+  conforming: number;
+  violations: number;
+  notApplicable: number;
+  coreInvalid: number;
+  errors: number;
+  warnings: number;
+}
+
+export function startProfileTally(): ProfileTally {
+  return {
+    events: 0,
+    conforming: 0,
+    violations: 0,
+    notApplicable: 0,
+    coreInvalid: 0,
+    errors: 0,
+    warnings: 0,
+  };
+}
+
+export function addToProfileTally(tally: ProfileTally, result: ProfileCheckResult): void {
+  tally.events += 1;
+  if (result.status === "conforming") {
+    tally.conforming += 1;
+  } else if (result.status === "violations") {
+    tally.violations += 1;
+  } else if (result.status === "not-applicable") {
+    tally.notApplicable += 1;
+  } else if (result.status === "core-invalid") {
+    tally.coreInvalid += 1;
+  }
+  tally.errors += result.errors.length;
+  tally.warnings += result.warnings.length;
+}
+
+export function finishProfileTally(tally: ProfileTally): ProfileCheckSummary {
+  return { ...tally };
+}
+
+/** The same count, over an array already in hand. */
 export function summariseProfileResults(
   results: readonly ProfileCheckResult[],
 ): ProfileCheckSummary {
-  return {
-    events: results.length,
-    conforming: results.filter((result) => result.status === "conforming").length,
-    violations: results.filter((result) => result.status === "violations").length,
-    notApplicable: results.filter((result) => result.status === "not-applicable").length,
-    coreInvalid: results.filter((result) => result.status === "core-invalid").length,
-    errors: results.reduce((total, result) => total + result.errors.length, 0),
-    warnings: results.reduce((total, result) => total + result.warnings.length, 0),
-  };
+  const tally = startProfileTally();
+  for (const result of results) {
+    addToProfileTally(tally, result);
+  }
+  return finishProfileTally(tally);
 }
 
 /**

@@ -11,7 +11,82 @@ While the project is **Experimental**, breaking changes are possible in any rele
 as such. A change that alters the meaning of an existing field or event name is never acceptable — a
 new name is introduced instead.
 
-## Unreleased
+## 0.6.0 - 2026-09-22
+
+Specification `0.1`, unchanged. Repository `0.6.0`.
+
+The theme of this release is the size of an archive. Until now the tool read every file whole and
+refused one above 8 MB, which meant it refused the thing it is for: an audit archive is an
+append-only file that grows for as long as the system it records is running. JSON Lines is now read
+a line at a time, and the commands that judge one event at a time release each event as they go.
+Nothing normative changes and no verdict moves, except the two this section names.
+
+### Added — an archive is read a line at a time, so its size is no longer the limit
+
+Until now every command read every input file whole before checking anything, and a file above 8 MB
+was refused unread. An audit archive is an append-only file that grows for as long as the system it
+records is running, so the tool was refusing the thing it is for: a year of a moderately busy
+service could not be offered to it at all.
+
+JSON Lines is now read in 64 KiB chunks and split into lines as they arrive, one event held at a
+time. `validate`, `verify-integrity`, `lint-privacy` and `check-profile` judge each event and
+release it, keeping nothing but counters in text output. `verify-chain` cannot judge one event at a
+time — a link is a relation between two events, and the second may be in another file — so it keeps
+each event's links, ordering and digest verdict and releases the event: the memory it needs is
+proportional to how many events an archive holds rather than to what they weigh. The tests hold
+`validate` to 40 000 events and `verify-chain` to a 30 000-event chain under a 64 MB heap.
+
+The 8 MB limit is not gone. For a streaming command it now applies to one line rather than to a
+JSON Lines file, and it is enforced both on a completed line and on a line still growing, so a file
+with no newline in it at all is refused after one line's worth rather than read entire. Everywhere
+else it still applies to the file: to a single JSON document, whose shape is unknown until its
+closing brace and which therefore cannot be parsed in pieces, and to a JSON Lines file given to
+`verify-checkpoint`, `verify-proof` or `check-coverage` — the three commands that hold every event
+at once and would otherwise be killed part-way through an archive instead of refusing it. See
+[ADR 0016](decisions/0016-events-are-read-as-a-stream.md).
+
+### Changed behaviour — a malformed line no longer costs the events that came before it
+
+A single line that is not JSON discarded every event in its file. A thousand-line export with one
+truncated line reported nothing: not "999 checked, one line lost" but "0 events found". That made
+the tool least informative exactly when an archive is most in question.
+
+Reading a file now stops at the first line that is not JSON and reports it with its line number,
+and the events read before it are checked and counted. The exit code does not move — a file that
+could not be read is still a `2` — so nothing that branches on the exit code changes. What changes
+is that the summary now says what was verified as well as what was lost. In text output an
+unreadable file is also reported where it occurred, between the events before it and the events
+after it, rather than collected above the run; `--format json` reports it in `unreadable` as before.
+
+### Changed behaviour — `verify-checkpoint` makes no comparison on an archive it could not read in full
+
+A checkpoint comparison reports what is missing from an archive, and an event that was not read is
+missing in exactly the way a deleted one is. With the events before a malformed line now surviving,
+comparing such a file reported a JSON syntax error as `tail-truncated` — the one finding in this
+tool that means somebody removed events.
+
+`verify-checkpoint` now reports the unreadable file, states that no comparison was made, and exits
+2 without comparing. The exit code is what it was for this input; what changes is that a partly
+read archive no longer produces a comparison, an `outcome` of `disagrees` or a tamper-evidence
+finding. A verifier that cannot see the whole archive has not verified it.
+
+### Added — a corpus of inputs built to break the tool rather than to fail a check
+
+An audit tool is pointed at whatever an archive happens to contain, which includes whatever an
+attacker managed to write into it. A new test file holds every command to producing one of the four
+documented exit codes, and never a stack trace, on: nesting deeper than a parser's stack, an array
+of twenty thousand events, bytes that are not UTF-8, a multi-byte character truncated at the end of
+a file, duplicate keys, a `__proto__` key, lone surrogates and control characters, numbers outside
+what JSON can carry, empty and scalar files, chains that cycle, an event whose `previousHash` is its
+own hash, and five hundred events claiming the same sequence. Three thousand seeded mutations of a
+valid event are run through every engine — a thousand mutations of its text, of which the ones that
+still parse reach the engines and the test asserts how many did; a thousand of its shape, which
+always parse; and a thousand of its shape read back from disk. A failure prints the seed and the
+input that produced it.
+
+This found a real hole while it was being written: the per-line limit was checked only against a
+line still growing, so a line that ended inside the same chunk that carried it past the limit was
+read whole. It is now checked against completed lines too.
 
 ### Added — `profiles/REQUIREMENTS.md`, the profiles read from the producer's side
 
