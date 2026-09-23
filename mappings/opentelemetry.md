@@ -10,16 +10,17 @@ It does not define the audit semantics those events need to carry.
 
 An OpenAuditModel event maps naturally onto an OpenTelemetry LogRecord.
 
-| OpenAuditModel           | LogRecord field                   | Notes                               |
-| ------------------------ | --------------------------------- | ----------------------------------- |
-| `time`                   | `Timestamp`                       | When the operation occurred         |
-| `observedTime`           | `ObservedTimestamp`               | When the pipeline observed it       |
-| `request.traceId`        | `TraceId`                         | Same 16-byte value, hex encoded     |
-| `request.spanId`         | `SpanId`                          | Same 8-byte value, hex encoded      |
-| `event.severity`         | `SeverityText` / `SeverityNumber` | See §3 — the mapping is approximate |
-| `event.name`             | Event name attribute              | See §4                              |
-| the complete audit event | `Body`                            | RECOMMENDED, see §2                 |
-| `application.*`          | Resource attributes               | See §5                              |
+| OpenAuditModel           | LogRecord field                   | Notes                                                                     |
+| ------------------------ | --------------------------------- | ------------------------------------------------------------------------- |
+| `time`                   | `Timestamp`                       | When the operation occurred                                               |
+| `observedTime`           | `ObservedTimestamp`               | When the pipeline observed it                                             |
+| `request.traceId`        | `TraceId`                         | Same 16-byte value, hex encoded                                           |
+| `request.spanId`         | `SpanId`                          | Same 8-byte value, hex encoded                                            |
+| `request.parentSpanId`   | none                              | A LogRecord has no parent; the span's `ParentSpanId` holds the same value |
+| `event.severity`         | `SeverityText` / `SeverityNumber` | See §3 — the mapping is approximate                                       |
+| `event.name`             | Event name attribute              | See §4                                                                    |
+| the complete audit event | `Body`                            | RECOMMENDED, see §2                                                       |
+| `application.*`          | Resource attributes               | See §5                                                                    |
 
 ## 2. Body or attributes
 

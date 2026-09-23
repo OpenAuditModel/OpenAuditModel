@@ -8,6 +8,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
+import { loadConfig } from "../src/config.js";
+import { createHttpApplication } from "../src/http-server.js";
 import { createLogger, type LogFields } from "../src/logging.js";
 
 /** Captures emitted lines instead of writing them to stdout. */
@@ -135,5 +137,30 @@ describe("log levels", () => {
     logger.error({ message: "c" });
 
     assert.equal(lines.length, 0);
+  });
+});
+
+describe("request lines", () => {
+  test("a line names the route that answered, never the path the caller sent", async () => {
+    const { logger, lines } = capture("info");
+    const application = createHttpApplication(
+      loadConfig({ PORT: "0", HOST: "127.0.0.1", OAM_LOG_LEVEL: "info" }),
+      logger,
+    );
+    const { port } = await application.listen();
+    try {
+      // A path is caller-chosen text. Anything placed in it, a token included,
+      // would otherwise be copied into the operator's log aggregator.
+      const secretPath = "/ghp_0123456789abcdefghijklmnopqrstuvwxyzAB/user-42";
+      for (const requested of ["/health", secretPath, "/mcp/extra?token=abc"]) {
+        await fetch(`http://127.0.0.1:${port}${requested}`);
+      }
+    } finally {
+      await application.close();
+    }
+
+    const routes = lines.filter((line) => "requestId" in line).map((line) => line["route"]);
+    assert.deepEqual(routes, ["/health", "other", "other"]);
+    assert.doesNotMatch(JSON.stringify(lines), /ghp_|user-42|token=|extra/);
   });
 });

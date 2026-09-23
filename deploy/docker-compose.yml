@@ -59,7 +59,7 @@ services:
           "-q",
           "-O",
           "/dev/null",
-          "http://127.0.0.1:8080/schemas/audit-event/0.1/schema.json",
+          "http://127.0.0.1:8080/schemas/audit-event/1.0/schema.json",
         ]
       interval: 30s
       timeout: 5s
@@ -77,7 +77,7 @@ services:
       context: ..
       dockerfile: Dockerfile
     # A local tag, built from this repository. Pin an explicit version tag such
-    # as openauditmodel-mcp:0.1.0-alpha.1 for a release you intend to roll back
+    # as openauditmodel-mcp:1.0.0 for a release you intend to roll back
     # to. `latest` is deliberately never used.
     image: openauditmodel-mcp:local
     container_name: openauditmodel-mcp
@@ -107,9 +107,12 @@ services:
       # validation still refuses a browser-driven request to 127.0.0.1, so the
       # rebinding defence does not rest on this list alone.
       OAM_ALLOWED_HOSTS: mcp.openauditmodel.org,127.0.0.1,localhost
-      # Enable only when a trusted proxy sets X-Forwarded-Host. Believing that
-      # header without a proxy in front lets any client assert any host.
-      OAM_TRUST_PROXY: "true"
+      # Off, because nothing here needs it: Cloudflare, cloudflared and the
+      # Nginx example all forward the public name in Host itself. Host
+      # validation stops DNS rebinding, not a client that reaches the origin
+      # directly — that client writes its own Host. The tunnel or a firewall
+      # keeps direct clients out; see deploy/README.md.
+      OAM_TRUST_PROXY: "false"
       OAM_MAX_REQUEST_BYTES: "1000000"
       OAM_MAX_EVENT_BYTES: "256000"
       OAM_MAX_CHAIN_EVENTS: "200"

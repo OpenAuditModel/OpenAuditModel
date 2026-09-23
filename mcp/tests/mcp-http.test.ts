@@ -126,7 +126,7 @@ describe("routes", () => {
     const body = (await response.json()) as Json;
     assert.deepEqual(body, {
       name: "OpenAuditModel MCP",
-      status: "experimental",
+      status: "stable",
       endpoint: "/mcp",
       website: "https://openauditmodel.org",
     });
@@ -348,6 +348,128 @@ describe("tool parity with the conformance engines", () => {
         name,
       );
     }
+  });
+
+  test("validate_event judges each version by its own schema, and a newer one not at all", async () => {
+    const event = readEvent("examples/valid", "minimal-event.json");
+
+    const newer = await callTool("validate_event", { event: { ...event, specVersion: "1.1" } });
+    assert.equal(newer["valid"], false);
+    assert.equal(newer["notEvaluated"], true);
+    assert.equal(newer["schemaId"], null);
+    assert.deepEqual(newer["implementedSpecVersions"], ["0.1", "1.0"]);
+
+    // A 0.1 event is judged by 0.1 and is not told to become 1.0: its
+    // version may be inside a digest.
+    const older = await callTool("validate_event", { event: { ...event, specVersion: "0.1" } });
+    assert.equal(older["valid"], true);
+    assert.equal(older["notEvaluated"], false);
+    assert.equal(
+      older["schemaId"],
+      "https://openauditmodel.org/schemas/audit-event/0.1/schema.json",
+    );
+    assert.equal(older["expectedSpecVersion"], undefined);
+
+    // A malformed version fails, judged by the current schema, and says so.
+    const malformed = await callTool("validate_event", { event: { ...event, specVersion: "v1" } });
+    assert.equal(malformed["valid"], false);
+    assert.equal(malformed["notEvaluated"], false);
+    assert.equal(malformed["specVersion"], null);
+    assert.equal(
+      malformed["schemaId"],
+      "https://openauditmodel.org/schemas/audit-event/1.0/schema.json",
+    );
+  });
+
+  test("a private key sent as publicKeyPem is refused and called exposed", async () => {
+    const privatePem =
+      "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEINSFExEuYKx62r0fQ6EQuZZunDj34W2McAZ3OAf8qz9S\n-----END PRIVATE KEY-----\n";
+    const result = await callTool("verify_integrity", {
+      event: readEvent("examples/integrity/valid", "signed-event-ed25519.json"),
+      publicKeyPem: privatePem,
+    });
+    const error = result["error"] as Json;
+    assert.equal(error["code"], "private-key-supplied");
+    assert.match(String(error["message"]), /treat it as exposed/);
+    assert.ok(!JSON.stringify(result).includes("MC4CAQ"));
+  });
+
+  test("a small-order Ed25519 key is refused as unusable, not as unreadable", async () => {
+    const identityKey = `-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\n-----END PUBLIC KEY-----\n`;
+    const result = await callTool("verify_integrity", {
+      event: readEvent("examples/integrity/valid", "signed-event-ed25519.json"),
+      publicKeyPem: identityKey,
+    });
+    const error = result["error"] as Json;
+    assert.equal(error["code"], "unusable-public-key");
+    assert.match(String(error["message"]), /small-order point/);
+  });
+
+  test("subscriptions/listen is not offered, so no stream is held open", async () => {
+    const response = await fetchWorker("/mcp", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+      },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 77, method: "subscriptions/listen", params: {} }),
+    });
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as Json;
+    assert.equal(body["id"], 77);
+    assert.equal((body["error"] as Json)["code"], -32601);
+  });
+
+  test("a JSON-RPC batch is refused, so one request cannot ask for unbounded work", async () => {
+    // One body under the size limit held thousands of resources/read calls
+    // and drew a response of over a hundred megabytes.
+    const batch = Array.from({ length: 3 }, (_, index) => ({
+      jsonrpc: "2.0",
+      id: 900 + index,
+      method: "tools/list",
+      params: {},
+    }));
+    const response = await fetchWorker("/mcp", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+      },
+      body: JSON.stringify(batch),
+    });
+    assert.equal(response.status, 400);
+    assert.match(await response.text(), /batches are not accepted/);
+  });
+
+  test("a __proto__ member is refused at the boundary rather than dropped", async () => {
+    // The tool-argument schemas copy objects and the copy loses `__proto__`,
+    // so an event carrying unsigned content under that key used to be judged
+    // without it: valid, verified and clean, where the CLI rejects it. The
+    // body is written by hand because an object literal cannot hold the key.
+    const event = readEvent("examples/integrity/valid", "single-event-sha256.json");
+    const withProto = JSON.stringify(event).replace(
+      /}$/,
+      ',"__proto__":{"password":"hunter2-not-hashed"}}',
+    );
+    for (const [name, argument] of [
+      ["validate_event", "event"],
+      ["verify_integrity", "event"],
+      ["lint_privacy", "event"],
+    ] as const) {
+      const response = await fetchWorker("/mcp", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json, text/event-stream",
+        },
+        body: `{"jsonrpc":"2.0","id":${nextId++},"method":"tools/call","params":{"name":"${name}","arguments":{"${argument}":${withProto}}}}`,
+      });
+      assert.equal(response.status, 400, name);
+      assert.match(await response.text(), /__proto__ is not accepted/, name);
+    }
+    // And the CLI's validator, which sees the member, rejects the same bytes.
+    const parsed = JSON.parse(withProto) as unknown;
+    assert.notDeepEqual(cliValidator.validateEvent(parsed), []);
   });
 
   test("the precompiled validator agrees with the runtime-compiled one", () => {
@@ -823,7 +945,7 @@ describe("guidance and template tools", () => {
 
     const rendered = JSON.stringify(result["template"]);
     assert.match(rendered, /<PLACEHOLDER:/);
-    assert.match(rendered, /"specVersion":"0\.1"/);
+    assert.match(rendered, /"specVersion":"1\.0"/);
     // No digest, signature or credential is ever generated.
     for (const forbidden of ["integrity", "signature", "hash", "password", "token"]) {
       assert.doesNotMatch(rendered, new RegExp(`"${forbidden}"`, "i"), forbidden);
@@ -1090,13 +1212,20 @@ describe("build artifacts", () => {
     }
   });
 
-  test("the generated validator declares itself generated and compiles no schema", () => {
-    const generated = readFileSync(
-      path.join(repoRoot, "mcp", "src", "schema-validator.generated.ts"),
-      "utf8",
-    );
-    assert.match(generated, /GENERATED FILE — DO NOT EDIT/);
-    assert.doesNotMatch(generated, /new Function/);
-    assert.doesNotMatch(generated, /require\(/, "CJS requires must be rewritten to imports");
+  test("the generated validators declare themselves generated and compile no schema", () => {
+    for (const name of [
+      "schema-validator-0.1",
+      "schema-validator-1.0",
+      "checkpoint-validator",
+      "proof-validator",
+    ]) {
+      const generated = readFileSync(
+        path.join(repoRoot, "mcp", "src", `${name}.generated.ts`),
+        "utf8",
+      );
+      assert.match(generated, /GENERATED FILE — DO NOT EDIT/, name);
+      assert.doesNotMatch(generated, /new Function/, name);
+      assert.doesNotMatch(generated, /require\(/, `${name}: CJS requires must be rewritten`);
+    }
   });
 });

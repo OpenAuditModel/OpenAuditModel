@@ -1,6 +1,6 @@
 # Event Naming
 
-**Specification version: 0.1 · Status: Experimental**
+**Specification version: 1.0 · Status: Stable**
 
 The normative naming rules are in [event-model.md](../specification/event-model.md) §7. This document
 gives the recommended vocabularies and the reasoning behind them.

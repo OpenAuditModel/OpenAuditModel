@@ -10,38 +10,39 @@ This is an **export** mapping: OpenAuditModel to ECS. See
 
 ## 1. Initial field mapping
 
-| OpenAuditModel            | ECS field                           | Notes                                               |
-| ------------------------- | ----------------------------------- | --------------------------------------------------- |
-| `id`                      | `event.id`                          |                                                     |
-| `time`                    | `@timestamp`                        |                                                     |
-| `observedTime`            | `event.ingested`                    |                                                     |
-| `event.name`              | `event.action`                      | See §2                                              |
-| `event.category`          | `event.category`                    | ECS `event.category` is a closed vocabulary; see §2 |
-| `event.type`              | `event.type`                        | ECS `event.type` is also closed                     |
-| `event.outcome`           | `event.outcome`                     | ECS permits `success`, `failure`, `unknown`; see §3 |
-| `event.severity`          | `event.severity`                    | ECS expects a number; see §3                        |
-| `event.summary`           | `message`                           |                                                     |
-| `event.error.code`        | `error.code`                        |                                                     |
-| `event.error.message`     | `error.message`                     |                                                     |
-| `actor.id`                | `user.id`                           | For `actor.type` of `user` or `admin`               |
-| `actor.displayName`       | `user.name`                         |                                                     |
-| `actor.roles`             | `user.roles`                        |                                                     |
-| `actor.id`                | `service.name`                      | For `actor.type` of `service`                       |
-| `subject.id`              | `user.target.id`                    | Approximate; see §4                                 |
-| `resource.id`             | `event.reference` or a custom field | ECS has no general resource concept; see §4         |
-| `application.name`        | `service.name`                      | Conflicts with service actors; see §4               |
-| `application.version`     | `service.version`                   |                                                     |
-| `application.environment` | `service.environment`               |                                                     |
-| `application.instance`    | `service.node.name`                 |                                                     |
-| `request.traceId`         | `trace.id`                          |                                                     |
-| `request.spanId`          | `span.id`                           |                                                     |
-| `request.requestId`       | `http.request.id`                   | Where the request was HTTP                          |
-| `request.ipAddress`       | `client.ip`                         |                                                     |
-| `request.userAgent`       | `user_agent.original`               |                                                     |
-| `request.method`          | `http.request.method`               |                                                     |
-| `request.route`           | `url.path`                          | Route template, not a resolved URL                  |
-| `organization.tenantId`   | `organization.id`                   | Approximate                                         |
-| `tags`                    | `tags`                              |                                                     |
+| OpenAuditModel            | ECS field                           | Notes                                                           |
+| ------------------------- | ----------------------------------- | --------------------------------------------------------------- |
+| `id`                      | `event.id`                          |                                                                 |
+| `time`                    | `@timestamp`                        |                                                                 |
+| `observedTime`            | `event.ingested`                    |                                                                 |
+| `event.name`              | `event.action`                      | See §2                                                          |
+| `event.category`          | `event.category`                    | ECS `event.category` is a closed vocabulary; see §2             |
+| `event.type`              | `event.type`                        | ECS `event.type` is also closed                                 |
+| `event.outcome`           | `event.outcome`                     | ECS permits `success`, `failure`, `unknown`; see §3             |
+| `event.severity`          | `event.severity`                    | ECS expects a number; see §3                                    |
+| `event.summary`           | `message`                           |                                                                 |
+| `event.error.code`        | `error.code`                        |                                                                 |
+| `event.error.message`     | `error.message`                     |                                                                 |
+| `actor.id`                | `user.id`                           | For `actor.type` of `user` or `admin`                           |
+| `actor.displayName`       | `user.name`                         |                                                                 |
+| `actor.roles`             | `user.roles`                        |                                                                 |
+| `actor.id`                | `service.name`                      | For `actor.type` of `service`                                   |
+| `subject.id`              | `user.target.id`                    | Approximate; see §4                                             |
+| `resource.id`             | `event.reference` or a custom field | ECS has no general resource concept; see §4                     |
+| `application.name`        | `service.name`                      | Conflicts with service actors; see §4                           |
+| `application.version`     | `service.version`                   |                                                                 |
+| `application.environment` | `service.environment`               |                                                                 |
+| `application.instance`    | `service.node.name`                 |                                                                 |
+| `request.traceId`         | `trace.id`                          |                                                                 |
+| `request.spanId`          | `span.id`                           |                                                                 |
+| `request.parentSpanId`    | none                                | ECS defines no parent span field; carry it as a label if needed |
+| `request.requestId`       | `http.request.id`                   | Where the request was HTTP                                      |
+| `request.ipAddress`       | `client.ip`                         |                                                                 |
+| `request.userAgent`       | `user_agent.original`               |                                                                 |
+| `request.method`          | `http.request.method`               |                                                                 |
+| `request.route`           | `url.path`                          | Route template, not a resolved URL                              |
+| `organization.tenantId`   | `organization.id`                   | Approximate                                                     |
+| `tags`                    | `tags`                              |                                                                 |
 
 ## 2. Vocabulary collisions
 

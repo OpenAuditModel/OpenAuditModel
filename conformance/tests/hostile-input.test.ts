@@ -13,7 +13,7 @@
  */
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test, { after, describe } from "node:test";
@@ -199,6 +199,159 @@ describe("shapes that break parsers", () => {
     survives(auditmodel("validate", write("scalar.json", "42")), "a scalar");
     survives(auditmodel("validate", write("null.json", "null")), "null");
     survives(auditmodel("validate", write("empty-array.json", "[]")), "an empty array");
+  });
+});
+
+describe("found by the 1.0 security review", () => {
+  const COMMANDS: readonly (readonly string[])[] = [
+    ["validate"],
+    ["verify-integrity"],
+    ["verify-chain"],
+    ["lint-privacy"],
+    ["check-profile", "--profile", "document-management"],
+    ["check-coverage", "--profile", "document-management"],
+    [
+      "verify-checkpoint",
+      "--checkpoint",
+      "examples/integrity/checkpoints/three-event-chain.checkpoint.json",
+    ],
+  ];
+
+  test("an event nested past the parser's limit is unreadable in every command, never a crash", () => {
+    // Ajv recurses; five thousand levels overflowed its stack inside the three
+    // commands that hold every event, which printed a stack trace and exited 1
+    // — "a verdict was produced and it failed". It is now refused where it is
+    // read, as any unreadable input is.
+    // Written as text: building it with JSON.stringify would overflow this
+    // process's stack before the tool ever saw it.
+    const deep = `${'{"next":'.repeat(5000)}"leaf"${"}".repeat(5000)}`;
+    const file = write(
+      "deep-metadata.json",
+      JSON.stringify(validEvent()).replace(/}$/, `,"metadata":{"deep":${deep}}}`),
+    );
+    for (const command of COMMANDS) {
+      const result = auditmodel(...command, file);
+      survives(result, command[0] as string);
+      assert.equal(result.status, 2, `${command[0]}: exit ${result.status}`);
+      assert.match(result.stdout + result.stderr, /nested more than 200 levels/, command[0]);
+    }
+    const proof = auditmodel(
+      "verify-proof",
+      "--proof",
+      "examples/integrity/proofs/three-event-chain.002.proof.json",
+      file,
+    );
+    survives(proof, "verify-proof");
+    assert.equal(proof.status, 2);
+  });
+
+  test("a FIFO named like an event file is refused, not waited on", () => {
+    // Opening a FIFO for reading blocks until something writes to it, and its
+    // size is reported as zero: one named b.json hung validate outright.
+    const directory = path.join(scratch, "fifo-archive");
+    mkdirSync(directory, { recursive: true });
+    writeFileSync(path.join(directory, "a.json"), JSON.stringify(validEvent()));
+    const fifo = path.join(directory, "b.json");
+    const made = spawnSync("mkfifo", [fifo]);
+    if (made.status !== 0) {
+      return; // no mkfifo on this platform; nothing to prove here
+    }
+    for (const command of [["validate"], ["check-coverage", "--profile", "document-management"]]) {
+      const result = spawnSync(process.execPath, [cliPath, ...command, directory], {
+        cwd: repoRoot,
+        encoding: "utf8",
+        timeout: 20_000,
+      });
+      assert.notEqual(result.signal, "SIGTERM", `${command[0]} blocked on the FIFO`);
+      assert.equal(result.status, 2, `${command[0]}: ${result.stdout}${result.stderr}`);
+      assert.match(result.stdout, /not a regular file/);
+    }
+  });
+
+  test("control characters from input are printed as escapes, not obeyed", () => {
+    // ESC[8m conceals everything after it — FAIL lines and summary included.
+    const event = validEvent();
+    event["\u001b[8mhidden"] = true;
+    const file = write("escape.json", JSON.stringify(event));
+    const result = auditmodel("validate", file);
+    assert.equal(result.status, 1);
+    assert.ok(!result.stdout.includes("\u001b"), "a raw ESC reached the terminal");
+    assert.match(result.stdout, /\\u001b\[8mhidden/);
+  });
+
+  test("a parse error names a position, never the text around it", () => {
+    const file = write("leaky.json", '{"password": sk_live_4eC39HqLyjWDarjtT1zdp7dc}');
+    const result = auditmodel("validate", file);
+    assert.equal(result.status, 2);
+    assert.doesNotMatch(result.stdout + result.stderr, /sk_live/);
+    assert.match(result.stdout, /cannot parse JSON: (invalid JSON at|not valid JSON)/);
+  });
+
+  test("a credential used as a property name is found, and never repeated", () => {
+    const token = "ghp_A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8";
+    const event = validEvent();
+    event["metadata"] = { sessions: JSON.parse(`{"${token}": {"note": "x"}}`) as unknown };
+    const file = write("token-key.json", JSON.stringify(event));
+    const lint = auditmodel("lint-privacy", file);
+    assert.equal(lint.status, 1, "a token used as a key must not read as clean");
+    assert.ok(!lint.stdout.includes(token), "the token came back in the report");
+    assert.match(lint.stdout, /<redacted>/);
+
+    const unknown = validEvent();
+    unknown[token] = true;
+    const validate = auditmodel("validate", write("token-top.json", JSON.stringify(unknown)));
+    assert.equal(validate.status, 1);
+    assert.ok(!validate.stdout.includes(token), "validate quoted the token");
+  });
+
+  test("a URL or connection string with a password, used as a property name, is not repeated", () => {
+    // The linter reports these values as critical; as keys they were printed
+    // in the path of that very finding, password and all.
+    const keys = [
+      "https://bob:s3cretPass@example.com/x",
+      "postgres://admin:hunter2@db:5432/app",
+      "Server=db;User Id=sa;Password=hunter2;",
+    ];
+    const event = validEvent();
+    event["metadata"] = Object.fromEntries(keys.map((key) => [key, "v"]));
+    const lint = auditmodel("lint-privacy", write("credential-keys.json", JSON.stringify(event)));
+    assert.equal(lint.status, 1);
+    assert.doesNotMatch(lint.stdout, /s3cretPass|hunter2/);
+
+    const unknown = validEvent();
+    unknown[keys[1] as string] = true;
+    const validate = auditmodel("validate", write("credential-top.json", JSON.stringify(unknown)));
+    assert.equal(validate.status, 1);
+    assert.doesNotMatch(validate.stdout, /hunter2/);
+  });
+
+  test("a newline from input cannot start a line of its own", () => {
+    // A property name ending in a forged summary, followed by blank lines,
+    // printed the summary under the FAIL and pushed the real one off screen.
+    const event = validEvent();
+    event["x\n\n1 event checked: 1 valid, 0 invalid, 0 unreadable\n\n\n"] = true;
+    const result = auditmodel("validate", "-q", write("newline-key.json", JSON.stringify(event)));
+    assert.equal(result.status, 1);
+    assert.doesNotMatch(result.stdout, /^1 event checked: 1 valid/m);
+    assert.match(result.stdout, /x\\n\\n1 event checked/);
+  });
+
+  test("a private key where a public key belongs is refused by name", () => {
+    const pem = readFileSync(
+      path.join(repoRoot, "conformance/tools/generate-integrity-fixtures.ts"),
+      "utf8",
+    ).match(/-----BEGIN PRIVATE KEY-----[\s\S]*?-----END PRIVATE KEY-----\n/)?.[0];
+    assert.ok(pem !== undefined, "the generator's test key moved");
+    const keyFile = write("private.pem", pem);
+    const result = auditmodel(
+      "verify-integrity",
+      "--public-key",
+      keyFile,
+      "examples/integrity/valid/signed-event-ed25519.json",
+    );
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /this is a private key/);
+    assert.ok(!result.stderr.includes("MC4CAQ"), "the key text was repeated");
   });
 });
 

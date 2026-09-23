@@ -94,20 +94,31 @@ jobs:
         with:
           ref: ${{ inputs.tag || github.ref_name }}
 
+      - name: Confirm the ref is a tag
+        # A dispatch accepts any ref named like a version, a branch included,
+        # and this job holds the publishing credential. Only a tag publishes.
+        run: |
+          git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null \
+            || { echo "::error::${TAG} is not a tag in this repository"; exit 1; }
+
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
           node-version: "24.x"
           registry-url: "https://registry.npmjs.org"
-          cache: npm
+          # No dependency cache in this job. It holds the OIDC credential that
+          # publishes, and a cache is written by other runs; the install below
+          # comes from the registry against the lock file's integrity hashes.
 
       - name: Use an npm that supports trusted publishing
         # Trusted publishing needs npm 11.5.1 or newer. Whatever ships with the
         # runner's Node is not guaranteed to be, and an npm that does not
         # understand OIDC falls back to looking for a token that does not
-        # exist — which fails late and reads like a credential problem.
+        # exist — which fails late and reads like a credential problem. The
+        # version is exact: this npm runs with the publishing credential, so
+        # a new release is taken by editing this line, not by default.
         run: |
-          npm install -g npm@^11
+          npm install -g npm@11.20.0
           npm --version
 
       - name: Install dependencies from the lock file

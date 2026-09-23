@@ -21,7 +21,7 @@ import { constants, createPrivateKey, createPublicKey, sign as cryptoSign } from
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
-import { resolveSchemaPath } from "../src/validate.js";
+import { resolveSchemaPath, SPEC_VERSION } from "../src/validate.js";
 import { buildDigestInput, calculateDigest, sealEvent } from "../src/integrity/digest.js";
 import { canonicalBytes } from "../src/integrity/canonicalize.js";
 import {
@@ -187,7 +187,7 @@ function declaredHash(event: Event): string {
 // ---------------------------------------------------------------------------
 
 const singleEvent: Event = sealEvent({
-  specVersion: "0.1",
+  specVersion: SPEC_VERSION,
   id: "018f2a10-4c21-7b83-9e05-1d2f3a4b5c60",
   time: "2026-04-02T13:20:44.117Z",
   sequence: 1,
@@ -230,7 +230,7 @@ const singleEvent: Event = sealEvent({
  * sorted order on disk.
  */
 const unicodeAndNumberEvent: Event = sealEvent({
-  specVersion: "0.1",
+  specVersion: SPEC_VERSION,
   id: "018f2a2b-7d40-7c19-a562-3e4f5a6b7c81",
   time: "2026-04-02T14:05:09.004Z",
   event: {
@@ -281,7 +281,7 @@ const unicodeAndNumberEvent: Event = sealEvent({
  */
 const signedEvent: Event = signEvent(
   sealEvent({
-    specVersion: "0.1",
+    specVersion: SPEC_VERSION,
     id: "018f2a45-9d31-7e42-8b17-2c3d4e5f6a71",
     time: "2026-04-05T16:42:08.900Z",
     event: {
@@ -307,7 +307,7 @@ const signedEvent: Event = signEvent(
 );
 
 const chain001: Event = sealEvent({
-  specVersion: "0.1",
+  specVersion: SPEC_VERSION,
   id: "018f2a30-1111-7222-8333-444455556601",
   time: "2026-04-03T08:00:12.500Z",
   sequence: 1,
@@ -340,7 +340,7 @@ const chain001: Event = sealEvent({
 });
 
 const chain002: Event = sealEvent({
-  specVersion: "0.1",
+  specVersion: SPEC_VERSION,
   id: "018f2a30-1111-7222-8333-444455556602",
   time: "2026-04-03T08:14:31.882Z",
   sequence: 2,
@@ -376,7 +376,7 @@ const chain002: Event = sealEvent({
 });
 
 const chain003: Event = sealEvent({
-  specVersion: "0.1",
+  specVersion: SPEC_VERSION,
   id: "018f2a30-1111-7222-8333-444455556603",
   time: "2026-04-03T09:47:02.310Z",
   sequence: 3,

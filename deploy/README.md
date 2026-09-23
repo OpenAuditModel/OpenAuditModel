@@ -1,6 +1,6 @@
 # Deploying OpenAuditModel
 
-**Experimental. Not production-ready. No compliance guarantee.**
+**Specification 1.0, stable. The service is not yet proven in production. No compliance guarantee.**
 
 Two containers: the static site that serves the canonical schemas, and the MCP server.
 
@@ -76,8 +76,12 @@ Flexible it is plain HTTP, which for the MCP endpoint means audit event content 
 hop.
 
 Either way the `Host` header arrives as the public hostname, which is what `OAM_ALLOWED_HOSTS`
-checks. Someone who finds the origin address and connects to it directly gets a `403`, because the
-`Host` they send is an address rather than the configured name.
+checks. **Host validation does not keep out a client that reaches the origin directly.** A request
+that names the origin's address gets a `403`, but any client can write its own `Host` header, and one
+that writes `mcp.openauditmodel.org` — or `localhost`, which the compose file allows for its health
+check — is answered. Host validation defends against DNS rebinding, not against direct access. What
+keeps direct clients out is the network: the tunnel, which opens no inbound port, or a firewall that
+admits only Cloudflare's ranges. With the origin-port option, the firewall step is not optional.
 
 ## DNS
 
@@ -101,7 +105,7 @@ docker build \
 intend to be able to return to, build a versioned tag as well:
 
 ```bash
-docker build --tag openauditmodel-mcp:0.1.0-alpha.1 --file Dockerfile .
+docker build --tag openauditmodel-mcp:1.0.0 --file Dockerfile .
 ```
 
 `latest` is deliberately never used: an unqualified `latest` invites production use of a moving
@@ -117,8 +121,8 @@ docker compose -f deploy/docker-compose.yml ps      # wait for "healthy" on both
 curl -fsS http://127.0.0.1:8880/health              # {"status":"ok"}
 node deploy/smoke-test.mjs http://127.0.0.1:8880
 
-# the site, and the two identifiers it exists to serve
-curl -fsS http://127.0.0.1:2086/schemas/audit-event/0.1/schema.json | head -3
+# the site, and two of the identifiers it exists to serve
+curl -fsS http://127.0.0.1:2086/schemas/audit-event/1.0/schema.json | head -3
 curl -fsS http://127.0.0.1:2086/schemas/profile-definition/0.1/schema.json | head -3
 ```
 
@@ -141,8 +145,8 @@ docker run -d \
 ## Verifying a deployment
 
 `/health` says the process is up, not that MCP works. [smoke-test.mjs](smoke-test.mjs) checks what an
-operator actually needs after a deploy or an upgrade: that `initialize` succeeds, that all eight
-tools, three prompts and thirty-four resources are published, that a tool really runs, and that the
+operator actually needs after a deploy or an upgrade: that `initialize` succeeds, that all ten
+tools, three prompts and thirty-seven resources are published, that a tool really runs, and that the
 origin policy refuses a lookalike domain while accepting a request with no `Origin` at all.
 
 ```bash
@@ -178,7 +182,13 @@ Configuration is parsed and validated once at startup. An invalid value fails st
 
 `X-Forwarded-Host` is consulted **only** when `OAM_TRUST_PROXY=true`. Believing a forwarded header by
 default would let any client assert any host and defeat host validation entirely. Enable it when, and
-only when, a proxy you control sets the header and strips any copy the client supplied.
+only when, a proxy you control overwrites the header and is the only way to reach the container.
+
+The compose file leaves it off, because no forwarding layer this guide describes needs it: Cloudflare,
+`cloudflared` and the Nginx example all pass the public name in `Host`. Turning it on would not open
+anything a direct client cannot already reach by writing `Host` itself (see
+[Behind Cloudflare](#behind-cloudflare)); it is off because a setting nobody needs is one fewer thing
+to reason about.
 
 ## Reverse proxy
 
@@ -273,7 +283,7 @@ placement depend on your deployment; review each before exposing the service.
 
 The application deliberately has no in-process rate limiter: with multiple replicas an in-memory
 counter is both ineffective and misleading. Rate limiting belongs at the proxy or edge, as in the
-`limit_req` directive above. **Apply it before exposing the endpoint publicly** — the alpha is
+`limit_req` directive above. **Apply it before exposing the endpoint publicly** — the service is
 unauthenticated, so anyone who can reach it can consume capacity.
 
 ## Updating
@@ -307,17 +317,17 @@ release before replacing it:
 
 ```bash
 # Before an update, give the running build a name you can return to.
-docker tag openauditmodel-mcp:local openauditmodel-mcp:0.1.0-alpha.1
+docker tag openauditmodel-mcp:local openauditmodel-mcp:1.0.0
 ```
 
-To go back, point Compose at that tag — set `image: openauditmodel-mcp:0.1.0-alpha.1` in
+To go back, point Compose at that tag — set `image: openauditmodel-mcp:1.0.0` in
 `docker-compose.yml`, or override it for one run:
 
 ```bash
 docker run -d --name openauditmodel-mcp \
   -p 127.0.0.1:8880:3000 \
   --read-only --cap-drop ALL --security-opt no-new-privileges:true \
-  openauditmodel-mcp:0.1.0-alpha.1
+  openauditmodel-mcp:1.0.0
 ```
 
 Nothing is persisted, so a rollback carries no data compatibility question — an older image behaves
@@ -332,15 +342,16 @@ exactly as it did before. The one thing that can make rollback impossible is del
 > Users should review their organization's data-handling requirements before submitting production
 > audit events to a remote MCP service.
 
-The container has no volume, no database and no writable application directory. Application logs
-carry a generated request identifier, the route, the tool name, a result category, a status code and
-a duration — never a request body, an event identifier, an actor, a resource, a digest or a finding.
+The container has no volume, no database and no writable application directory. A request's log
+line carries a generated request identifier, the route that answered it (`/`, `/health`, `/mcp` or
+`other`, never the path the caller sent), a result category, a status code and a duration — never a
+request body, a tool name, an event identifier, an actor, a resource, a digest or a finding.
 
 Configure your **proxy** not to log request bodies either. The application cannot control that.
 
-## Public alpha risk
+## Public service risk
 
-The alpha is unauthenticated. Anyone who can reach the endpoint can call every tool. That is
+The service is unauthenticated. Anyone who can reach the endpoint can call every tool. That is
 defensible only because every tool is read-only, there is no account, no write operation and no
 persistence — and it stops being defensible the moment any of those changes. Apply rate limiting, and
 consider restricting network access until standards-based authentication exists.

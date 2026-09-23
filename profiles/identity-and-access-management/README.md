@@ -1,6 +1,6 @@
 # Identity and Access Management Profile
 
-**Profile version: 0.1 · Core versions: 0.1 · Status: Experimental · Implemented**
+**Profile version: 0.2 · Core versions: 0.1 and 1.0 · Status: Experimental · Implemented**
 
 Additional conformance requirements for identity and access management audit events: accounts, roles,
 permissions, service accounts and credential rotation.
@@ -100,8 +100,9 @@ govern.
 ## Compatibility
 
 The profile version is independent of the core specification version. `coreVersions` declares which
-core versions the profile applies to; an event declaring any other `specVersion` is **not applicable**
-rather than in violation.
+core versions the profile applies to; an event declaring another version the tooling implements is
+**not applicable** rather than in violation. An event declaring a version the tooling does not
+implement fails the core check first ([ADR 0017](../../decisions/0017-versioning-and-compatibility.md)).
 
 Adding a rule is a breaking change for producers, in the same sense as adding a required core field.
 

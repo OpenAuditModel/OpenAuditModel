@@ -36,10 +36,10 @@ export interface Logger {
 /**
  * Creates a logger that writes one JSON object per line.
  *
- * `toolName` is included because it is a fixed member of a published catalogue
- * of seven names — it identifies which analysis ran, and reveals nothing about
- * the caller's data. An *event* name is not included, because that would
- * describe the caller's business operations.
+ * `toolName` may be included because it is a fixed member of a published
+ * catalogue of ten names — it identifies which analysis ran, and reveals
+ * nothing about the caller's data. An *event* name is not included, because
+ * that would describe the caller's business operations.
  */
 export function createLogger(
   level: LogLevel,

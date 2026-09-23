@@ -223,7 +223,7 @@ A name ending in `*` is a prefix: the rules listed govern every name beneath it.
 
 ## 2. What each rule requires
 
-### api-and-integration-management 0.1
+### api-and-integration-management 0.2
 
 Additional conformance requirements for the administration of API credentials, webhook subscriptions and third-party integrations: issuing and revoking API keys, creating and reconfiguring webhooks, connecting, reauthorizing and disconnecting external systems, and starting or cancelling integration syncs. Every requirement adds to the OpenAuditModel Core Specification; none relaxes it. Data-plane traffic is deliberately not governed: ordinary API requests, webhook deliveries and routine integration polling match no rule in this profile.
 
@@ -243,7 +243,7 @@ Additional conformance requirements for the administration of API credentials, w
 | INTEGRATION-FLOW-001 | `integration.connect`, `integration.reauthorize`, `integration.sync.start`, `integration.sync.cancel` | `/request/correlationId` | — |
 | INTEGRATION-FAIL-001 | `api-key.create`, `api-key.rotate`, `api-key.revoke`, `api-key.delete`, `webhook.create`, `webhook.update`, `webhook.enable`, `webhook.disable`, `webhook.delete`, `webhook.test`, `integration.connect`, `integration.disconnect`, `integration.enable`, `integration.disable`, `integration.reauthorize`, `integration.sync.start`, `integration.sync.cancel`, `integration.configuration.*`<br>only when /event/outcome = "failure" | `/event/error/type` | — |
 
-### backup-and-recovery 0.1
+### backup-and-recovery 0.2
 
 Additional conformance requirements for backup, snapshot, restore, recovery and failover audit events: creating and verifying recovery points, deleting and expiring them, restoring data, moving service between sites, and changing the policy that decides what is protected. Every requirement adds to the OpenAuditModel Core Specification; none relaxes it. Data-plane events such as chunk writes, progress reports and replication heartbeats are deliberately not governed.
 
@@ -263,7 +263,7 @@ Additional conformance requirements for backup, snapshot, restore, recovery and 
 | BACKUP-APPROVAL-001 | `backup.delete`, `snapshot.delete`, `restore.start`, `recovery.failover`, `recovery.failback`<br>only when /metadata/backup/approvalRequired = true | `/approval` | — |
 | BACKUP-POLICY-001 | `backup.policy.*` | `/change`, `/reason`, `/metadata/backup/policyId (string)` | `/approval`, `/metadata/backup/retentionClass` |
 
-### customer-and-account-management 0.1
+### customer-and-account-management 0.2
 
 Additional conformance requirements for material customer and business-account lifecycle audit events: customer record creation, update, merge, restriction, closure and deletion, and account opening, update, status transition, limit change, freeze, restriction and closure. Every requirement adds to the OpenAuditModel Core Specification; none relaxes it. This profile governs business parties and business accounts; identities, authentication and access rights are governed by the identity-and-access-management profile. High-volume read events such as customer.profile.view, customer.search and account.balance.view are deliberately not governed.
 
@@ -283,7 +283,7 @@ Additional conformance requirements for material customer and business-account l
 | CUSTOMER-SUBJECT-001 | `customer.create`, `customer.update`, `customer.merge`, `customer.close`, `customer.delete`, `customer.restrict`, `customer.restore`, `account.open`, `account.update`, `account.close`, `account.reopen`, `account.freeze`, `account.unfreeze`, `account.restrict`, `account.limit.*`, `account.status.*`<br>only when /metadata/customer/onBehalfOf = true | `/subject` | — |
 | CUSTOMER-OVERRIDE-001 | `customer.create`, `customer.update`, `customer.merge`, `customer.close`, `customer.delete`, `customer.restrict`, `customer.restore`, `account.open`, `account.update`, `account.close`, `account.reopen`, `account.freeze`, `account.unfreeze`, `account.restrict`, `account.limit.*`, `account.status.*`<br>only when /metadata/customer/manualOverride = true | `/authorization`, `/reason` | — |
 
-### deployment-and-change-management 0.1
+### deployment-and-change-management 0.2
 
 Additional conformance requirements for audit events that describe material change to a running system: releases, deployments, promotions, rollbacks, cancellations, infrastructure application, configuration and secret changes, and change requests. Every requirement adds to the OpenAuditModel Core Specification; none relaxes it. The profile supports fully automated continuous delivery as well as human-gated release: it never decides which change needs approval, it requires the producer to record whether one was required. Routine pipeline telemetry such as polling, build log output and secret reads is deliberately not governed.
 
@@ -303,7 +303,7 @@ Additional conformance requirements for audit events that describe material chan
 | DEPLOY-FAILURE-002 | `change.request.approve`, `change.request.cancel`, `change.request.close`, `change.request.create`, `change.request.reject`, `configuration.feature.toggle`, `configuration.policy.update`, `configuration.retention.update`, `configuration.secret.rotate`, `configuration.setting.create`, `configuration.setting.delete`, `configuration.setting.update`, `deployment.release.*`, `deployment.infrastructure.*`<br>only when /event/outcome = "partial" | `/metadata/deployment/resultingState (string)` | — |
 | DEPLOY-AUTOMATION-001 (warning) | `deployment.release.deploy`, `deployment.release.promote`, `deployment.release.rollback`, `deployment.release.cancel`, `deployment.infrastructure.apply`, `configuration.setting.create`, `configuration.setting.update`, `configuration.setting.delete`, `configuration.secret.rotate`, `configuration.feature.toggle`, `configuration.policy.update`, `configuration.retention.update`<br>only when /actor/type = "service" | — | `/subject`, `/delegation` |
 
-### document-management 0.1
+### document-management 0.2
 
 Additional conformance requirements for document management audit events: creation, deletion, download, versioning, sharing, access policy, retention and legal hold. Every requirement adds to the OpenAuditModel Core Specification; none relaxes it. High-volume read events such as document.file.view are deliberately not governed.
 
@@ -321,7 +321,7 @@ Additional conformance requirements for document management audit events: creati
 | DOC-RETENTION-001 | `document.retention.*` | `/change`, `/reason`, `/metadata/retention/class (string)` | `/approval` |
 | DOC-HOLD-001 | `document.legal-hold.*` | `/reason`, `/metadata/legalHold/active (boolean)` | `/approval` |
 
-### financial-transaction-management 0.1
+### financial-transaction-management 0.2
 
 Additional conformance requirements for audit events that record material financial operations: transfers, payments, withdrawals, deposits, refunds, reversals, payouts, settlements, chargebacks, reconciliation adjustments and transaction limit changes. Every requirement adds to the OpenAuditModel Core Specification; none relaxes it. Non-mutating financial reads such as balance enquiries, price quotes and routine reporting are deliberately not governed.
 
@@ -340,7 +340,7 @@ Additional conformance requirements for audit events that record material financ
 | FIN-RECON-002 | `financial.reconciliation.adjust` | `/change`, `/reason`, `/metadata/financial/amount (number)`, `/metadata/financial/currency (string)` | `/approval` |
 | FIN-LIMIT-001 | `financial.limit.create`, `financial.limit.update`, `financial.limit.delete` | `/change`, `/reason`, `/metadata/financial/limitType (string)` | `/approval` |
 
-### identity-and-access-management 0.1
+### identity-and-access-management 0.2
 
 Additional conformance requirements for identity and access management audit events. Every requirement adds to the OpenAuditModel Core Specification; none relaxes it.
 
@@ -358,7 +358,7 @@ Additional conformance requirements for identity and access management audit eve
 | IAM-SVC-002 | `identity.service-account.create` | — | `/metadata/serviceAccount/expiresAt` |
 | IAM-CRED-001 | `identity.credential.rotate` | `/authorization`, `/reason`, `/metadata/credential/type (string)` | `/request/correlationId` |
 
-### incident-management 0.2
+### incident-management 0.3
 
 Additional conformance requirements for the lifecycle of incidents, problems and corrective actions: raising, reprioritising, assigning, escalating, resolving, closing, cancelling and reopening a case, recording a root cause analysis, and opening and verifying a corrective action. Every requirement adds to the OpenAuditModel Core Specification; none relaxes it. High-volume monitoring, timeline and read events such as monitoring.alert.raise, incident.note.create and incident.case.view are deliberately not governed.
 
@@ -380,7 +380,7 @@ Additional conformance requirements for the lifecycle of incidents, problems and
 | INC-SLA-001 | `incident.sla.breach` | `/metadata/incident/sla/target (string)` | `/metadata/incident/sla/breachedAt` |
 | INC-EVIDENCE-001 (warning) | `corrective-action.close`, `corrective-action.open`, `corrective-action.verify`, `incident.rca.approve`, `incident.rca.create`, `incident.rca.update` | — | `/evidence` |
 
-### message-broker-management 0.1
+### message-broker-management 0.2
 
 Additional conformance requirements for message broker control-plane audit events: cluster, topic, queue, exchange, stream and consumer-group administration, access control lists, quotas, broker configuration, offset resets and message replay. Every requirement adds to the OpenAuditModel Core Specification; none relaxes it. Data-plane traffic — publishing, consuming, acknowledging and automatic rebalancing — is deliberately not governed, and message payloads are never recorded.
 
@@ -399,7 +399,7 @@ Additional conformance requirements for message broker control-plane audit event
 | BROKER-OFFSET-001 | `broker.offset.reset` | `/reason`, `/metadata/broker/offset/previous (string)`, `/metadata/broker/offset/target (string)` | `/metadata/broker/offset/strategy` |
 | BROKER-REPLAY-001 | `broker.message.replay` | `/reason`, `/metadata/broker/replay/scope (string)` | `/metadata/broker/replay/messageCount` |
 
-### secrets-and-key-management 0.1
+### secrets-and-key-management 0.2
 
 Additional conformance requirements for the custody of secrets, cryptographic keys and certificates: creation, rotation, revocation, destruction, policy change, and the privileged reveal and export operations that turn protected material into copied material. Every requirement adds to the OpenAuditModel Core Specification; none relaxes it. Routine automated retrieval of a secret and ordinary cryptographic operations against a key are deliberately not governed. An audit event records that a secret operation occurred; it never records the secret.
 

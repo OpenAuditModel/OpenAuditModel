@@ -252,7 +252,7 @@ describe("profile loading", () => {
     assert.equal(loaded.ok, true);
     if (loaded.ok) {
       assert.equal(loaded.profile.name, "identity-and-access-management");
-      assert.deepEqual(loaded.profile.coreVersions, ["0.1"]);
+      assert.deepEqual(loaded.profile.coreVersions, ["0.1", "1.0"]);
       assert.ok(loaded.profile.rules.length > 0);
     }
   });

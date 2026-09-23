@@ -1,6 +1,6 @@
 # Profiles
 
-**Specification version: 0.1 · Status: Experimental**
+**Specification version: 1.0 · Status: Experimental — the profiles are experimental; the core specification they add to is stable**
 
 A **profile** is an optional, stricter set of requirements for a specific domain, layered on top of
 the core model.
@@ -35,7 +35,7 @@ validation runs first, so an event that fails the core schema is reported as cor
 profile rules **not evaluated**. Both properties are covered by tests. See
 [ADR 0008](../decisions/0008-declarative-profile-conformance.md).
 
-## Status in v0.1
+## Status
 
 | Profile                                                               | Status                    |
 | --------------------------------------------------------------------- | ------------------------- |
@@ -50,7 +50,8 @@ profile rules **not evaluated**. Both properties are covered by tests. See
 | [backup-and-recovery](backup-and-recovery/)                           | **Implemented**, 13 rules |
 | [api-and-integration-management](api-and-integration-management/)     | **Implemented**, 13 rules |
 
-All ten profiles are enforceable and carry fixtures. There are no placeholder profiles left in v0.1.
+All ten profiles are enforceable and carry fixtures, and each applies to core 0.1 and 1.0. There are
+no placeholder profiles left.
 
 **[REQUIREMENTS.md](REQUIREMENTS.md) is the producer's view of all of them**: every event name any
 profile selects, what each rule requires of it, and which fields the corpus asks for most. It is
@@ -78,8 +79,10 @@ documents**; it is not part of the canonical audit event schema and never constr
 ```
 
 `version` is the profile's own version and moves independently of the core specification.
-`coreVersions` lists the core versions the profile applies to; an event declaring any other
-`specVersion` is **not applicable** rather than in violation.
+`coreVersions` lists the core versions the profile applies to; an event declaring another version
+the tooling implements is **not applicable** rather than in violation. An event declaring a version
+the tooling does not implement never reaches the profile: it fails the core check first, as
+[ADR 0017](../decisions/0017-versioning-and-compatibility.md) records.
 
 ### Versions are filed, and a filed version never changes
 

@@ -308,11 +308,6 @@ describe("every shipped profile", () => {
       "PROFILE-LINT-005 message-broker-management BROKER-RISK-003",
       "PROFILE-LINT-005 secrets-and-key-management SECRET-ACCESS-002",
       "PROFILE-LINT-005 secrets-and-key-management SECRET-APPROVAL-001",
-      "PROFILE-LINT-006 secrets-and-key-management SECRET-APPROVAL-001",
-      "PROFILE-LINT-006 secrets-and-key-management SECRET-CORE-001",
-      "PROFILE-LINT-006 secrets-and-key-management SECRET-CORE-002",
-      "PROFILE-LINT-006 secrets-and-key-management SECRET-CORE-003",
-      "PROFILE-LINT-006 secrets-and-key-management SECRET-POLICY-001",
     ]);
   });
 
@@ -334,7 +329,7 @@ describe("every shipped profile", () => {
       assert.ok(loaded.ok);
       const profile = loaded.profile;
 
-      assert.deepEqual(profile.coreVersions, ["0.1"], name);
+      assert.deepEqual(profile.coreVersions, ["0.1", "1.0"], name);
       assert.equal(profile.name, name);
 
       const ids = profile.rules.map((rule) => rule.id);

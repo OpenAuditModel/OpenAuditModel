@@ -6,7 +6,7 @@
  * and says so in those terms: the finding is about **minimization**, not about
  * personal data, and it never claims to know what the value contains.
  *
- * Thresholds are fixed in v0.1 and documented in specification/privacy.md §6.
+ * Thresholds are fixed and documented in specification/privacy.md §6.
  * They are deliberately generous; the aim is to catch dumping, not to police
  * legitimately detailed metadata.
  */

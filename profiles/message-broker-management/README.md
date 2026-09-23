@@ -1,6 +1,6 @@
 # Message Broker Management Profile
 
-**Status: Experimental. Implemented in v0.1, 12 rules (11 enforceable).**
+**Status: Experimental. Applies to core versions 0.1 and 1.0; 12 rules (11 enforceable).**
 
 Scope: the **control plane** of message brokers, queues, streams and event logs — the administrative
 operations performed by operators, platform teams and reconciliation tooling on clusters, topics,

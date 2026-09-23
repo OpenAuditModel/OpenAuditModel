@@ -1,6 +1,6 @@
 # Backup and Recovery Profile
 
-**Status: Experimental. Implemented in v0.1, 13 rules (12 enforceable).**
+**Status: Experimental. Applies to core versions 0.1 and 1.0; 13 rules (12 enforceable).**
 
 Scope: systems that create, verify, retain, delete and restore recovery points, and systems that move
 service between sites — database and virtual machine backup products, storage snapshot managers,

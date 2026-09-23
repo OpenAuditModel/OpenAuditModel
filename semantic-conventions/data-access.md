@@ -1,6 +1,6 @@
 # Data Access Events
 
-**Specification version: 0.1 · Status: Experimental**
+**Specification version: 1.0 · Status: Stable**
 
 Categories: `data-access`, `data-modification`
 

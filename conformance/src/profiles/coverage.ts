@@ -34,6 +34,7 @@
 import { conditionHolds } from "./evaluate-rule.js";
 import { eventName, selectRules } from "./select-rules.js";
 import {
+  supportsCoreVersion,
   summariseProfileResults,
   type ProfileCheckResult,
   type ProfileCheckSummary,
@@ -86,7 +87,10 @@ export interface ProfileCoverage {
     readonly selectedButNeverApplied: readonly string[];
   };
   readonly perRule: readonly RuleCoverage[];
-  /** Every distinct event name in the set, most frequent first. */
+  /**
+   * Every distinct event name among the events the profile could judge —
+   * core-valid, of a core version it covers — most frequent first.
+   */
   readonly names: readonly EventNameCoverage[];
   readonly nameTotals: {
     readonly distinct: number;
@@ -124,15 +128,22 @@ export function summariseCoverage(
   for (const [index, event] of events.entries()) {
     const result = results[index];
     const name = eventName(event);
-    if (name !== undefined) {
-      nameCounts.set(name, (nameCounts.get(name) ?? 0) + 1);
-    }
 
     // A core-invalid event had no rule evaluated against it, so counting its
-    // name as governed would credit the profile with a check it never made.
-    if (result === undefined || result.status === "core-invalid" || name === undefined) {
+    // name as governed would credit the profile with a check it never made,
+    // and listing it as ungoverned would say something about an event nothing
+    // was established about — its "name" may not even be one, and is not
+    // repeated. Nor had an event of a core version the profile does not
+    // cover: the profile is out of scope for it, whatever its name matches.
+    if (
+      result === undefined ||
+      result.status === "core-invalid" ||
+      name === undefined ||
+      !supportsCoreVersion(profile, (event as Record<string, unknown> | null)?.["specVersion"])
+    ) {
       continue;
     }
+    nameCounts.set(name, (nameCounts.get(name) ?? 0) + 1);
 
     const rules = selectRules(profile, name);
     if (rules.length > 0) {

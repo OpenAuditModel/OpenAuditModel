@@ -30,7 +30,13 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.dirname(here);
 const repoRoot = path.dirname(packageRoot);
 
-const EVENT_SCHEMA_PATH = path.join(repoRoot, "schemas", "v0.1", "audit-event.schema.json");
+/** Every event schema version the tooling implements; the server validates each against its own. */
+const EVENT_SCHEMA_PATHS = {
+  0.1: path.join(repoRoot, "schemas", "v0.1", "audit-event.schema.json"),
+  "1.0": path.join(repoRoot, "schemas", "v1.0", "audit-event.schema.json"),
+};
+/** The checkpoint and proof formats refer to the 0.1 event schema's `$defs` (ADR 0017 §6). */
+const EVENT_SCHEMA_PATH = EVENT_SCHEMA_PATHS["0.1"];
 const CHECKPOINT_SCHEMA_PATH = path.join(
   repoRoot,
   "schemas",
@@ -42,12 +48,12 @@ const PROOF_SCHEMA_PATH = path.join(repoRoot, "schemas", "proof", "v0.1", "proof
 
 /** One generated module per schema. `referenced` schemas are registered for `$ref` resolution. */
 const TARGETS = [
-  {
-    schema: EVENT_SCHEMA_PATH,
+  ...Object.entries(EVENT_SCHEMA_PATHS).map(([version, schema]) => ({
+    schema,
     referenced: [],
-    output: path.join(packageRoot, "src", "schema-validator.generated.ts"),
-    source: "schemas/v0.1/audit-event.schema.json",
-  },
+    output: path.join(packageRoot, "src", `schema-validator-${version}.generated.ts`),
+    source: `schemas/v${version}/audit-event.schema.json`,
+  })),
   {
     schema: CHECKPOINT_SCHEMA_PATH,
     referenced: [EVENT_SCHEMA_PATH],

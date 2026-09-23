@@ -3,13 +3,225 @@
 All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This project uses a
-specification version (`0.1`) and a repository version, tracked in `package.json`. The repository
+specification version (`1.0`) and a repository version, tracked in `package.json`. The repository
 version moves with the tooling; the specification version changes only when the schema or a
 normative document changes meaning, and the two are stated separately in every release note.
 
-While the project is **Experimental**, breaking changes are possible in any release and are labelled
-as such. A change that alters the meaning of an existing field or event name is never acceptable — a
-new name is introduced instead.
+From 1.0 the specification changes only under the rules of
+[ADR 0017](decisions/0017-versioning-and-compatibility.md): a minor version only adds, and anything
+else is a new major version. Before 1.0, while the project was **Experimental**, breaking changes
+were possible in any release and were labelled as such. A change that alters the meaning of an
+existing field or event name has never been acceptable — a new name is introduced instead.
+
+## 1.0.0 - 2026-09-23
+
+Specification **`1.0`**. Repository `1.0.0`.
+
+The specification is stable. The schema at
+`https://openauditmodel.org/schemas/audit-event/1.0/schema.json` will not change, the identifiers it
+publishes are permanent, and every later 1.x version follows the compatibility rules this release
+records. The conformance tooling implements everything the specification defines, with the one
+shortfall described under the first _Changed behaviour_ entry below. What 1.0 does not
+say is that the model has been proven in production: no deployment is known to run on it yet, and
+the README says so beside the version.
+
+### Added — specification 1.0, and the rules every later version follows
+
+[ADR 0017](decisions/0017-versioning-and-compatibility.md) makes the three decisions
+`overview.md` §6.2 held back until after 0.1. A version is `MAJOR.MINOR`, and each has its own schema
+at its own permanent address, fixing `specVersion` to its own value; a validator selects the schema
+by the version an event declares. A minor version may only add an optional field, add a value to an
+open vocabulary or an example, or raise a bound or widen a pattern where real data needs it;
+everything else is a new major version. And a consumer given a version it does not implement does
+not evaluate the event: it never passes it, and `validate` does not fail it either, because it has
+not checked it against the rules the event claims.
+
+1.0 is 0.1 with two differences: `specVersion` is `"1.0"`, and `request.parentSpanId` records the
+span that caused the one in `request.spanId`, so that events sharing a trace can be arranged into
+the calls that produced them rather than only ordered. Everything else is carried over unchanged,
+deliberately: the closed vocabularies stay closed, the open ones stay open, and the bounds stay where
+they are, because no producer has yet given evidence to change any of them. A test strips those two
+differences from the published schemas and requires what remains to be identical.
+
+### Changed behaviour — an event of a version this tool does not implement is not evaluated
+
+Before, an event declaring `"specVersion": "0.2"` failed validation on the schema's `const`, the
+same way a misspelled field fails. Now an event declaring any well-formed version the tool does not
+implement — a newer minor, another major, one never published — is reported as not evaluated, under
+a keyword that is not a schema keyword, with no schema failure beside it. `validate` prints it as
+`SKIP`, counts it as `not evaluated`, and exits 3 when that is all it found. An event with no
+`specVersion`, or one that is not `MAJOR.MINOR`, still fails.
+
+The other commands never pass such an event, but each still counts it the way it counts a
+schema-invalid event: `verify-integrity`, `verify-proof` and `check-profile` fail it,
+`lint-privacy` gives no verdict, `verify-chain` leaves it out of every chain, and `check-coverage`
+counts it as core-invalid. `verify-integrity` and `verify-chain` now say that the event was not
+evaluated rather than that it does not conform. ADR 0017's Consequences list what each command
+does; a not-evaluated verdict of their own is left for a later 1.x release.
+
+`MAJOR.MINOR` is defined exactly: two decimal integers without leading zeros, so `"01.0"` and
+`"1.00"` fail rather than go unevaluated. A new fixture, `examples/versions/leading-zero-version.json`,
+pins it. `validateFile`, the library call, reports a `not-evaluated` status of its own, and applies
+the same nesting limit the commands do. The JSON reports gain `schemas`, every implemented version's
+schema identifier; `specVersion` and `schemaId` beside it name the current version, and each event
+is judged by the schema of the version it declares.
+
+### Changed behaviour — a key a signature proves nothing under is refused
+
+An Ed25519 public key that is a small-order point, an RSA public key whose exponent is even or below
+3, and an EC public key at the point at infinity are refused when they are loaded, with exit 2 from
+the command line and `unusable-public-key` from the MCP server. An Ed25519 signature whose `R` is a
+small-order point is refused when it is checked. Before, the first two were accepted along with a
+signature anyone could make: under the identity point as a key, `R` the identity and `S` zero verify
+for every message, and under an exponent of 1 the "signature" is the encoded message. The third
+aborted the process. A signature a genuine key's holder made is unaffected. `integrity.md` §6.1 now
+requires this of every verifier, not only of this one. The desktop viewer already refused the
+Ed25519 cases, and recorded the difference as a deliberate divergence; the two now agree.
+
+### Changed — `validate_event` on the MCP server names the versions
+
+The result carries `notEvaluated`, `schemaId` for the schema the event was judged by (the declared
+version's; the current one's for an absent or malformed version; `null` when the server does not
+implement the declared version), `implementedSpecVersions` and `currentSpecVersion`.
+`expectedSpecVersion` is gone. It told every event which version to declare, which is wrong advice
+for a 0.1 event, whose version may be inside its digest. A client that read it reads
+`currentSpecVersion` instead.
+
+### Changed — the conformance kit records a not-evaluated verdict
+
+Every fixture record's `validate` object carries `notEvaluated`. It is `true` for a fixture that
+declares a version the reference does not implement, whose single issue is
+`specVersion-not-implemented`, so that an implementation can tell that verdict from a failure. The
+kit README has a section on versions.
+
+### Changed — a checkpoint says what it cannot know
+
+`verify-checkpoint` reports `checkpoint-members-unverified`, a new finding, when events declaring a
+chain could not be verified, and no longer infers `tail-truncated`, `checkpoint-head-missing` or
+`checkpoint-count-mismatch` from them: the head may be one of the events that are present but
+unverified, and a deletion is the one thing that finding must not claim without cause.
+
+### Changed — the MCP server takes one message per request
+
+A JSON-RPC batch is refused with 400. The protocol dropped batching in 2025-06-18, and one body under
+the size limit could ask for thousands of operations; see Security below.
+
+### Changed — `check-coverage` counts names only of events a rule could judge
+
+An event that fails the core schema, or declares a core version the profile does not cover, no
+longer contributes its event name to the coverage report. Its "name" was never established, and was
+repeated verbatim.
+
+### Security
+
+A review of the command line tool's input handling and the MCP server's HTTP boundary preceded this
+release. [SECURITY.md](SECURITY.md) records it. Each item below is fixed, and each code change is
+covered by a test; the deployment and release-workflow changes are not.
+
+- JSON nested deeply enough to exhaust the stack ended a command with an internal error. Every
+  command now refuses a document or a line nested more than 200 levels deep, with exit 2, and an
+  unexpected internal error exits 2 with its name only.
+- A named pipe or a device given as a file was read. Only regular files are read.
+- Control characters in a file name or a message reached the terminal as written. They are escaped,
+  and a newline, carriage return or tab from input no longer starts a line of its own, so input
+  cannot print a forged summary.
+- An EC public key at the point at infinity aborted the process when a signature was checked under
+  it — on the MCP server, with one unauthenticated request. It is refused before anything reads it.
+- A file was checked by name and then opened by name, so it could be replaced in between, and a
+  file that grew after its size was taken was read whole. It is opened once, checked as opened, and
+  read no further than the size it had.
+- A JSON parse error could quote the input it failed on. It names a position only.
+- A property name shaped like a credential — a token, or a URL or connection string with a password
+  in it — was repeated in schema and privacy findings. It is redacted as `<redacted>` in every path
+  and message, and `lint-privacy` now reports it.
+- A private key given where a public key belongs was used, including one labelled in lower case,
+  which OpenSSL also reads. It is refused; the MCP server also tells the caller to treat the key as
+  exposed.
+- `verify-checkpoint` reported a chain as agreeing when some events declaring it could not be
+  verified. It no longer does.
+- A closed output pipe (`| head`) ended a command with a stack trace and exit 1. It exits 2.
+- The MCP server judged a request with a `__proto__` member as a different document from the one
+  sent. It refuses the request with 400.
+- The MCP server held a `subscriptions/listen` stream open with nothing to send. It refuses the
+  method.
+- The MCP server accepted JSON-RPC batches. One body under the size limit held thousands of
+  `resources/read` calls, drew a response of over a hundred megabytes and took the process past a
+  gigabyte of memory, and passed a per-request rate limit as one request. Batches are refused.
+- The MCP server's request log named the path the caller sent. It names the route that answered:
+  `/`, `/health`, `/mcp` or `other`.
+- The deployment guide said a client that reached the origin directly got a 403. Host validation
+  cannot promise that — a client writes its own `Host` — and the guide now says what keeps direct
+  clients out: the tunnel, or a firewall admitting only the proxy. The example deployment's
+  `OAM_TRUST_PROXY` is off, since nothing it describes needs it.
+- The release job installed the newest npm 11 and restored a dependency cache in the job that holds
+  the publishing credential, and published from any ref named like a version. It installs an exact
+  npm, restores no cache, and publishes only a tag.
+
+### Fixed — documentation that disagreed with the tooling
+
+- `lint-privacy` exits 3, not 1, when no finding was made and an input was not a schema-valid event.
+  `privacy.md` §6.11 and the README said 1; they now say 3, and `validate`'s exit 3 is listed
+  beside the others in the README and in `--help`.
+- `SECURITY.md` said localhost origins were accepted outside production; every unlisted origin is
+  refused. It said logs carry the tool name; nothing logs it. It said CI scans the deployed bundle
+  for runtime code generation; the test reads the source. It listed an advisory `npm audit` no
+  longer reports. Each now says what is true, and it also records that batches are refused and that
+  `OPTIONS /mcp` is answered with 405.
+- The deploy guide and the MCP README counted eight tools and thirty-four or thirty-six resources.
+  There are ten tools and thirty-seven resources. The MCP README listed `GET /mcp` as a stream, a
+  generated validator that no longer exists, and a tool name in its log lines; none is so.
+- `event-model.md` required `specVersion` to be `"0.1"`, and the CloudEvents mapping's example named
+  the 0.1 schema for a 1.0 event. Both say 1.0.
+- The profile READMEs said an event of any other version is not applicable; one of a version the
+  tooling does not implement fails the core check first.
+
+### Added — 0.1 events are still read, and a sealed 0.1 archive still verifies
+
+Every command validates an event against the schema of the version it declares, so events written
+under 0.1 keep validating and verifying. A sealed 0.1 event cannot be migrated — `specVersion` is
+inside its digest — so the integrity fixtures exactly as 0.6.0 published them are kept under
+`examples/compatibility/v0.1/`, and a test holds the tooling to them: every digest and signature
+verifies, every intact chain stays intact and every damaged one broken, the checkpoint still agrees
+and still catches the truncated chain, and the proof still verifies. The same test validates every
+other published fixture twice, declaring 0.1 and declaring 1.0, and requires the same answer for
+every fixture that does not use `request.parentSpanId`.
+
+The published examples are 1.0 now, because they are what producers copy; the integrity fixtures
+were sealed again under 1.0 by their generator.
+
+### Changed — every profile is republished for core version 1.0
+
+A profile applies only to the core versions it lists, so each now lists `["0.1", "1.0"]`. The rules
+are unchanged. Because a published profile address never changes, every profile moves by one version
+— nine to 0.2, `incident-management` to 0.3 — and the previous versions stay published where they
+were. The MCP server serves the new versions and both event schemas: thirty-seven resources.
+
+### Changed — three naming questions carried to 1.0 are decided
+
+- **`key.policy.update`** is published. The secrets-and-key-management profile selected the prefix
+  `key.policy.` with no name under it; the operation is real — a key management service's key
+  policy, a key vault's access policy — and now has a name and a conforming fixture. The profile
+  linter's five warnings about the empty prefix are gone.
+- **`secret.reveal` and `configuration.secret.access`** both stay, and the conventions now say what
+  separates them: where the secret is held. A value in the application's own configuration is read
+  as `configuration.secret.access`; a secret held by a secret store that is a system of its own is
+  read as `secret.reveal`.
+- **`request.parentSpanId`** is adopted, as above.
+
+### Changed — the documents say 1.0
+
+Every specification and convention document is labelled `1.0 · Stable`; the profiles remain labelled
+experimental, because none has production adoption evidence. `overview.md` §6 states the versioning
+rules normatively. `CONTRIBUTING.md`'s compatibility table now matches ADR 0017, including that adding
+a value to a closed enum needs a major version, which it previously called compatible for producers.
+The site's status line says the same in all five languages. The hosted MCP service is described as
+what it is — public, unauthenticated, without an availability guarantee — rather than as a v0.1
+alpha.
+
+### Added — a support policy
+
+`SECURITY.md` now says which releases receive fixes: the newest one, with no backports, because
+every 1.x release reads every event the one before it did. The 0.x line is closed.
 
 ## 0.6.0 - 2026-09-22
 

@@ -2,22 +2,22 @@
   "proofVersion": "0.1",
   "hashAlgorithm": "SHA-256",
   "leaf": {
-    "hash": "f7fbea247bdde9c24f07d81cb6ba82b60372f293b2d618066b065bac880dcbf1",
+    "hash": "afc6dabbab005e2526b93164376c8bdd54184dff2ab49ef09cd7152cd48912cb",
     "index": 1,
     "eventId": "018f2a30-1111-7222-8333-444455556602"
   },
   "path": [
     {
       "side": "left",
-      "hash": "635e335d2d2aa5eb9db74480679bba6774f4662673084b67c16ab8fbd2522039"
+      "hash": "a6eda3d87ca03442e74a2d866ae5cb15c0dbf1b98e9fcbe727ec265f4c71db74"
     },
     {
       "side": "right",
-      "hash": "86c3959712ae98fa0c0d165bc5667703c2b3619923c7bd4bfac6df3554d88198"
+      "hash": "1d06e9f239f757bdad0398feaa49e091fcb5c8de89802025c821eaa93379ad4a"
     }
   ],
   "root": {
-    "hash": "4f83525cbcfd63496374822d49d6c60161273cdea739f08742d6e83f46043b2f",
+    "hash": "a43e376630ac6ebb7f3385a79e02a5b01826d925a5199d249511584c22f6822f",
     "leafCount": 3,
     "anchor": {
       "type": "publication",
@@ -26,7 +26,7 @@
     },
     "signature": {
       "algorithm": "Ed25519",
-      "value": "w2kYt36QW8U/0T8dDldRPcFHenfFwToXmNX4XaVkpm0j+cyOZgsiZshwUTKM+8jnibkPmkTsaEry5KN8oRYYCA==",
+      "value": "nv9/DCnCY3Ymugdc8CKDLcJdaEyJyy+ecH/GQX05KzFQcIksLT3EEWlGZtfnqJdL/ckwUMH+cDv6jpCgV+tWCQ==",
       "keyId": "example-fixture-key-2026"
     }
   }

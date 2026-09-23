@@ -3,7 +3,7 @@
 **Status: Informative.**
 
 Every file in this directory MUST fail validation against the
-[OpenAuditModel Audit Event Schema](../../schemas/v0.1/audit-event.schema.json). Each file is
+[OpenAuditModel Audit Event Schema](../../schemas/v1.0/audit-event.schema.json). Each file is
 otherwise a realistic, well-formed event with exactly one defect, so that a validator can be checked
 for the precise error it reports rather than only for pass or fail.
 

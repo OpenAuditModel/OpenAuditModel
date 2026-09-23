@@ -18,7 +18,7 @@ body:
       label: Component
       description: Which part of the project is affected?
       options:
-        - Canonical schema (schemas/v0.1/audit-event.schema.json)
+        - Canonical schema (schemas/v1.0 or schemas/v0.1)
         - Conformance CLI (auditmodel)
         - Conformance tests
         - Examples and fixtures
@@ -47,7 +47,7 @@ body:
         Please redact any real data — this is a public tracker.
       placeholder: |
         1. Save this event as event.json:
-           { "specVersion": "0.1", ... }
+           { "specVersion": "1.0", ... }
         2. Run: npm run auditmodel -- validate event.json
         3. Observe: ...
       render: text

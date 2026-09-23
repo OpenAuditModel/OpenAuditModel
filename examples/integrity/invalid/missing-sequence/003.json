@@ -1,5 +1,5 @@
 {
-  "specVersion": "0.1",
+  "specVersion": "1.0",
   "id": "018f2a30-1111-7222-8333-444455556603",
   "time": "2026-04-03T09:47:02.310Z",
   "sequence": 3,
@@ -36,8 +36,8 @@
   "integrity": {
     "canonicalization": "RFC8785",
     "hashAlgorithm": "SHA-256",
-    "hash": "ca46e4456cbc20596cea99d5ed08e09f60857936e5dcc6940607b9ec9ffd01df",
-    "previousHash": "557de61a068bedcdfa8d7d7a9e037bca3e1ebf633a29514718ad2f3716b33fac",
+    "hash": "5b57a727be2ff31e2a79d3267662c05e582ef561fabefb66ff32757537df8fc9",
+    "previousHash": "cb062f1c1c5fe0f9adceb14cd1d1939c737398ece1ced44caa3db61a304be7d3",
     "chainId": "chain-platform-control-service-instance-7c1a"
   }
 }

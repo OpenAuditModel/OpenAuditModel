@@ -58,6 +58,111 @@ const WRONG_ROOT_PROOF = "examples/integrity/proofs/three-event-chain.002.wrong-
 const SIGNED_EVENT = "examples/integrity/valid/signed-event-ed25519.json";
 const TEST_PUBLIC_KEY = "examples/integrity/keys/ed25519-test-public.pem";
 
+describe("an event of a version this tool does not implement", () => {
+  test("validate prints it as not evaluated and exits 3", () => {
+    const event = JSON.parse(readFileSync(path.join(repoRoot, VALID_EVENT), "utf8")) as Record<
+      string,
+      unknown
+    >;
+    const file = writeScratch("newer-minor.json", JSON.stringify({ ...event, specVersion: "1.1" }));
+    const result = auditmodel("validate", file);
+    assert.equal(result.status, 3, result.output);
+    assert.match(result.stdout, /SKIP {2}.*newer-minor\.json {2}\(not evaluated\)/);
+    assert.match(result.stdout, /0 valid, 0 invalid, 1 not evaluated/);
+    assert.match(result.stderr, /no verdict for 1 event/);
+  });
+
+  test("one not evaluated beside one valid is still no verdict, and beside one invalid a failure", () => {
+    const event = JSON.parse(readFileSync(path.join(repoRoot, VALID_EVENT), "utf8")) as Record<
+      string,
+      unknown
+    >;
+    const newer = writeScratch(
+      "mixed-newer.json",
+      JSON.stringify({ ...event, specVersion: "2.0" }),
+    );
+    assert.equal(auditmodel("validate", VALID_EVENT, newer).status, 3);
+    const broken = { ...event };
+    delete broken["actor"];
+    const invalid = writeScratch("mixed-invalid.json", JSON.stringify(broken));
+    assert.equal(auditmodel("validate", invalid, newer).status, 1);
+  });
+
+  test("the integrity commands fail it without calling it non-conforming", () => {
+    // ADR 0017 §3: never conforming, and not non-conforming either. The
+    // integrity commands do not pass the event, because nothing about it was
+    // verified, and say why in those words: verify-integrity fails it, and
+    // verify-chain, left with no event it could assign, has no verdict.
+    const event = JSON.parse(readFileSync(path.join(repoRoot, VALID_EVENT), "utf8")) as Record<
+      string,
+      unknown
+    >;
+    const file = writeScratch(
+      "integrity-newer.json",
+      JSON.stringify({ ...event, specVersion: "1.1" }),
+    );
+    for (const [command, status] of [
+      ["verify-integrity", 1],
+      ["verify-chain", 3],
+    ] as const) {
+      const result = auditmodel(command, file);
+      assert.equal(result.status, status, `${command}: ${result.output}`);
+      assert.match(result.stdout, /does not implement, so it was not evaluated/, command);
+      assert.doesNotMatch(result.stdout, /does not conform/, command);
+    }
+  });
+
+  test("a checkpoint is never matched against a head nobody verified", () => {
+    // The head declares a version this tool does not implement, and its
+    // content was changed after sealing. Its declared hash still equals the
+    // checkpoint's, but nothing checked that hash against the content.
+    const head = JSON.parse(
+      readFileSync(path.join(repoRoot, VALID_CHAIN, "003.json"), "utf8"),
+    ) as Record<string, unknown>;
+    const tampered = {
+      ...head,
+      specVersion: "1.1",
+      event: { ...(head["event"] as Record<string, unknown>), summary: "rewritten" },
+    };
+    const archive = path.join(scratch, "unverified-head");
+    mkdirSync(archive, { recursive: true });
+    for (const name of ["001.json", "002.json"]) {
+      writeFileSync(
+        path.join(archive, name),
+        readFileSync(path.join(repoRoot, VALID_CHAIN, name), "utf8"),
+      );
+    }
+    writeFileSync(path.join(archive, "003.json"), JSON.stringify(tampered));
+
+    const text = auditmodel("verify-checkpoint", "--checkpoint", CHECKPOINT, archive);
+    assert.equal(text.status, 1);
+    assert.doesNotMatch(text.stdout, /matches the recorded head/);
+    assert.match(
+      text.stdout,
+      /could not be verified, so the chain is not reported as agreeing {2}\[checkpoint-members-unverified\]/,
+    );
+    // The head is present, only unverified: nothing may say it was deleted.
+    assert.doesNotMatch(
+      text.stdout,
+      /tail-truncated|checkpoint-head-missing|checkpoint-count-mismatch/,
+    );
+
+    const json = auditmodel(
+      "verify-checkpoint",
+      "--format",
+      "json",
+      "--checkpoint",
+      CHECKPOINT,
+      archive,
+    );
+    const report = JSON.parse(json.stdout) as { chains: readonly { status: string }[] };
+    assert.ok(
+      report.chains.every((chain) => chain.status !== "agrees"),
+      json.stdout,
+    );
+  });
+});
+
 describe("verify-integrity", () => {
   test("exits 0 and reports each check for a sealed event", () => {
     const result = auditmodel("verify-integrity", VALID_EVENT);
@@ -248,6 +353,21 @@ describe("--public-key", () => {
     assert.equal(result.status, 1);
     assert.match(result.stdout, /\[hash-mismatch\]/);
     assert.doesNotMatch(result.stdout, /signature/);
+  });
+
+  test("a small-order Ed25519 key is refused before anything is verified", () => {
+    const identity = Buffer.concat([
+      Buffer.from("302a300506032b6570032100", "hex"),
+      Buffer.from(`01${"00".repeat(31)}`, "hex"),
+    ]);
+    const keyFile = writeScratch(
+      "small-order.pem",
+      `-----BEGIN PUBLIC KEY-----\n${identity.toString("base64")}\n-----END PUBLIC KEY-----\n`,
+    );
+    const result = auditmodel("verify-integrity", SIGNED_EVENT, "--public-key", keyFile);
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /small-order point/);
+    assert.equal(result.stdout, "");
   });
 
   test("a signature algorithm this verifier does not implement is refused", () => {

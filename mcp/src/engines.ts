@@ -15,13 +15,17 @@ import {
   SCHEMA_ID,
   SPEC_VERSION,
   type EventValidator,
+  createVersionedValidator,
+  schemaIdFor,
+  type SupportedSpecVersion,
 } from "../../conformance/src/validator-interface.js";
 import {
   implementsProfileVersion,
   SUPPORTED_PROFILE_VERSIONS,
   type ProfileDefinition,
 } from "../../conformance/src/profiles/types.js";
-import validateAuditEvent from "./schema-validator.generated.js";
+import validateAuditEvent01 from "./schema-validator-0.1.generated.js";
+import validateAuditEvent10 from "./schema-validator-1.0.generated.js";
 import validateCheckpoint from "./checkpoint-validator.generated.js";
 import validateProof from "./proof-validator.generated.js";
 import { BUNDLED_RESOURCES } from "./resource-manifest.generated.js";
@@ -29,16 +33,32 @@ import { BUNDLED_RESOURCES } from "./resource-manifest.generated.js";
 export { CHECKPOINT_SCHEMA_ID, PROOF_SCHEMA_ID, SCHEMA_ID, SPEC_VERSION };
 
 /**
- * The canonical validator, built from Ajv's own ahead-of-time compiled code.
+ * The canonical validator, built from Ajv's own ahead-of-time compiled code:
+ * one compiled schema per specification version, the one an event declares
+ * selected exactly as the command line selects it (ADR 0017).
  *
  * servers forbid runtime code generation, so `ajv.compile()` cannot run here.
  * The generated module is Ajv's output for the canonical schema, which is why
  * this validator agrees with the command line one exactly rather than
  * approximately.
  */
-export const validator: EventValidator = createValidatorFromCompiled(
-  validateAuditEvent as unknown as ValidateFunction,
-  SCHEMA_ID,
+export const validator: EventValidator = createVersionedValidator(
+  new Map<SupportedSpecVersion, EventValidator>([
+    [
+      "0.1",
+      createValidatorFromCompiled(
+        validateAuditEvent01 as unknown as ValidateFunction,
+        schemaIdFor("0.1"),
+      ),
+    ],
+    [
+      "1.0",
+      createValidatorFromCompiled(
+        validateAuditEvent10 as unknown as ValidateFunction,
+        schemaIdFor("1.0"),
+      ),
+    ],
+  ]),
 );
 
 /**

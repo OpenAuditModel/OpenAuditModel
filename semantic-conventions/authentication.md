@@ -1,6 +1,6 @@
 # Authentication Events
 
-**Specification version: 0.1 · Status: Experimental**
+**Specification version: 1.0 · Status: Stable**
 
 Category: `authentication`
 
@@ -91,7 +91,7 @@ Omitting it is correct; `method: anonymous` means something different. See
 
 ```json
 {
-  "specVersion": "0.1",
+  "specVersion": "1.0",
   "id": "018f1c40-1111-7222-8333-444455556666",
   "time": "2026-03-20T08:12:04Z",
   "event": {

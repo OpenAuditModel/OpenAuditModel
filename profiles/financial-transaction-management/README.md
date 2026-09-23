@@ -1,6 +1,6 @@
 # Financial Transaction Management Profile
 
-**Status: Experimental. Implemented in v0.1, 12 rules (11 enforceable, 1 advisory).**
+**Status: Experimental. Applies to core versions 0.1 and 1.0; 12 rules (11 enforceable, 1 advisory).**
 
 The enforceable rules are in [profile.json](profile.json).
 

@@ -155,13 +155,22 @@ describe("the README documents the commands that exist", () => {
 
     // And every earlier minor is still listed, so a reader on an old version
     // learns it is superseded rather than finding no row at all.
+    // Every released minor, across majors, from the changelog's dated headings.
     const listed = [...security.matchAll(/^\| ([0-9]+\.[0-9]+)\.x\s*\|/gm)].map(
       (match) => match[1],
     );
-    const [major, current_] = minor.split(".").map(Number) as [number, number];
-    const expected = Array.from({ length: current_ + 1 }, (_, index) => `${major}.${index}`)
-      .filter((entry) => entry !== `${major}.0` || current_ === 0)
-      .reverse();
+    const changelog = readFileSync(path.join(repoRoot, "CHANGELOG.md"), "utf8");
+    const released = new Set(
+      [...changelog.matchAll(/^## ([0-9]+)\.([0-9]+)\.[0-9]+ - [0-9]{4}-[0-9]{2}-[0-9]{2}$/gm)].map(
+        (match) => `${match[1]}.${match[2]}`,
+      ),
+    );
+    released.add(minor);
+    const expected = [...released].sort((left, right) => {
+      const [leftMajor, leftMinor] = left.split(".").map(Number) as [number, number];
+      const [rightMajor, rightMinor] = right.split(".").map(Number) as [number, number];
+      return rightMajor - leftMajor || rightMinor - leftMinor;
+    });
     assert.deepEqual(listed, expected, "SECURITY.md skips or reorders a released minor");
   });
 

@@ -1,6 +1,6 @@
 # Integrity
 
-**Specification version: 0.1 · Status: Experimental · This document: Normative**
+**Specification version: 1.0 · Status: Stable · This document: Normative**
 
 ## 1. Tamper-evident, not immutable
 
@@ -31,8 +31,8 @@ without it is fully conforming. When the object is present it MUST contain at le
 | `signature`        | Digital signature over the canonicalized event.                                |
 
 `signature` is an object requiring `algorithm` and `value`, and optionally `keyId`. `keyId` MUST NOT
-contain key material. v0.1 tooling verifies Ed25519, ECDSA-P256-SHA256 and RSA-PSS-SHA256 signatures
-when a public key is supplied out of band; signing and key management are not part of v0.1. See §6.1
+contain key material. The reference tooling verifies Ed25519, ECDSA-P256-SHA256 and RSA-PSS-SHA256 signatures
+when a public key is supplied out of band; signing and key management are not part of the specification. See §6.1
 and §9.
 
 ### 2.1 What `batchId` is not
@@ -63,11 +63,11 @@ serializing the same event will otherwise disagree on its digest.
 
 - A producer that populates `hash`, `previousHash` or `signature` MUST canonicalize the event first,
   and MUST declare which canonicalization it used.
-- **RFC 8785, the JSON Canonicalization Scheme, is the canonicalization of v0.1**, declared as the
+- **RFC 8785, the JSON Canonicalization Scheme, is the canonicalization of 1.0**, declared as the
   identifier `RFC8785`. Identifiers are matched **case-sensitively**: `rfc8785` and `JCS-RFC8785` are
   not `RFC8785`.
 - `canonicalization` is an open vocabulary in the schema so that a future scheme can be adopted
-  without a specification change. A producer MAY declare another identifier; conforming v0.1 tooling
+  without a specification change. A producer MAY declare another identifier; conforming tooling
   will report it as unverifiable rather than guess.
 
 RFC 8785 was chosen because it is a published standard with independent implementations, it produces
@@ -151,7 +151,7 @@ OpenAuditModel tooling does not recalculate them.
 `hashAlgorithm` is an open vocabulary, matched case-sensitively, so that a new algorithm can be
 adopted without a specification change.
 
-Conforming v0.1 tooling MUST implement:
+Conforming tooling MUST implement:
 
 ```text
 SHA-256   SHA-384   SHA-512
@@ -168,7 +168,7 @@ A verifier MUST reject a declared hash whose length disagrees with the declared 
 
 `integrity.signature.algorithm` is likewise an open vocabulary, matched case-sensitively.
 
-Conforming v0.1 tooling MUST implement:
+Conforming tooling MUST implement:
 
 ```text
 Ed25519
@@ -181,12 +181,18 @@ the same reason an unimplemented hash algorithm is reported and not silently acc
 A signature is calculated and verified over the same digest input as `hash` — the canonicalized event
 with `/integrity/hash` and `/integrity/signature` removed (§4) — so it covers `sequence`,
 `previousHash` and `chainId` exactly as the hash does; a signed chain is exactly as tamper-evident as a
-hashed one. `integrity.signature.value` MUST be base64-encoded for a v0.1 verifier to check it. The
+hashed one. `integrity.signature.value` MUST be base64-encoded for a conforming verifier to check it. The
 schema's `digest` type also permits hexadecimal and base64url, because the field is often echoed
-verbatim from whatever system produced it, but a v0.1 verifier implements one encoding, not three, and
+verbatim from whatever system produced it, but a conforming verifier implements one encoding, not three, and
 reports a value in another encoding as unverifiable.
 
-`integrity.signature.keyId` is never dereferenced. v0.1 defines no key registry, trust store or
+A verifier MUST NOT report a signature verified under a public key that lets a signature be made
+without the private key. It MUST refuse an Ed25519 public key that is a point of small order, and an
+Ed25519 signature whose `R` is one; under the identity point as a key, a signature verifies for every
+message, and RFC 8032 verification as commonly implemented accepts it. It MUST refuse an RSA public
+key whose exponent is even or less than 3, and an EC public key that is the point at infinity.
+
+`integrity.signature.keyId` is never dereferenced. 1.0 defines no key registry, trust store or
 certificate parsing: a verifying party obtains the public key out of band, by whatever means it
 already trusts, and supplies it directly.
 
@@ -348,7 +354,9 @@ nothing to prove. No `3` is an approval.
 **Implemented:** Ed25519, ECDSA-P256-SHA256 and RSA-PSS-SHA256 signature verification, given a
 public key supplied out of band — there is no key registry to resolve `keyId` against. ECDSA
 signatures are expected in IEEE P1363 form (`r ‖ s`, 64 bytes); RSA-PSS signatures are verified with
-the salt length recovered from the signature, and keys under 2048 bits are refused.
+the salt length recovered from the signature, and keys under 2048 bits are refused. The keys §6.1
+refuses are refused when they are loaded, with exit 2, and a signature whose `R` is a small-order
+point is refused when it is checked.
 
 **Implemented, as tooling:** chain checkpoints and Merkle inclusion proofs — the two document
 formats above, `verify-checkpoint` and `verify-proof`. The specification defines none of them; the
@@ -391,7 +399,7 @@ An event in an instance-level chain:
 }
 ```
 
-A signed event with no hash and no chain. This one is illustrative only, not verifiable: v0.1's
+A signed event with no hash and no chain. This one is illustrative only, not verifiable: the reference
 `verify-integrity` requires a hash before it checks anything at all, so a signature with no
 accompanying `hash` is reported `hash-missing` even though the tooling implements Ed25519 signature
 verification. A signature MUST currently accompany a hash to be checked; see

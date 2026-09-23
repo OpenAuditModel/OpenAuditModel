@@ -7,7 +7,7 @@
       "chainId": "chain-platform-control-service-instance-7c1a",
       "head": {
         "sequence": 3,
-        "hash": "a7da7bab810f1386942e86d11b3277cbe56a5cc71f6bdc01da0eded57c829c00"
+        "hash": "6e066fd770f79d596f97f36dba3dd5be6348acd73d1ec21cc3dd899ec389d186"
       },
       "eventCount": 3
     },
@@ -15,7 +15,7 @@
       "chainId": "chain-platform-control-service-instance-9e4b",
       "head": {
         "sequence": 3,
-        "hash": "585d48e74ca94410219d2fd6836022601d0dcffe1995c2fcae5a8d881da411e9"
+        "hash": "7d7461fef60b145239de6e0d43e6ae7cb18c5c4b002eac452a5efd91e5052d65"
       },
       "eventCount": 3
     }
@@ -34,7 +34,7 @@
   },
   "signature": {
     "algorithm": "Ed25519",
-    "value": "7TMyiHGqbUEjkct1H0SyJ1t88YcpDJd80VuV6eK0IFeKjW4+yBOTTx5p56sNzqMwXdocn08KPq9W6QYl+IDmCA==",
+    "value": "PRsjZs01cKfmDiRpD+rSoeyAh/jDolg5LN+5CGkb/yasptCGVadpRjMwdIGL2snxJSY8OC+xUFuKBCOGgY52DQ==",
     "keyId": "example-fixture-key-2026"
   }
 }

@@ -6,7 +6,7 @@
  * tamper-proof, legally binding or non-repudiable.
  */
 
-/** Canonicalization identifier the v0.1 verifier implements: RFC 8785 JCS. */
+/** Canonicalization identifier the verifier implements: RFC 8785 JCS. */
 export const CANONICALIZATION_RFC8785 = "RFC8785";
 
 /** Canonicalization identifiers this verifier can execute. Matching is case-sensitive. */
@@ -119,7 +119,8 @@ export type CheckpointFindingKind =
   | "tail-truncated"
   | "checkpoint-head-mismatch"
   | "checkpoint-head-missing"
-  | "checkpoint-count-mismatch";
+  | "checkpoint-count-mismatch"
+  | "checkpoint-members-unverified";
 
 /** Why an inclusion proof failed, or why no verdict could be reached. */
 export type ProofFindingKind =

@@ -11,7 +11,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { AnySchemaObject } from "ajv";
 import type { ValidationIssue } from "./format-errors.js";
-import { expandInputPaths, readJsonFile } from "./sources.js";
+import { expandInputPaths, nestedTooDeep, readJsonFile } from "./sources.js";
+import { MAX_JSON_DEPTH } from "./integrity/canonicalize.js";
 import {
   CHECKPOINT_SCHEMA_ID,
   createAjv,
@@ -23,6 +24,12 @@ import {
   validateSchemaDocument,
   type EventValidator,
 } from "./validate-core.js";
+import {
+  createVersionedValidator,
+  SUPPORTED_SPEC_VERSIONS,
+  wasNotEvaluated,
+  type SupportedSpecVersion,
+} from "./validator-interface.js";
 
 export {
   CHECKPOINT_SCHEMA_ID,
@@ -30,15 +37,35 @@ export {
   PROOF_SCHEMA_ID,
   SCHEMA_ID,
   SPEC_VERSION,
+  SUPPORTED_SPEC_VERSIONS,
   validateSchemaDocument,
 };
-export type { EventValidator };
+export type { EventValidator, SupportedSpecVersion };
 
-export const SCHEMA_RELATIVE_PATH = path.join(
-  "schemas",
-  `v${SPEC_VERSION}`,
-  "audit-event.schema.json",
-);
+/** Where one version's audit event schema lives, relative to the repository or package root. */
+export function schemaRelativePathFor(version: SupportedSpecVersion): string {
+  return path.join("schemas", `v${version}`, "audit-event.schema.json");
+}
+
+/** The current version's schema, which is what locating the schemas starts from. */
+export const SCHEMA_RELATIVE_PATH = schemaRelativePathFor(SPEC_VERSION);
+
+/**
+ * One version's schema, found beside the current one: every version ships in
+ * the same `schemas/` directory, in the repository and in the installed package.
+ */
+export function resolveSchemaPathFor(
+  version: SupportedSpecVersion,
+  currentSchemaPath?: string,
+): string {
+  const current = currentSchemaPath ?? resolveSchemaPath();
+  const root = path.dirname(path.dirname(path.dirname(current)));
+  const candidate = path.join(root, schemaRelativePathFor(version));
+  if (!existsSync(candidate)) {
+    throw new Error(`Unable to locate ${schemaRelativePathFor(version)} beside ${current}.`);
+  }
+  return candidate;
+}
 
 /** The checkpoint schema, versioned on its own; 0.1 is its first version. */
 export const CHECKPOINT_SCHEMA_RELATIVE_PATH = path.join(
@@ -56,8 +83,12 @@ export const PROOF_SCHEMA_RELATIVE_PATH = path.join(
   "proof.schema.json",
 );
 
-/** Outcome of validating a single file. */
-export type FileStatus = "valid" | "invalid" | "unreadable";
+/**
+ * Outcome of validating a single file. `not-evaluated` is an event declaring a
+ * specification version this tool does not implement (ADR 0017 §3): it was
+ * neither passed nor failed.
+ */
+export type FileStatus = "valid" | "invalid" | "not-evaluated" | "unreadable";
 
 export interface FileValidationResult {
   readonly file: string;
@@ -106,11 +137,28 @@ export function loadSchema(schemaPath?: string): AnySchemaObject {
   return JSON.parse(raw) as AnySchemaObject;
 }
 
-/** Compiles the canonical schema and returns a reusable validator. */
+/**
+ * Compiles the schema of every supported version and returns a validator that
+ * applies the one each event declares (ADR 0017). `schemaPath` is the current
+ * version's schema; the others are found beside it.
+ */
 export function createValidator(schemaPath?: string): Validator {
   const resolvedPath = schemaPath ?? resolveSchemaPath();
-  const schema = loadSchema(resolvedPath);
-  const core = createValidatorFromSchema(schema);
+  // The given file is the current version's schema and is used as given; the
+  // other versions are found beside it. Loading the current version from its
+  // conventional path instead would validate against a file the caller did
+  // not name while reporting the one it did.
+  const byVersion = new Map<SupportedSpecVersion, EventValidator>(
+    SUPPORTED_SPEC_VERSIONS.map((version) => [
+      version,
+      createValidatorFromSchema(
+        loadSchema(
+          version === SPEC_VERSION ? resolvedPath : resolveSchemaPathFor(version, resolvedPath),
+        ),
+      ),
+    ]),
+  );
+  const core = createVersionedValidator(byVersion);
   const { schemaId } = core;
   const validateEvent = (event: unknown): ValidationIssue[] => core.validateEvent(event);
 
@@ -119,9 +167,21 @@ export function createValidator(schemaPath?: string): Validator {
     if (!parsed.ok) {
       return { file, status: "unreadable", issues: [], error: parsed.error };
     }
+    // The limit every command applies: validation recurses, and a document
+    // nested deeply enough would end the process rather than fail.
+    if (nestedTooDeep(parsed.value)) {
+      return {
+        file,
+        status: "unreadable",
+        issues: [],
+        error: `the document is nested more than ${MAX_JSON_DEPTH} levels deep, deeper than any audit event`,
+      };
+    }
 
     const issues = validateEvent(parsed.value);
-    return { file, status: issues.length === 0 ? "valid" : "invalid", issues };
+    const status =
+      issues.length === 0 ? "valid" : wasNotEvaluated(issues) ? "not-evaluated" : "invalid";
+    return { file, status, issues };
   };
 
   return { schemaId, schemaPath: resolvedPath, validateEvent, validateFile };
@@ -167,8 +227,10 @@ function readSchema(file: string): AnySchemaObject {
 export function createCheckpointValidator(schemaPath?: string): DocumentValidator {
   const eventSchemaPath = schemaPath ?? resolveSchemaPath();
   const checkpointSchemaPath = resolveCheckpointSchemaPath(eventSchemaPath);
+  // The checkpoint format refers to the 0.1 event schema's `$defs`, the
+  // version it was written against; that schema stays published (ADR 0017 §6).
   const core = createValidatorFromSchemas(readSchema(checkpointSchemaPath), [
-    loadSchema(eventSchemaPath),
+    loadSchema(resolveSchemaPathFor("0.1", eventSchemaPath)),
   ]);
   return { ...core, schemaPath: checkpointSchemaPath };
 }
@@ -182,7 +244,7 @@ export function createProofValidator(schemaPath?: string): DocumentValidator {
   const eventSchemaPath = schemaPath ?? resolveSchemaPath();
   const proofSchemaPath = resolveProofSchemaPath(eventSchemaPath);
   const core = createValidatorFromSchemas(readSchema(proofSchemaPath), [
-    loadSchema(eventSchemaPath),
+    loadSchema(resolveSchemaPathFor("0.1", eventSchemaPath)),
     readSchema(resolveCheckpointSchemaPath(eventSchemaPath)),
   ]);
   return { ...core, schemaPath: proofSchemaPath };

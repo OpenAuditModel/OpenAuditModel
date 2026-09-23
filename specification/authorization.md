@@ -1,6 +1,6 @@
 # Authorization Context
 
-**Specification version: 0.1 · Status: Experimental · This document: Normative**
+**Specification version: 1.0 · Status: Stable · This document: Normative**
 
 ## 1. Purpose
 

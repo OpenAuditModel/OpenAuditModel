@@ -59,10 +59,10 @@ function backupMetadata(event: Event): Record<string, unknown> {
 }
 
 describe("backup-and-recovery profile definition", () => {
-  test("the profile is experimental and applies to core 0.1", () => {
+  test("the profile is experimental and applies to core 0.1 and 1.0", () => {
     assert.equal(profile.name, PROFILE);
     assert.equal(profile.status, "experimental");
-    assert.deepEqual(profile.coreVersions, ["0.1"]);
+    assert.deepEqual(profile.coreVersions, ["0.1", "1.0"]);
   });
 
   test("every rule identifier is unique and namespaced to this profile", () => {

@@ -1,6 +1,6 @@
 # Extension Model
 
-**Specification version: 0.1 · Status: Experimental · This document: Normative**
+**Specification version: 1.0 · Status: Stable · This document: Normative**
 
 ## 1. Four places data can go
 
@@ -50,7 +50,7 @@ Profiles MAY define expected metadata fields for their domain, and MAY require t
 event classes. When a profile defines a metadata field, producers implementing that profile SHOULD
 use the profile's name and meaning rather than inventing their own. See [profiles/](../profiles/).
 
-No profile defines metadata fields normatively in v0.1.
+No profile defines metadata fields normatively.
 
 ### 3.3 Example
 

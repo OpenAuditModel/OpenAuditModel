@@ -1,5 +1,5 @@
 /**
- * The v0.1 privacy rule catalogue.
+ * The privacy rule catalogue.
  *
  * Severity and confidence are properties of the rule, not of an individual
  * finding, so that a report can be filtered predictably. Severity says how bad
@@ -8,7 +8,7 @@
  * literally named `password` is critical and high-confidence, while a
  * high-entropy string in an arbitrary field is medium and low-confidence.
  *
- * Thresholds and vocabularies are hard-coded in v0.1. Configuration is a future
+ * Thresholds and vocabularies are hard-coded. Configuration is a future
  * design question; see decisions/0007-deterministic-privacy-linting.md.
  */
 import type { Confidence, Severity } from "./types.js";

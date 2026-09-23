@@ -1,6 +1,6 @@
 # Deployment and Change Management Profile
 
-**Status: Experimental. Implemented in v0.1, 13 rules, 11 of them enforceable.**
+**Status: Experimental. Applies to core versions 0.1 and 1.0; 13 rules, 11 of them enforceable.**
 
 Scope: applications that build, approve, deploy, revert and reconfigure running systems — delivery
 pipelines, release management, infrastructure automation, configuration management and change

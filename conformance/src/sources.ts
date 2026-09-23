@@ -9,9 +9,18 @@
  * decision 0016. Nothing here resolves remote references or follows anything
  * contained in an event.
  */
-import { closeSync, openSync, readdirSync, readFileSync, readSync, statSync } from "node:fs";
+import {
+  closeSync,
+  constants,
+  fstatSync,
+  openSync,
+  readdirSync,
+  readSync,
+  statSync,
+} from "node:fs";
 import path from "node:path";
 import { StringDecoder } from "node:string_decoder";
+import { MAX_JSON_DEPTH } from "./integrity/canonicalize.js";
 
 /**
  * Largest single JSON document the tooling will read whole.
@@ -94,35 +103,106 @@ function isJsonLines(file: string): boolean {
   return JSON_LINES_EXTENSIONS.includes(extension);
 }
 
-/** The refusal a file too large to be held earns, or `undefined` when it fits. */
-function refuseIfTooLarge(file: string): string | undefined {
-  let size: number;
+/** A file opened for reading, with the size it had when it was opened. */
+interface OpenedFile {
+  readonly ok: true;
+  readonly descriptor: number;
+  readonly size: number;
+}
+
+/**
+ * Opens a regular file for reading, or says why it will not.
+ *
+ * Anything that is not a regular file is refused. A FIFO or a device — or a
+ * link to one, named like an event file inside an archive — reports no size and
+ * then either never ends or blocks forever: a FIFO named `b.json` hung
+ * `validate`, and one fed 12 MB was read whole where a regular file of that size
+ * is refused. The file is opened once and every check is made on what was
+ * opened, so nothing can be swapped in between a check and the read. It is
+ * opened non-blocking, so that opening a FIFO returns at once instead of
+ * waiting for a writer; a regular file reads the same either way. A link to a
+ * regular file is followed, as a path on the command line is followed.
+ */
+function openRegularFile(file: string): OpenedFile | JsonReadFailure {
+  let descriptor: number;
   try {
-    size = statSync(file).size;
+    descriptor = openSync(file, constants.O_RDONLY | (constants.O_NONBLOCK ?? 0));
   } catch (cause) {
-    return `cannot read file: ${(cause as Error).message}`;
+    return { ok: false, error: `cannot read file: ${(cause as Error).message}` };
   }
-  return size > MAX_DOCUMENT_BYTES
-    ? `file is ${size} bytes, above the ${MAX_DOCUMENT_BYTES} byte limit`
-    : undefined;
+  try {
+    const stats = fstatSync(descriptor);
+    if (!stats.isFile()) {
+      closeSync(descriptor);
+      return { ok: false, error: "not a regular file, so it is not read" };
+    }
+    return { ok: true, descriptor, size: stats.size };
+  } catch (cause) {
+    closeSync(descriptor);
+    return { ok: false, error: `cannot read file: ${(cause as Error).message}` };
+  }
+}
+
+function tooLargeMessage(size: number): string {
+  return `file is ${size} bytes, above the ${MAX_DOCUMENT_BYTES} byte limit`;
+}
+
+/**
+ * The parser's position, and nothing of the text.
+ *
+ * `JSON.parse` quotes the text around the error — the whole input when it is
+ * short — so its message can carry a secret from the file it failed on: a
+ * short credentials file linked into an archive under an event file's name
+ * was echoed in full. Only the position is kept.
+ */
+function describeJsonError(cause: unknown): string {
+  const message = cause instanceof Error ? cause.message : "";
+  const position = /at position (\d+)(?: \(line (\d+) column (\d+)\))?/.exec(message);
+  if (position !== null) {
+    return position[2] !== undefined
+      ? `invalid JSON at line ${position[2]}, column ${position[3]}`
+      : `invalid JSON at position ${position[1]}`;
+  }
+  return /Unexpected end of JSON input/.test(message)
+    ? "the JSON ends before it is complete"
+    : "not valid JSON";
 }
 
 function readTextFile(file: string): JsonReadResult {
-  const refusal = refuseIfTooLarge(file);
-  if (refusal !== undefined) {
-    return { ok: false, error: refusal };
+  const opened = openRegularFile(file);
+  if (!opened.ok) {
+    return opened;
   }
-
+  const { descriptor, size } = opened;
   try {
-    return { ok: true, value: readFileSync(file, "utf8") };
+    if (size > MAX_DOCUMENT_BYTES) {
+      return { ok: false, error: tooLargeMessage(size) };
+    }
+    // At most one byte past the size the file had when it was opened is read:
+    // a file that grew in the meantime is refused, not held whole.
+    const buffer = Buffer.allocUnsafe(size + 1);
+    let total = 0;
+    while (total < buffer.length) {
+      const read = readSync(descriptor, buffer, total, buffer.length - total, null);
+      if (read === 0) {
+        break;
+      }
+      total += read;
+    }
+    if (total > size) {
+      return { ok: false, error: "file changed while it was read, so it is not read" };
+    }
+    return { ok: true, value: buffer.toString("utf8", 0, total) };
   } catch (cause) {
     return { ok: false, error: `cannot read file: ${(cause as Error).message}` };
+  } finally {
+    closeSync(descriptor);
   }
 }
 
 /**
  * Reads and parses one JSON file. The returned failure text never contains file
- * content, only the parser's positional message.
+ * content, only the parser's position.
  */
 export function readJsonFile(file: string): JsonReadResult {
   const text = readTextFile(file);
@@ -133,7 +213,7 @@ export function readJsonFile(file: string): JsonReadResult {
   try {
     return { ok: true, value: JSON.parse(text.value as string) };
   } catch (cause) {
-    return { ok: false, error: `cannot parse JSON: ${(cause as Error).message}` };
+    return { ok: false, error: `cannot parse JSON: ${describeJsonError(cause)}` };
   }
 }
 
@@ -173,18 +253,25 @@ export function expandInputPaths(inputs: readonly string[]): string[] {
  *
  * Throws {@link LineTooLongError} rather than growing without bound.
  */
-function* readLines(file: string): Generator<{ readonly text: string; readonly number: number }> {
-  const descriptor = openSync(file, "r");
+function* readLines(
+  descriptor: number,
+  maxTotalBytes?: number,
+): Generator<{ readonly text: string; readonly number: number }> {
   const decoder = new StringDecoder("utf8");
   const chunk = Buffer.allocUnsafe(CHUNK_BYTES);
   let pending = "";
   let number = 0;
+  let total = 0;
 
   try {
     for (;;) {
       const read = readSync(descriptor, chunk, 0, chunk.length, null);
       if (read === 0) {
         break;
+      }
+      total += read;
+      if (maxTotalBytes !== undefined && total > maxTotalBytes) {
+        throw new FileGrewError(maxTotalBytes);
       }
       pending += decoder.write(chunk.subarray(0, read));
 
@@ -240,6 +327,14 @@ function tooLong(line: string): boolean {
   return line.length * 3 > MAX_LINE_BYTES && Buffer.byteLength(line, "utf8") > MAX_LINE_BYTES;
 }
 
+/** A file held whole that grew past its limit after its size was taken. */
+class FileGrewError extends Error {
+  constructor(limit: number) {
+    super(`file grew above the ${limit} byte limit while it was read`);
+    this.name = "FileGrewError";
+  }
+}
+
 /** A line longer than {@link MAX_LINE_BYTES}, reported by line number alone. */
 class LineTooLongError extends Error {
   constructor(readonly line: number) {
@@ -247,6 +342,32 @@ class LineTooLongError extends Error {
     this.name = "LineTooLongError";
   }
 }
+
+/**
+ * Whether a parsed value nests deeper than {@link MAX_JSON_DEPTH}.
+ *
+ * `JSON.parse` imposes no depth limit, and the validator recurses: a value a
+ * few thousand levels deep overflows the stack inside it. So depth is checked
+ * where a document is read, with a walk that stops one level past the limit and
+ * therefore cannot overflow itself. The limit is the one canonicalization and
+ * the MCP server already apply; no audit event is anywhere near it.
+ */
+export function nestedTooDeep(value: unknown, depth = 0): boolean {
+  if (depth > MAX_JSON_DEPTH) {
+    return true;
+  }
+  if (Array.isArray(value)) {
+    return value.some((item) => nestedTooDeep(item, depth + 1));
+  }
+  if (value !== null && typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).some((item) =>
+      nestedTooDeep(item, depth + 1),
+    );
+  }
+  return false;
+}
+
+const TOO_DEEP = `nested more than ${MAX_JSON_DEPTH} levels deep, deeper than any audit event`;
 
 /** One item from a stream: an event, or a file that could not be read past a point. */
 export type LoadedItem =
@@ -276,16 +397,20 @@ export type LoadedItem =
  */
 export function* streamFile(file: string, options: ReadOptions = {}): Generator<LoadedItem> {
   if (isJsonLines(file)) {
-    if (options.wholeFileLimit === true) {
-      const refusal = refuseIfTooLarge(file);
-      if (refusal !== undefined) {
-        yield { kind: "failure", failure: { file, error: refusal } };
-        return;
-      }
+    const opened = openRegularFile(file);
+    if (!opened.ok) {
+      yield { kind: "failure", failure: { file, error: opened.error } };
+      return;
+    }
+    if (options.wholeFileLimit === true && opened.size > MAX_DOCUMENT_BYTES) {
+      closeSync(opened.descriptor);
+      yield { kind: "failure", failure: { file, error: tooLargeMessage(opened.size) } };
+      return;
     }
 
     try {
-      for (const line of readLines(file)) {
+      const limit = options.wholeFileLimit === true ? MAX_DOCUMENT_BYTES : undefined;
+      for (const line of readLines(opened.descriptor, limit)) {
         // Trimming is what makes a CRLF file read like any other, and what
         // lets a blank line be blank; the reader yields a line as the file
         // holds it and leaves that judgement here.
@@ -301,9 +426,13 @@ export function* streamFile(file: string, options: ReadOptions = {}): Generator<
             kind: "failure",
             failure: {
               file,
-              error: `cannot parse JSON on line ${line.number}: ${(cause as Error).message}`,
+              error: `cannot parse JSON on line ${line.number}: ${describeJsonError(cause)}`,
             },
           };
+          return;
+        }
+        if (nestedTooDeep(event)) {
+          yield { kind: "failure", failure: { file, error: `line ${line.number} is ${TOO_DEEP}` } };
           return;
         }
         yield {
@@ -316,7 +445,7 @@ export function* streamFile(file: string, options: ReadOptions = {}): Generator<
       // file refusing to be read at all, and wears the same prefix as every
       // other unreadable file so that one search finds them all.
       const error =
-        cause instanceof LineTooLongError
+        cause instanceof LineTooLongError || cause instanceof FileGrewError
           ? cause.message
           : `cannot read file: ${(cause as Error).message}`;
       yield { kind: "failure", failure: { file, error } };
@@ -327,6 +456,15 @@ export function* streamFile(file: string, options: ReadOptions = {}): Generator<
   const parsed = readJsonFile(file);
   if (!parsed.ok) {
     yield { kind: "failure", failure: { file, error: parsed.error } };
+    return;
+  }
+
+  if (
+    Array.isArray(parsed.value)
+      ? parsed.value.some((event) => nestedTooDeep(event))
+      : nestedTooDeep(parsed.value)
+  ) {
+    yield { kind: "failure", failure: { file, error: `the document is ${TOO_DEEP}` } };
     return;
   }
 

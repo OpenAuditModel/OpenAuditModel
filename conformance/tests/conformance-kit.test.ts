@@ -157,7 +157,7 @@ describe("the conformance kit", () => {
   });
 
   test("it pins the specification version, the schema identifier and every profile version", () => {
-    assert.equal(kit.specVersion, "0.1");
+    assert.equal(kit.specVersion, "1.0");
     assert.match(kit.schemaId, /^https:\/\/openauditmodel\.org\/schemas\/audit-event\//);
     assert.deepEqual(
       kit.profiles.map((profile) => profile.name).sort((a, b) => a.localeCompare(b, "en")),
@@ -175,7 +175,20 @@ describe("the conformance kit", () => {
 
     const coreInvalid = byPath.get("examples/invalid/missing-actor.json");
     assert.equal(coreInvalid?.validate.valid, false);
+    assert.equal(coreInvalid?.validate.notEvaluated, false);
     assert.deepEqual(coreInvalid?.validate.issues, [{ path: "/actor", keyword: "required" }]);
+
+    // ADR 0017 §3: a version the reference does not implement is recorded as
+    // not evaluated, so an implementation can tell it from a failure.
+    for (const name of ["newer-minor", "other-major", "never-published"]) {
+      const record = byPath.get(`examples/versions/${name}.json`);
+      assert.equal(record?.validate.valid, false, name);
+      assert.equal(record?.validate.notEvaluated, true, name);
+    }
+    assert.equal(
+      byPath.get("examples/versions/malformed-version.json")?.validate.notEvaluated,
+      false,
+    );
 
     const password = byPath.get("examples/privacy/findings/password-field.json");
     assert.equal(password?.lintPrivacy.status, "findings");

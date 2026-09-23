@@ -6,6 +6,7 @@
  * exact URLs recorded in `$id`, forever. Those URLs do **not** mirror the
  * repository layout:
  *
+ *   /schemas/audit-event/1.0/schema.json        <- schemas/v1.0/audit-event.schema.json
  *   /schemas/audit-event/0.1/schema.json        <- schemas/v0.1/audit-event.schema.json
  *   /schemas/profile-definition/0.1/schema.json <- profiles/profile-definition.schema.json
  *   /schemas/checkpoint/0.1/schema.json         <- schemas/checkpoint/v0.1/checkpoint.schema.json
@@ -40,9 +41,15 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const out = path.join(root, "site");
 const check = process.argv.includes("--check");
 
-const auditEvent = JSON.parse(
-  readFileSync(path.join(root, "schemas", "v0.1", "audit-event.schema.json"), "utf8"),
-);
+// Every published version of the event schema stays served (ADR 0010 §3, ADR 0017).
+const AUDIT_EVENT_VERSIONS = ["1.0", "0.1"];
+const auditEvents = AUDIT_EVENT_VERSIONS.map((version) => ({
+  version,
+  source: `schemas/v${version}/audit-event.schema.json`,
+  schema: JSON.parse(
+    readFileSync(path.join(root, "schemas", `v${version}`, "audit-event.schema.json"), "utf8"),
+  ),
+}));
 const profileDefinition = JSON.parse(
   readFileSync(path.join(root, "profiles", "profile-definition.schema.json"), "utf8"),
 );
@@ -77,8 +84,10 @@ function publish(sitePath, sourceRelative) {
   copies.push([sitePath, sourceRelative]);
 }
 
-// The four schemas, at the URLs their own $id declares.
-publish(pathForId(auditEvent.$id), "schemas/v0.1/audit-event.schema.json");
+// The schemas, at the URLs their own $id declares.
+for (const { schema, source } of auditEvents) {
+  publish(pathForId(schema.$id), source);
+}
 publish(pathForId(profileDefinition.$id), "profiles/profile-definition.schema.json");
 publish(pathForId(checkpoint.$id), "schemas/checkpoint/v0.1/checkpoint.schema.json");
 publish(pathForId(proof.$id), "schemas/proof/v0.1/proof.schema.json");
@@ -302,6 +311,7 @@ npx @openauditmodel/cli check-profile audit-event.json --profile financial-trans
         ${s.schemas}
       </p>
       <div class="grid">
+        <a href="/schemas/audit-event/1.0/schema.json"><code>/schemas/audit-event/1.0/schema.json</code></a>
         <a href="/schemas/audit-event/0.1/schema.json"><code>/schemas/audit-event/0.1/schema.json</code></a>
         <a href="/schemas/profile-definition/0.1/schema.json"><code>/schemas/profile-definition/0.1/schema.json</code></a>
         <a href="/schemas/checkpoint/0.1/schema.json"><code>/schemas/checkpoint/0.1/schema.json</code></a>
@@ -393,7 +403,12 @@ for (const [relative, contents] of files) {
 }
 
 // Prove the canonical identifiers resolve to the documents that declare them.
-for (const schema of [auditEvent, profileDefinition, checkpoint, proof]) {
+for (const schema of [
+  ...auditEvents.map((entry) => entry.schema),
+  profileDefinition,
+  checkpoint,
+  proof,
+]) {
   const served = JSON.parse(readFileSync(path.join(out, pathForId(schema.$id)), "utf8"));
   if (served.$id !== schema.$id) {
     throw new Error(`served document at ${schema.$id} declares a different $id`);

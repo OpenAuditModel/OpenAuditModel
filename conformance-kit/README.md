@@ -1,6 +1,6 @@
 # Conformance kit
 
-**Specification version: 0.1 · Status: Experimental**
+**Specification version: 1.0 · Status: Stable**
 
 [ADR 0001](../decisions/0001-specification-first.md) promises that "an implementation in any language
 can be checked against the same fixtures". The fixtures have always been published. What was missing
@@ -22,7 +22,7 @@ same as the reference implementation, on the cases this project chose to publish
 having and it is not a claim about the implementation's fitness, completeness or correctness in
 general.
 
-**The corpus is not the world.** 327 fixtures, 7 chains, 8 checkpoint cases and 6 proof cases, chosen to cover the behaviour this
+**The corpus is not the world.** 366 fixtures, 7 chains, 8 checkpoint cases and 6 proof cases, chosen to cover the behaviour this
 repository decided to pin. An implementation can pass all of them and still differ on an input nobody
 here thought to write down.
 
@@ -39,7 +39,7 @@ the implementation's own.
 ```jsonc
 {
   "fixture": "examples/profiles/identity-and-access-management/invalid/privileged-role-without-mfa.json",
-  "validate": { "valid": true, "issues": [] },
+  "validate": { "valid": true, "notEvaluated": false, "issues": [] },
   "lintPrivacy": { "status": "clean", "findings": [] },
   "checkProfile": {
     "profile": "identity-and-access-management",
@@ -78,6 +78,25 @@ outcome, the finding kinds on the proof and its relation to the event, and the e
 verification findings separately. The tree hashing an implementation must reproduce is RFC 6962's,
 as the proof schema's description states. Documents under `examples/integrity/proofs/` are not
 events either.
+
+## Versions
+
+The reference implements specification 1.0 and 0.1, and selects the schema by the `specVersion` each
+fixture declares ([ADR 0017](../decisions/0017-versioning-and-compatibility.md)). Most fixtures
+declare 1.0. The ones under `examples/compatibility/v0.1/` declare 0.1 and are judged by 0.1's
+schema, and the ones under `examples/versions/` exercise the selection itself.
+
+A fixture declaring a well-formed version the reference does not implement, such as `1.1` or `2.0`,
+is recorded with `"valid": false`, `"notEvaluated": true` and a single issue at `/specVersion` with
+the keyword `specVersion-not-implemented`. That record is a verdict of its own: the event was not
+passed, and it was not failed either. An implementation that implements more versions than the
+reference will answer differently for those fixtures, and is not wrong to. A fixture whose
+`specVersion` is absent or malformed is an ordinary failure, with `"notEvaluated": false`.
+
+The same fixtures record `lintPrivacy.status` as `"schema-invalid"`: the reference's linter, like its
+other commands, counts an event it did not evaluate as one it could not scan (ADR 0017,
+Consequences). An implementation that gives the linter a not-evaluated answer of its own follows the
+ADR's recommendation, and will differ from the kit on those three records for that reason.
 
 ## How to use it
 

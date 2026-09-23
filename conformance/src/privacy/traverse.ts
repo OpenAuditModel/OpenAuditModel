@@ -6,6 +6,7 @@
  * could pass anything, and a linter that runs code contained in the thing it is
  * inspecting is a vulnerability rather than a tool.
  */
+import { redactKey } from "./redact-key.js";
 
 /** Depth at which traversal stops descending. */
 export const MAX_LINT_DEPTH = 64;
@@ -25,9 +26,14 @@ export function pointerSegment(property: string): string {
   return property.replaceAll("~", "~0").replaceAll("/", "~1");
 }
 
-/** Appends a property name or array index to a JSON Pointer. */
+/**
+ * Appends a property name or array index to a JSON Pointer. A property name
+ * shaped like a credential is written as `<redacted>`: pointers are reported,
+ * and a finding must never carry the secret it is about (see redact-key.ts).
+ */
 export function joinPointer(base: string, segment: string | number): string {
-  const encoded = typeof segment === "number" ? String(segment) : pointerSegment(segment);
+  const encoded =
+    typeof segment === "number" ? String(segment) : pointerSegment(redactKey(segment));
   return `${base}/${encoded}`;
 }
 

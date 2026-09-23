@@ -1,6 +1,6 @@
 # Design Principles
 
-**Specification version: 0.1 · Status: Experimental · This document: Normative**
+**Specification version: 1.0 · Status: Stable · This document: Normative**
 
 These principles are the reason the model looks the way it does. They are normative in the sense that
 a proposed change to the core model MUST be evaluated against them, and a change that violates one

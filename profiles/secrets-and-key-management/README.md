@@ -1,6 +1,6 @@
 # Secrets and Key Management Profile
 
-**Profile version: 0.1 · Core versions: 0.1 · Status: Experimental · Implemented, 14 rules (12
+**Profile version: 0.2 · Core versions: 0.1 and 1.0 · Status: Experimental · Implemented, 14 rules (12
 enforceable).**
 
 Additional conformance requirements for the **custody** of secrets, cryptographic keys and
@@ -249,7 +249,7 @@ model.
 ## Fixtures
 
 [examples/profiles/secrets-and-key-management/](../../examples/profiles/secrets-and-key-management/)
-— twelve valid, twelve invalid, three not applicable.
+— thirteen valid, twelve invalid, three not applicable.
 
 | Fixture                        | Event                  | Rules exercised                                         |
 | ------------------------------ | ---------------------- | ------------------------------------------------------- |
@@ -319,8 +319,9 @@ production system.
 ## Compatibility
 
 The profile version is independent of the core specification version. `coreVersions` declares which
-core versions the profile applies to; an event declaring any other `specVersion` is **not applicable**
-rather than in violation. Adding a rule is a breaking change for producers, in the same sense as
+core versions the profile applies to; an event declaring another version the tooling implements is
+**not applicable** rather than in violation. An event declaring a version the tooling does not
+implement fails the core check first ([ADR 0017](../../decisions/0017-versioning-and-compatibility.md)). Adding a rule is a breaking change for producers, in the same sense as
 adding a required core field.
 
 ## Not a compliance statement

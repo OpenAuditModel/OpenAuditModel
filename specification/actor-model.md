@@ -1,6 +1,6 @@
 # Actor Model
 
-**Specification version: 0.1 · Status: Experimental · This document: Normative**
+**Specification version: 1.0 · Status: Stable · This document: Normative**
 
 ## 1. The distinction the model exists to make
 
@@ -63,8 +63,9 @@ Notes:
 - `unknown` MUST NOT be used to avoid deciding. It exists for imported and legacy data where the
   information genuinely does not exist.
 - A principal kind that does not fit these values, such as a device, SHOULD use the closest core type
-  and describe the detail in `attributes`. The vocabulary is closed in v0.1 and reopening it is an
-  open question for v0.2.
+  and describe the detail in `attributes`. The vocabulary is closed, and stays closed in 1.x:
+  adding a value needs a new major version, because a consumer may rely on the list being complete
+  ([ADR 0017](../decisions/0017-versioning-and-compatibility.md) §2).
 
 ## 4. Identifiers
 
