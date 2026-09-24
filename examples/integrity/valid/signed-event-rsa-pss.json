@@ -1,5 +1,5 @@
 {
-  "specVersion": "0.1",
+  "specVersion": "1.0",
   "id": "018f2a45-9d31-7e42-8b17-2c3d4e5f6a71",
   "time": "2026-04-05T16:42:08.900Z",
   "event": {
@@ -36,10 +36,10 @@
   "integrity": {
     "canonicalization": "RFC8785",
     "hashAlgorithm": "SHA-256",
-    "hash": "bc9808880ddcc485638beec9b17c7996c4640c4627f9a78c9586f2065a8b8065",
+    "hash": "17e64380c692a10bdc5a49fed16b23788e9eff025c5fa5adbc665bfccb7e6165",
     "signature": {
       "algorithm": "RSA-PSS-SHA256",
-      "value": "bxPLlDrqhOrMUrydVU8hbgjLX/0WYwj5X9bVubiCikFS2FiBzM/XEkIIUmxsGrhp4TaoQWk4HEU7HhC3S7jGdLbEm15uM+6LX7WmQefNWypu6IUyHi70+Qc9I+PPn3L7WT20b4JxDbd3SajGDVfZ53tbV2nYMnTO1AYt/c7UKYJuIN/aAb6Dbayvtz7IMKUyW7l4fovk/RBEpNwLGk7OKw+ohcquGgJp67afl5LbhAmIsh14ZXd+gIYjyp4TSqaTQoRxtggE2BCSI1TRXn5Q+BxH2TXrBRvEK8cStd6mJ2IbcWZ7s/yOrDMtB4o/GcV4ewbAhyM3MWrhMb6rf80XZw==",
+      "value": "RHbFQ5uSMfB+Np9M60R/M65TjP5cmR2aCtJfonUCgsWUUgtmyUK5pZ9qiL5wMofrCYjXn5SeueCj94aKA9TToy/xSwuyuedTOI6gCfIjXkkv8IkawtmZoBiC3crmHl4H9Red3dLBpPg3dVSvn+TgqmbP5D4YNrldU+g/F+ghAtYLMxCIKjHmUks6IcdCd1fe49x10XfoB+szzk3qAcrwuUAafWcY8QjdqUQf9UfphuEE3jmh5TAFxMCRVxqUqrsLONKhpwYp8EF9Q0HH6Rk9Dt1Jqjtm9RpPPPVvy29IaEADq3FgMCweI//sB5zbb28nEQsom7JoWdQyWHhZ+e4G+A==",
       "keyId": "example-fixture-rsa-key-2026"
     }
   }

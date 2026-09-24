@@ -1,6 +1,6 @@
 # Document Management Profile
 
-**Status: Experimental. Implemented in v0.1, 11 rules.**
+**Status: Experimental. Applies to core versions 0.1 and 1.0; 11 rules.**
 
 Scope: applications that store, version, share and retain documents — content platforms, contract
 systems, records management, engineering document control, knowledge bases.

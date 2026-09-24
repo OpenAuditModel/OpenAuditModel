@@ -1,0 +1,68 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2a2b-7d40-7c19-a562-3e4f5a6b7c81",
+  "time": "2026-04-02T14:05:09.004Z",
+  "event": {
+    "name": "data.record.update",
+    "category": "data-modification",
+    "outcome": "success",
+    "summary": "Record updated with mixed-script content."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-4471"
+  },
+  "resource": {
+    "type": "record",
+    "id": "record-88213"
+  },
+  "application": {
+    "name": "records-service",
+    "environment": "production"
+  },
+  "metadata": {
+    "9": "digit keys sort as strings",
+    "10": "digit keys sort as strings, so 10 precedes 9",
+    "zeta": "sorts last among the lower-case keys",
+    "Alpha": "upper-case sorts before lower-case in UTF-16 code unit order",
+    "alpha": "sorts after the upper-case key",
+    "äpfel": "Latin-1 supplement",
+    "日本語": "CJK key",
+    "strings": {
+      "emoji": "🔒 sealed",
+      "combining": "é is not é",
+      "escapes": "quote \" backslash \\ tab \t newline \n",
+      "controlCharacter": "\u0007"
+    },
+    "numbers": {
+      "zero": 0,
+      "negative": -17,
+      "fraction": 3.14159,
+      "small": 0.000001,
+      "verySmall": 1e-7,
+      "large": 1e21,
+      "maxSafeInteger": 9007199254740991
+    },
+    "containers": {
+      "emptyObject": {},
+      "emptyArray": [],
+      "nested": [
+        1,
+        [
+          2,
+          [
+            3,
+            {
+              "deep": null
+            }
+          ]
+        ]
+      ]
+    }
+  },
+  "integrity": {
+    "canonicalization": "RFC8785",
+    "hashAlgorithm": "SHA-256",
+    "hash": "5447ade98a9f6ff64bd26591055c29e49adae89160425a02531dd3b3df26dc11"
+  }
+}

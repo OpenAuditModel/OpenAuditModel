@@ -10,7 +10,13 @@
  * `integrity.signature.keyId` identifies a key for a human or an external
  * system to resolve, and is never dereferenced by this verifier.
  */
-import { constants, createPublicKey, verify as cryptoVerify, type KeyObject } from "node:crypto";
+import {
+  constants,
+  createPrivateKey,
+  createPublicKey,
+  verify as cryptoVerify,
+  type KeyObject,
+} from "node:crypto";
 import { canonicalBytes } from "./canonicalize.js";
 import { buildDigestInput } from "./digest.js";
 import {
@@ -41,20 +47,137 @@ export function isSupportedSignatureAlgorithm(
  * Parses a public key from PEM text (SPKI, the format Node's own
  * `KeyObject.export({ type: "spki", format: "pem" })` produces).
  *
- * Node's `createPublicKey` also accepts a private key and derives its public
- * half — pointing `--public-key` at a private key file by mistake therefore
- * still verifies correctly rather than failing loudly, since the derived key
- * is the genuine public counterpart. That is Node's behaviour to rely on, not
- * a gap to work around: there is no reliable way to tell "this PEM was a
- * public key" from "this PEM was a private key whose public half was just
- * derived" after the fact, and the derived key is never wrong.
+ * A private key is refused by name. Node's `createPublicKey` would accept one
+ * and derive its public half, and the verdict would be right — but a private
+ * key where a public one belongs is a mistake worth saying out loud, and on
+ * the MCP server it means the private key was just sent over the network to a
+ * public service. The refusal is decided before the text is read as a public
+ * key, and the key's text is never repeated.
+ *
+ * A key that parses but that no signature can be checked against is refused
+ * too, with {@link UnusablePublicKeyError}; see {@link unusableKeyReason}.
  */
 export function loadPublicKey(pemText: string): KeyObject {
+  if (isPrivateKeyText(pemText)) {
+    throw new Error(
+      "this is a private key; supply the public key that belongs to it (openssl pkey -in private.pem -pubout)",
+    );
+  }
+  let key: KeyObject;
   try {
-    return createPublicKey(pemText);
+    key = createPublicKey(pemText);
   } catch (cause) {
     throw new Error(`not a readable public key: ${(cause as Error).message}`, { cause });
   }
+  const reason = unusableKeyReason(key);
+  if (reason !== undefined) {
+    throw new UnusablePublicKeyError(reason);
+  }
+  return key;
+}
+
+/**
+ * True when PEM text holds a private key. The label is matched without regard
+ * to case, because OpenSSL reads `-----BEGIN rsa PRIVATE KEY-----` as a
+ * private key too; anything else OpenSSL would read as one is caught by trying.
+ * An encrypted key cannot be read without its passphrase, and its label says
+ * what it is.
+ */
+export function isPrivateKeyText(pemText: string): boolean {
+  if (/-----BEGIN [^-\r\n]*PRIVATE KEY-----/i.test(pemText)) {
+    return true;
+  }
+  try {
+    createPrivateKey(pemText);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Why a parsed public key cannot be used, or `undefined` when it can.
+ *
+ * - An EC key that is the point at infinity parses, and reading its details
+ *   aborts the process: Node asserts inside `asymmetricKeyDetails`. Exporting
+ *   it fails cleanly, so the export is the probe, and it runs before anything
+ *   reads the details.
+ * - An Ed25519 key that is a small-order point verifies a forged signature for
+ *   any message.
+ * - An RSA key whose public exponent is below 3 or even is not an RSA key a
+ *   signature proves anything under: with an exponent of 1, a "signature" is
+ *   the encoded message itself.
+ */
+export function unusableKeyReason(key: KeyObject): string | undefined {
+  const type = key.asymmetricKeyType;
+  if (type === "ec") {
+    try {
+      key.export({ type: "spki", format: "der" });
+    } catch {
+      return "this EC public key is not a point a signature can be checked against, so it is not used";
+    }
+  }
+  if (isSmallOrderEd25519Key(key)) {
+    return SMALL_ORDER_KEY_MESSAGE;
+  }
+  if (type === "rsa" || type === "rsa-pss") {
+    const exponent = key.asymmetricKeyDetails?.publicExponent;
+    if (exponent === undefined || exponent < 3n || exponent % 2n === 0n) {
+      return "this RSA public key's exponent is below 3 or even, under which a signature can be made without the private key, so it is not used";
+    }
+  }
+  return undefined;
+}
+
+/**
+ * A key that parses but that no signature can be checked against. The message
+ * is written here, never by a decoder, so a caller may repeat it.
+ */
+export class UnusablePublicKeyError extends Error {}
+
+const SMALL_ORDER_KEY_MESSAGE =
+  "this Ed25519 public key is a small-order point: nobody holds a private key for it, and a signature that verifies under it can be made for any message, so it is not used";
+
+/**
+ * The encodings of the eight points of order 1, 2, 4 and 8 on edwards25519,
+ * with the sign bit cleared: seven values, two of them the non-canonical
+ * y = p and y = p + 1. It is the list libsodium refuses, derived again for
+ * this file by multiplying random points by the prime subgroup order.
+ *
+ * Some OpenSSL builds Node carries check neither the key nor a signature's R
+ * against it, and others do; this verifier does not depend on which. Under
+ * the identity point as a key, R = identity and S = 0 verify for every message;
+ * under a genuine key, a small-order R is a nonce no honest signer produces.
+ * Both are refused, as a strict verifier such as ed25519-dalek's
+ * `verify_strict` refuses them.
+ */
+const SMALL_ORDER_POINTS = [
+  "0000000000000000000000000000000000000000000000000000000000000000",
+  "0100000000000000000000000000000000000000000000000000000000000000",
+  "26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc05",
+  "c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a",
+  "ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+  "edffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+  "eeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+].map((hex) => Buffer.from(hex, "hex"));
+
+/** True when a 32-byte encoded point is one of the small-order points, either sign. */
+export function isSmallOrderEd25519Point(encoded: Uint8Array): boolean {
+  if (encoded.length !== 32) {
+    return false;
+  }
+  const cleared = Buffer.from(encoded);
+  cleared[31] = (cleared[31] as number) & 0x7f;
+  return SMALL_ORDER_POINTS.some((point) => point.equals(cleared));
+}
+
+/** True when `key` is an Ed25519 public key whose point has small order. */
+export function isSmallOrderEd25519Key(key: KeyObject): boolean {
+  if (key.asymmetricKeyType !== "ed25519") {
+    return false;
+  }
+  const { x } = key.export({ format: "jwk" });
+  return typeof x === "string" && isSmallOrderEd25519Point(Buffer.from(x, "base64url"));
 }
 
 export type SignatureCheckResult =
@@ -184,6 +307,12 @@ function verifySignature(
       message: `the supplied public key is ${keyType}, but ${algorithm} needs ${spec.keyTypes.join(" or ")}`,
     };
   }
+  // A key that did not come through loadPublicKey is held to the same rules,
+  // and before its details are read: for one of them, reading them aborts.
+  const unusable = unusableKeyReason(publicKey);
+  if (unusable !== undefined) {
+    return { ok: false, kind: "signature-invalid", message: unusable };
+  }
   const details = publicKey.asymmetricKeyDetails ?? {};
   if (spec.namedCurve !== undefined && details.namedCurve !== spec.namedCurve) {
     return {
@@ -220,6 +349,15 @@ function verifySignature(
       ok: false,
       kind: "malformed-signature",
       message: `declared signature is ${signatureBytes.length} bytes, but ${algorithm} produces ${expectedLength}`,
+    };
+  }
+
+  if (algorithm === "Ed25519" && isSmallOrderEd25519Point(signatureBytes.subarray(0, 32))) {
+    return {
+      ok: false,
+      kind: "signature-invalid",
+      message:
+        "the signature's R is a small-order point, a nonce no honest signer produces, so the signature is not accepted",
     };
   }
 

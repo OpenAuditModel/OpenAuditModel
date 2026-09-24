@@ -50,4 +50,4 @@ EXPOSE 8080
 # Fails the container if the canonical schema stops being served, which is the
 # one thing this site exists to do.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD wget -q -O /dev/null http://127.0.0.1:8080/schemas/audit-event/0.1/schema.json || exit 1
+  CMD wget -q -O /dev/null http://127.0.0.1:8080/schemas/audit-event/1.0/schema.json || exit 1

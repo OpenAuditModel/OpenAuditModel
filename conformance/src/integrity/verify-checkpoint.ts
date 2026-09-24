@@ -87,14 +87,30 @@ function readClaims(checkpoint: Record<string, unknown>): CheckpointClaim[] {
 }
 
 /**
- * Indexes the archive by chain and sequence, from what each event declares.
- * Schema validity is not re-checked here: an event `verifyChains` could not
- * assign to a chain already makes the archive not intact, and the comparison
- * below never reads a value the digest check has not covered.
+ * Indexes the archive by chain and sequence, from what each event declares —
+ * for the events `verifyChains` assigned to a chain, and only those.
+ *
+ * An event it could not assign — schema-invalid, or of a specification version
+ * this tool does not implement — had no digest checked. Its declared hash is a
+ * claim nobody verified, and comparing a checkpoint's head with it let a
+ * tampered head read "matches the recorded head" while the chain it was left
+ * out of verified intact. Such events are returned apart, by chain, so the
+ * comparison can say they exist without reading anything they declare.
  */
-function indexArchive(inputs: readonly ChainEventInput[]): Map<string, IndexedEvent[]> {
+function indexArchive(
+  inputs: readonly ChainEventInput[],
+  unassigned: ReadonlySet<string>,
+): { verified: Map<string, IndexedEvent[]>; unverified: Map<string, number> } {
   const index = new Map<string, IndexedEvent[]>();
+  const unverified = new Map<string, number>();
   for (const input of inputs) {
+    if (unassigned.has(input.label)) {
+      const chainId = asString(readIntegrity(input.event)?.chainId);
+      if (chainId !== undefined) {
+        unverified.set(chainId, (unverified.get(chainId) ?? 0) + 1);
+      }
+      continue;
+    }
     const integrity = readIntegrity(input.event);
     const chainId = integrity === undefined ? undefined : asString(integrity.chainId);
     const sequence = asSequence((input.event as Record<string, unknown> | null)?.["sequence"]);
@@ -118,7 +134,7 @@ function indexArchive(inputs: readonly ChainEventInput[]): Map<string, IndexedEv
       bucket.push(entry);
     }
   }
-  return index;
+  return { verified: index, unverified };
 }
 
 /** Compares one claim with the chain the archive holds under that identifier. */
@@ -126,6 +142,7 @@ function compareClaim(
   claim: CheckpointClaim,
   chain: ChainVerificationResult,
   events: readonly IndexedEvent[],
+  unverifiedMembers: number,
   hashAlgorithm: string,
   canonicalization: string,
 ): CheckpointChainResult {
@@ -137,7 +154,12 @@ function compareClaim(
   const head = atHead[0];
 
   if (head === undefined) {
-    if (chain.lastSequence === undefined) {
+    if (unverifiedMembers > 0) {
+      // The head may be one of the events nobody could verify. Saying the
+      // chain was truncated, or that the head is missing, would report a
+      // deletion for an event that is present; the finding below says what
+      // is actually known.
+    } else if (chain.lastSequence === undefined) {
       findings.push({
         kind: "checkpoint-head-missing",
         message: `no event in the chain declares a sequence, so the head at sequence ${claim.headSequence} cannot be located`,
@@ -196,8 +218,9 @@ function compareClaim(
 
     // The count is compared only once the head was located: a truncated chain
     // is already reported as truncated, and a second finding for the count it
-    // implies would say the same thing twice.
-    if (claim.eventCount !== undefined) {
+    // implies would say the same thing twice. Nor with unverified members: they
+    // are not counted, so the count would be short by events that are there.
+    if (claim.eventCount !== undefined && unverifiedMembers === 0) {
       const counted = events.filter((event) => event.sequence <= claim.headSequence).length;
       if (counted === claim.eventCount) {
         checks.push({
@@ -220,7 +243,22 @@ function compareClaim(
     });
   }
 
-  const status = chain.intact && findings.length === 0 ? "agrees" : "disagrees";
+  // A chain with members nobody could verify cannot be said to agree with
+  // anything: whatever those events hold was not checked. It is a finding, not
+  // a note, so that a report whose only reason to disagree is this one says so.
+  if (unverifiedMembers > 0) {
+    findings.push({
+      kind: "checkpoint-members-unverified",
+      message: `${count(unverifiedMembers, "event")} declaring this chain could not be verified, so the chain is not reported as agreeing`,
+      detail: [
+        "they are schema-invalid or declare a specification version this tool does not implement",
+        "nothing they declare — a head hash, a sequence — was compared, so neither a missing head nor a count is inferred",
+      ],
+    });
+  }
+
+  const status =
+    chain.intact && findings.length === 0 && unverifiedMembers === 0 ? "agrees" : "disagrees";
   return { claim, status, chain, checks, findings, notes };
 }
 
@@ -278,7 +316,10 @@ export function verifyCheckpoint(
   const description = asString(document["description"]);
 
   const archive = verifyChains(inputs, validators.events, options.publicKey);
-  const index = indexArchive(inputs);
+  const unassigned = new Set(
+    archive.unassigned.flatMap((finding) => (finding.label === undefined ? [] : [finding.label])),
+  );
+  const index = indexArchive(inputs, unassigned);
   const hashAlgorithm = document["hashAlgorithm"] as string;
   const canonicalization = document["canonicalization"] as string;
 
@@ -305,7 +346,8 @@ export function verifyCheckpoint(
     return compareClaim(
       claim,
       chain,
-      index.get(claim.chainId) ?? [],
+      index.verified.get(claim.chainId) ?? [],
+      index.unverified.get(claim.chainId) ?? 0,
       hashAlgorithm,
       canonicalization,
     );

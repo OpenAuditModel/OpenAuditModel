@@ -13,7 +13,7 @@
  */
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test, { after, describe } from "node:test";
@@ -180,6 +180,30 @@ describe("coverage counts what a profile reached", () => {
     const coverage = coverageOf([]);
     assert.equal(coverage.rules.selected, 0);
     assert.deepEqual(coverage.nameTotals, { distinct: 0, governed: 0, ungoverned: 0 });
+  });
+});
+
+describe("a profile and the core versions it covers", () => {
+  test("an archived profile that covers only 0.1 is credited with nothing for 1.0 events", () => {
+    // Every one of these events is out of the archived profile's scope — it
+    // names core version 0.1 only — so no rule was evaluated against any of
+    // them, and none may be counted as selected, applied or governing.
+    const archived = JSON.parse(
+      readFileSync(path.join(repoRoot, "profiles/incident-management/0.2/profile.json"), "utf8"),
+    ) as ProfileDefinition;
+    assert.deepEqual(archived.coreVersions, ["0.1"]);
+    const directory = path.join(repoRoot, "examples/profiles/incident-management/valid");
+    const events = readdirSync(directory)
+      .filter((file) => file.endsWith(".json"))
+      .map((file) => JSON.parse(readFileSync(path.join(directory, file), "utf8")) as unknown);
+    assert.ok(events.length > 5);
+    const results = events.map((event) => checkProfile(event, "e", archived, validator));
+    assert.ok(results.every((result) => result.status === "not-applicable"));
+
+    const coverage = summariseCoverage(events, results, archived);
+    assert.equal(coverage.rules.selected, 0);
+    assert.equal(coverage.rules.applied, 0);
+    assert.equal(coverage.nameTotals.governed, 0);
   });
 });
 

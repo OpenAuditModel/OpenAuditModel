@@ -82,8 +82,12 @@ try {
 
   // The two directories the CLI reads at runtime must be inside the package.
   check(
+    existsSync(path.join(installed, "schemas", "v1.0", "audit-event.schema.json")),
+    "canonical 1.0 schema shipped inside the package",
+  );
+  check(
     existsSync(path.join(installed, "schemas", "v0.1", "audit-event.schema.json")),
-    "canonical schema shipped inside the package",
+    "0.1 schema shipped inside the package, for events written against it",
   );
   check(
     existsSync(path.join(installed, "schemas", "checkpoint", "v0.1", "checkpoint.schema.json")),
@@ -235,7 +239,7 @@ try {
       'import { checkProfile } from "@openauditmodel/cli/conformance/profiles/check-profile.js";',
       'import { readFileSync } from "node:fs";',
       'if (typeof lintEvent !== "function" || typeof checkProfile !== "function") process.exit(1);',
-      'const schema = JSON.parse(readFileSync(new URL(import.meta.resolve("@openauditmodel/cli/schemas/v0.1/audit-event.schema.json")), "utf8"));',
+      'const schema = JSON.parse(readFileSync(new URL(import.meta.resolve("@openauditmodel/cli/schemas/v1.0/audit-event.schema.json")), "utf8"));',
       'if (!schema["$id"].includes("audit-event")) process.exit(1);',
       'const kit = JSON.parse(readFileSync(new URL(import.meta.resolve("@openauditmodel/cli/conformance-kit/manifest.json")), "utf8"));',
       "if (!Array.isArray(kit.fixtures) || kit.fixtures.length === 0) process.exit(1);",

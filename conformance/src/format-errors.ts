@@ -4,6 +4,7 @@
  * offending value inside the audit event without guessing.
  */
 import type { ErrorObject } from "ajv";
+import { redactKey, redactPointer } from "./privacy/redact-key.js";
 
 export interface ValidationIssue {
   /** JSON Pointer to the offending location inside the event. `/` is the event root. */
@@ -47,13 +48,13 @@ function describe(error: ErrorObject): { message: string; detail?: string } {
       };
     case "additionalProperties":
       return {
-        message: `unknown property "${String(params["additionalProperty"])}" is not permitted here`,
+        message: `unknown property "${redactKey(String(params["additionalProperty"]))}" is not permitted here`,
         detail:
           "core objects reject unknown properties; use metadata, extensions or attributes instead",
       };
     case "propertyNames":
       return {
-        message: `property name "${String(params["propertyName"])}" does not follow the required naming rule`,
+        message: `property name "${redactKey(String(params["propertyName"]))}" does not follow the required naming rule`,
       };
     case "enum": {
       const allowed = Array.isArray(params["allowedValues"])
@@ -126,7 +127,9 @@ export function toIssues(errors: readonly ErrorObject[] | null | undefined): Val
     seen.add(key);
 
     issues.push({
-      path,
+      // A property name shaped like a credential is not repeated back: an
+      // issue path is built from the event's own keys (see redact-key.ts).
+      path: redactPointer(path),
       message,
       keyword: error.keyword,
       ...(detail === undefined ? {} : { detail }),
@@ -140,8 +143,22 @@ export function toIssues(errors: readonly ErrorObject[] | null | undefined): Val
 export function formatIssues(issues: readonly ValidationIssue[], indent = "    "): string {
   return issues
     .map((issue) => {
-      const detail = issue.detail === undefined ? "" : `\n${indent}  ${issue.detail}`;
-      return `${indent}${issue.path}  ${issue.message}  [${issue.keyword}]${detail}`;
+      const detail = issue.detail === undefined ? "" : `\n${indent}  ${inline(issue.detail)}`;
+      return `${indent}${inline(issue.path)}  ${inline(issue.message)}  [${issue.keyword}]${detail}`;
     })
     .join("\n");
+}
+
+/**
+ * Text from input, made safe to place inside one line of text output: a
+ * newline, carriage return or tab in it is written as its escape. A property
+ * name, a file name or a chain identifier can hold a newline, and printed as
+ * it is, it would start a line of the input's choosing — a forged summary, or
+ * two hundred blank lines between a FAIL and the reader. JSON output needs
+ * none of this: `JSON.stringify` escapes them itself.
+ */
+export function inline(text: string): string {
+  return /[\n\r\t]/.test(text)
+    ? text.replaceAll("\n", "\\n").replaceAll("\r", "\\r").replaceAll("\t", "\\t")
+    : text;
 }

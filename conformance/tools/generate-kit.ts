@@ -47,6 +47,7 @@ import {
   resolveSchemaPath,
   SPEC_VERSION,
 } from "../src/validate.js";
+import { wasNotEvaluated } from "../src/validator-interface.js";
 import { lintEvent } from "../src/privacy/lint-event.js";
 import { verifyEventIntegrity } from "../src/integrity/verify-event.js";
 import { verifyChains } from "../src/integrity/verify-chain.js";
@@ -67,13 +68,17 @@ const proofValidator = createProofValidator(schemaPath);
 const NON_EVENT_DIRECTORIES: readonly string[] = [
   "examples/integrity/checkpoints/",
   "examples/integrity/proofs/",
+  "examples/integrity/keys/",
+  // The sealed 0.1 corpus (ADR 0017): its events are recorded like any other
+  // fixture — an implementation of the 1.x line reads 0.1 too — and its
+  // checkpoints, proofs and keys are the 0.1 counterparts of the ones above.
+  "examples/compatibility/v0.1/integrity/checkpoints/",
+  "examples/compatibility/v0.1/integrity/proofs/",
+  "examples/compatibility/v0.1/integrity/keys/",
 ];
 
 function isEventFixture(relativePath: string): boolean {
-  return (
-    !relativePath.startsWith("examples/integrity/keys/") &&
-    !NON_EVENT_DIRECTORIES.some((directory) => relativePath.startsWith(directory))
-  );
+  return !NON_EVENT_DIRECTORIES.some((directory) => relativePath.startsWith(directory));
 }
 
 /** A JSON Pointer and the schema keyword that rejected it. */
@@ -97,7 +102,12 @@ interface ProfileFindingRecord {
 interface FixtureRecord {
   /** Path relative to the repository root. */
   readonly fixture: string;
-  readonly validate: { readonly valid: boolean; readonly issues: readonly SchemaIssue[] };
+  readonly validate: {
+    readonly valid: boolean;
+    /** True when the event declares a version the reference does not implement. */
+    readonly notEvaluated: boolean;
+    readonly issues: readonly SchemaIssue[];
+  };
   readonly lintPrivacy: {
     readonly status: string;
     readonly findings: readonly PrivacyFindingRecord[];
@@ -279,6 +289,7 @@ function recordFixture(
     fixture: label,
     validate: {
       valid: issues.length === 0,
+      notEvaluated: wasNotEvaluated(issues),
       issues: issues.map((issue) => ({ path: issue.path, keyword: issue.keyword })),
     },
     lintPrivacy: {

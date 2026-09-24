@@ -1,6 +1,6 @@
 # Event Model
 
-**Specification version: 0.1 · Status: Experimental · This document: Normative**
+**Specification version: 1.0 · Status: Stable · This document: Normative**
 
 ## 1. Structure
 
@@ -10,15 +10,15 @@ An audit event is a JSON object with a small required core and a set of optional
 
 A conforming event MUST contain exactly these seven fields:
 
-| Field         | Type   | Meaning                                   |
-| ------------- | ------ | ----------------------------------------- |
-| `specVersion` | string | Specification version. MUST be `"0.1"`.   |
-| `id`          | string | Globally unique identifier of this event. |
-| `time`        | string | When the audited operation occurred.      |
-| `event`       | object | What happened and how it ended.           |
-| `actor`       | object | Who technically performed the operation.  |
-| `resource`    | object | What the operation acted upon.            |
-| `application` | object | Which application produced the event.     |
+| Field         | Type   | Meaning                                                                                     |
+| ------------- | ------ | ------------------------------------------------------------------------------------------- |
+| `specVersion` | string | Specification version. MUST be `"1.0"` for this version; see [overview.md](overview.md) §6. |
+| `id`          | string | Globally unique identifier of this event.                                                   |
+| `time`        | string | When the audited operation occurred.                                                        |
+| `event`       | object | What happened and how it ended.                                                             |
+| `actor`       | object | Who technically performed the operation.                                                    |
+| `resource`    | object | What the operation acted upon.                                                              |
+| `application` | object | Which application produced the event.                                                       |
 
 ### 1.2 Optional fields
 
@@ -141,8 +141,9 @@ Severity describes the **audit significance** of the operation, not the severity
 A successful privileged configuration change in production is `critical` even though nothing went
 wrong. A failed read of a public resource is `info` even though it failed.
 
-The scale is closed in v0.1 because an ordinal scale with producer-defined members cannot be
-compared. Reopening it is an open question for v0.2.
+The scale is closed because an ordinal scale with producer-defined members cannot be compared, and it
+stays closed in 1.x: a new member needs a new major version
+([ADR 0017](../decisions/0017-versioning-and-compatibility.md) §2).
 
 ### 6.5 Error
 
@@ -255,6 +256,7 @@ Where a tenant applies to a specific principal or resource rather than to the op
 | `requestId`                       | The inbound request currently being served.                 |
 | `correlationId`                   | The logical operation the event belongs to. See §10.1.      |
 | `traceId`, `spanId`               | W3C Trace Context compatible. See §10.2.                    |
+| `parentSpanId`                    | The span that caused `spanId`. Added in 1.0. See §10.2.     |
 | `ipAddress`, `forwardedFor`       | IPv4 or IPv6 literals. Personal data in many jurisdictions. |
 | `userAgent`, `protocol`, `method` | Client and protocol context.                                |
 | `route`                           | Route template. See §10.4.                                  |
@@ -288,14 +290,21 @@ well-formed and correlates with nothing.
 `spanId` SHOULD be recorded only together with `traceId`. A span identifier alone cannot be resolved,
 because there is nothing to resolve it against.
 
+`parentSpanId`, added in 1.0, is the span that caused the one in `spanId`: the parent-id of the
+incoming `traceparent`, or the parent span id the telemetry library reports. It has the same form as
+`spanId` and is recorded only together with `spanId` and `traceId`. With it, events sharing a trace
+can be arranged into the calls that produced them; without it they can only be ordered, and events
+from concurrent calls interleave. A producer that has no parent — the operation that started the
+trace — omits it rather than inventing one.
+
 Raw `traceparent` and `tracestate` values SHOULD NOT be stored. Producers SHOULD extract the trace and
 span identifiers and discard the remainder: the version and flag fields describe the tracing system's
 own decisions, and `tracestate` is vendor-specific and may carry tenant or account information.
 
 ### 10.3 Trust and independence
 
-Correlation identifiers — `requestId`, `correlationId`, `traceId` and `spanId` — are **observational
-metadata**. They MUST NOT be used as proof of identity, authorization, authenticity, integrity or
+Correlation identifiers — `requestId`, `correlationId`, `traceId`, `spanId` and `parentSpanId` — are
+**observational metadata**. They MUST NOT be used as proof of identity, authorization, authenticity, integrity or
 tenant isolation. Each can be supplied by a caller, guessed, replayed or copied between tenants.
 `authentication`, `authorization` and `integrity` are the fields that carry those guarantees.
 
@@ -370,7 +379,7 @@ normative meaning, and a consumer MUST NOT derive audit semantics from them.
 
 ```json
 {
-  "specVersion": "0.1",
+  "specVersion": "1.0",
   "id": "018f1b5c-6d2a-7c3e-9a1b-4f5e6d7c8b9a",
   "time": "2026-03-14T09:24:31.412Z",
   "event": {

@@ -161,21 +161,23 @@ used by one product is a product field.
 Every proposal that touches the schema is assessed for its effect on **existing producers** and
 **existing consumers**, separately.
 
-| Change                                        | Producers                         | Consumers         | Verdict for v0.1                               |
+| Change                                        | Producers                         | Consumers         | Verdict from 1.0                               |
 | --------------------------------------------- | --------------------------------- | ----------------- | ---------------------------------------------- |
-| Adding an optional field                      | unaffected                        | unaffected        | Compatible                                     |
-| Adding a value to an open vocabulary          | unaffected                        | unaffected        | Compatible                                     |
-| Adding a value to a closed enum               | unaffected                        | may not handle it | Compatible for producers only                  |
-| Adding a required field                       | **breaks**                        | unaffected        | Breaking                                       |
-| Removing a value from an enum                 | **breaks**                        | unaffected        | Breaking                                       |
-| Tightening a pattern or length                | **breaks**                        | unaffected        | Breaking                                       |
-| Adding a conditional requirement              | **breaks** some                   | unaffected        | Breaking                                       |
-| Renaming a field                              | **breaks**                        | **breaks**        | Breaking                                       |
+| Adding an optional field                      | unaffected                        | unaffected        | Minor version                                  |
+| Adding a value to an open vocabulary          | unaffected                        | unaffected        | Minor version                                  |
+| Raising a bound or widening a pattern         | unaffected                        | unaffected        | Minor version, on measurement                  |
+| Adding a value to a closed enum               | unaffected                        | may not handle it | Major version                                  |
+| Adding a required field                       | **breaks**                        | unaffected        | Major version                                  |
+| Removing a value from an enum                 | **breaks**                        | unaffected        | Major version                                  |
+| Tightening a pattern or length                | **breaks**                        | unaffected        | Major version                                  |
+| Adding a conditional requirement              | **breaks** some                   | unaffected        | Major version                                  |
+| Renaming a field                              | **breaks**                        | **breaks**        | Major version                                  |
 | Changing the meaning of a field or event name | silently corrupts historical data |                   | **Never acceptable** — change the name instead |
 
-During the experimental phase, breaking changes are possible and must be labelled as such in the pull
-request and recorded in [CHANGELOG.md](CHANGELOG.md). A change that alters the meaning of an existing
-field or event name is not acceptable at any phase: introduce a new name.
+The rules are [ADR 0017](decisions/0017-versioning-and-compatibility.md)'s. A closed enum counts as
+breaking for consumers because a consumer may rely on the list being complete. A published schema
+never changes: a minor version is a new schema at a new address. A change that alters the meaning of
+an existing field or event name is not acceptable in any version: introduce a new name.
 
 Every schema change must state, in the pull request:
 

@@ -1,6 +1,6 @@
 # Semantic Conventions
 
-**Specification version: 0.1 · Status: Experimental**
+**Specification version: 1.0 · Status: Stable**
 
 Semantic conventions are the layer between the schema and a useful audit trail. The schema says
 `event.name` must be a lower-case dotted name; the conventions say that a sign-in is

@@ -1,0 +1,46 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2a45-9d31-7e42-8b17-2c3d4e5f6a71",
+  "time": "2026-04-05T16:42:08.900Z",
+  "event": {
+    "name": "secret.rotate",
+    "category": "configuration",
+    "type": "update",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Database credential rotated ahead of schedule after a suspected exposure."
+  },
+  "actor": {
+    "type": "admin",
+    "id": "admin-0091",
+    "roles": ["platform-administrator"]
+  },
+  "resource": {
+    "type": "secret",
+    "id": "secret-db-primary",
+    "classification": "restricted"
+  },
+  "application": {
+    "name": "platform-control-service",
+    "environment": "production",
+    "instance": "instance-7c1a"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "privileged-configuration-change"
+  },
+  "reason": {
+    "code": "suspected-exposure"
+  },
+  "controlCategories": ["configuration-integrity", "privileged-access"],
+  "integrity": {
+    "canonicalization": "RFC8785",
+    "hashAlgorithm": "SHA-256",
+    "hash": "bc9808880ddcc485638beec9b17c7996c4640c4627f9a78c9586f2065a8b8065",
+    "signature": {
+      "algorithm": "Ed25519",
+      "value": "BLfdwtWE2r1YaIwE3tQOSQ3UkEm2Az0MMLaK60uWU/VZb/kMyCSxZGrbTNJTl/9G6qUqQSGtaLDNobR3PH9xBg==",
+      "keyId": "example-fixture-key-2026"
+    }
+  }
+}

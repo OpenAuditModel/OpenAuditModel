@@ -61,6 +61,9 @@ the head, `checkpoint-head-missing` when the archive skips the head's sequence b
 `checkpoint-algorithm-mismatch` when the two documents do not share an algorithm and
 canonicalization, and `checkpoint-chain-missing` when the archive has no such chain. Events after
 the head are a note, never a failure: a checkpoint from yesterday does not fail today's archive.
+From tooling 1.0.0, `checkpoint-members-unverified` names events that declare the chain but could
+not be verified; while there are any, the chain never agrees, and neither a missing head nor a
+count is inferred, because the head may be one of them.
 
 Exit codes follow the contract the CLI has always had. `0`: the archive agrees. `1`: it does not, or
 the archive itself is broken — a broken archive never agrees with anything, whatever its head says.

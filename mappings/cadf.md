@@ -1,6 +1,6 @@
 # CADF Comparison
 
-**Status: Informative. CADF is prior art this model draws on, not an export target in v0.1.**
+**Status: Informative. CADF is prior art this model draws on, not an export target in 1.0.**
 
 The Cloud Auditing Data Federation (DMTF DSP0262) is a full audit event model: a data format with
 schema definitions, extensible taxonomies for actions, outcomes and resource types, and interfaces

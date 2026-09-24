@@ -17,7 +17,7 @@ export const SERVER_NAME = "openauditmodel";
 export const SERVER_TITLE = "OpenAuditModel";
 
 /** Repository version. A test asserts this matches the root package manifest. */
-export const SERVER_VERSION = "0.6.0";
+export const SERVER_VERSION = "1.0.0";
 
 const INSTRUCTIONS = `OpenAuditModel: a common, verifiable and backend-independent audit event model for business applications.
 
@@ -25,7 +25,7 @@ This server performs deterministic, read-only analysis of audit events: schema v
 
 Data handling: MCP tool inputs are processed ephemerally by the OpenAuditModel MCP service. The service does not intentionally persist audit event content or include tool arguments in application logs. Users should review their organization's data-handling requirements before submitting production audit events to a remote MCP service.
 
-Experimental. No compliance guarantee: conformance is a statement about the shape and semantics of data, never about compliance with any law, regulation, standard or contract.`;
+Specification 1.0, stable; events declaring 0.1 are read too. No compliance guarantee: conformance is a statement about the shape and semantics of data, never about compliance with any law, regulation, standard or contract.`;
 
 /**
  * Creates a fully registered MCP server. Called once per request by the

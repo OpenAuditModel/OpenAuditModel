@@ -7,6 +7,8 @@
  */
 import type { KeyObject } from "node:crypto";
 import type { EventValidator } from "../validate-core.js";
+import type { ValidationIssue } from "../format-errors.js";
+import { wasNotEvaluated } from "../validator-interface.js";
 import { CanonicalizationError, isSupportedCanonicalization } from "./canonicalize.js";
 import {
   calculateDigest,
@@ -32,7 +34,7 @@ export interface VerifyEventOptions {
    * declared signature in an implemented algorithm is reported as declared
    * but not checked — the verdict rests on the hash alone — and a declared
    * signature in an unimplemented algorithm fails verification either way.
-   * v0.1 defines no key registry, so there is no key to try by default.
+   * The specification defines no key registry, so there is no key to try by default.
    */
   readonly publicKey?: KeyObject | undefined;
 }
@@ -86,6 +88,18 @@ export function readIntegrity(event: unknown): IntegrityObject | undefined {
 }
 
 /**
+ * What a schema failure says. An event declaring a version this tool does not
+ * implement was not evaluated, and saying it does not conform would be a
+ * verdict ADR 0017 §3 asks a validator not to give. It still fails the
+ * command: nothing about it was verified.
+ */
+export function schemaFailureMessage(issues: readonly ValidationIssue[]): string {
+  return wasNotEvaluated(issues)
+    ? "event declares a specification version this tool does not implement, so it was not evaluated"
+    : "event does not conform to the canonical schema";
+}
+
+/**
  * Verifies that an event's declared `integrity.hash` matches a digest
  * recalculated from the event itself.
  */
@@ -107,7 +121,7 @@ export function verifyEventIntegrity(
           : shown;
       return failure(label, {
         kind: "schema-invalid",
-        message: "event does not conform to the canonical schema",
+        message: schemaFailureMessage(issues),
         detail,
       });
     }

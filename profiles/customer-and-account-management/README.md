@@ -1,6 +1,6 @@
 # Customer and Account Management Profile
 
-**Profile version: 0.1 · Core versions: 0.1 · Status: Experimental · Implemented, 13 rules (12
+**Profile version: 0.2 · Core versions: 0.1 and 1.0 · Status: Experimental · Implemented, 13 rules (12
 enforceable)**
 
 Additional conformance requirements for material **customer** and **business account** lifecycle

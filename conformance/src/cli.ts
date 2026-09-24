@@ -2,7 +2,7 @@
 /**
  * `auditmodel` — the OpenAuditModel conformance command line interface.
  *
- * v0.1 implements eight commands:
+ * It implements eight commands, for specification versions 0.1 and 1.0:
  *   validate           check events against the canonical schema
  *   verify-integrity   recalculate and compare each event's own digest
  *   verify-chain       verify previous-hash chains across a set of events
@@ -19,9 +19,11 @@
  *   3  NO VERDICT was produced — nothing was evaluated
  *
  * 3 is the code that matters most, because it is the one that is easy to misread
- * as success. `check-profile` returns it when no rule governs the event, and
+ * as success. `check-profile` returns it when no rule governs the event,
  * `lint-privacy` returns it when the input is not an audit event and was
- * therefore never scanned. Neither is an approval of anything.
+ * therefore never scanned, and `validate` returns it when an event declares a
+ * specification version this tool does not implement. None of them is an
+ * approval of anything.
  *
  * The tooling is offline: it resolves no remote reference, fetches no evidence
  * URL and executes nothing contained in an event.
@@ -31,6 +33,7 @@ import { readFileSync, realpathSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
+import { schemaIdFor, SUPPORTED_SPEC_VERSIONS, wasNotEvaluated } from "./validator-interface.js";
 import {
   createCheckpointValidator,
   createProofValidator,
@@ -47,7 +50,7 @@ import {
   type DocumentLoadResult,
   type EventDocument,
 } from "./sources.js";
-import { formatIssues } from "./format-errors.js";
+import { formatIssues, inline } from "./format-errors.js";
 import { verifyEventIntegrity } from "./integrity/verify-event.js";
 import {
   addChainEvent,
@@ -95,6 +98,8 @@ export const EXIT_ERROR = 2;
  * `check-profile`: nothing checked was governed by the profile.
  * `lint-privacy`: the input could not be evaluated as an audit event, so it was
  * not scanned at all.
+ * `validate`: an event declares a specification version this tool does not
+ * implement, so no schema was applied to it (ADR 0017 §3).
  *
  * Distinct from 0 in both cases for the same reason: a pipeline must not be able
  * to read "the tool said nothing" as "the tool was satisfied". Distinct from 1
@@ -106,7 +111,7 @@ export const EXIT_NO_VERDICT = 3;
 /** Retained name for the `check-profile` reading of {@link EXIT_NO_VERDICT}. */
 export const EXIT_NOT_APPLICABLE = EXIT_NO_VERDICT;
 
-/** Commands that are specified as future work and deliberately not implemented in v0.1. */
+/** Commands that are specified as future work and deliberately not implemented yet. */
 const PLANNED_COMMANDS = new Set<string>([]);
 
 const OUTPUT_FORMATS = new Set(["text", "json"]);
@@ -148,7 +153,7 @@ const PROOF_NOT_PROVEN =
 const CHECKPOINT_NOT_PROVEN =
   "an agreeing verdict establishes only that the archive is consistent with the supplied checkpoint; whether the checkpoint is genuine and its anchor real is for whoever holds the anchor";
 
-const USAGE = `auditmodel — OpenAuditModel conformance tooling (specification ${SPEC_VERSION}, experimental)
+const USAGE = `auditmodel — OpenAuditModel conformance tooling (specification ${SUPPORTED_SPEC_VERSIONS.join(" and ")})
 
 Usage:
   auditmodel validate <path...>          Validate events against the canonical schema
@@ -196,6 +201,9 @@ Exit codes:
      profile rule violation
   2  the tool could not run: usage error, or a file could not be read or parsed
   3  no verdict was produced, so nothing was approved:
+       validate       no event failed, and at least one declares a
+                      specification version this tool does not implement,
+                      so it was not evaluated
        check-profile  no checked event is governed by the profile
        lint-privacy   the input is not an audit event and was NOT scanned
        verify-chain   no event could be assigned to a chain, so no chain
@@ -241,7 +249,7 @@ function toolVersion(schemaPath: string): string {
 }
 
 function displayPath(file: string): string {
-  return path.relative(process.cwd(), path.resolve(file)).split(path.sep).join("/") || file;
+  return inline(path.relative(process.cwd(), path.resolve(file)).split(path.sep).join("/") || file);
 }
 
 /** Report label for one event: its file, plus its position when the file holds several. */
@@ -250,16 +258,77 @@ function displayLabel(document: EventDocument): string {
   return document.index === undefined ? base : `${base}#${document.index}`;
 }
 
+/**
+ * Every implemented version's schema, for JSON reports. `specVersion` and
+ * `schemaId` beside it name the current version; each event is judged by the
+ * schema of the version it declares, which is one of these.
+ */
+const SCHEMA_IDS: Readonly<Record<string, string>> = Object.fromEntries(
+  SUPPORTED_SPEC_VERSIONS.map((version) => [version, schemaIdFor(version)]),
+);
+
+/**
+ * Control characters, made visible rather than obeyed.
+ *
+ * Text output carries strings that came from input: file names, property names,
+ * event names, a checkpoint's description. A terminal obeys the escape
+ * sequences in them — `ESC[8m` conceals everything printed after it, FAIL lines
+ * and summary included, and `ESC]0;` retitles the window — so every C0 and C1
+ * control character except the newline and tab this tool writes itself is
+ * printed as its `\u` escape. A newline or tab that came from input is
+ * escaped earlier, where the input is placed into a line (see `inline`), so
+ * input cannot start a line of its own. JSON output is unaffected:
+ * `JSON.stringify` never emits a raw control character.
+ *
+ * One pass with a regular expression, and none at all for text that needs
+ * nothing: a JSON report of a large archive is one string, and building it
+ * again a character at a time costs many times its size in memory.
+ */
+// eslint-disable-next-line no-control-regex -- matching control characters is the point
+const CONTROL_CHARACTERS = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/g;
+
+function visible(text: string): string {
+  CONTROL_CHARACTERS.lastIndex = 0;
+  if (!CONTROL_CHARACTERS.test(text)) {
+    return text;
+  }
+  CONTROL_CHARACTERS.lastIndex = 0;
+  return text.replace(
+    CONTROL_CHARACTERS,
+    (character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`,
+  );
+}
+
 function write(text: string): void {
-  process.stdout.write(text);
+  process.stdout.write(visible(text));
+}
+
+function writeError(text: string): void {
+  process.stderr.write(visible(text));
+}
+
+/**
+ * The header naming the schemas events are judged by. Every implemented
+ * version is named, because each event is judged by the one it declares: a
+ * header naming only the newest implied that a 0.1 event was judged by 1.0.
+ */
+function schemaHeader(validator: Validator): string {
+  const root = path.dirname(path.dirname(path.dirname(validator.schemaPath)));
+  const lines = [...SUPPORTED_SPEC_VERSIONS]
+    .reverse()
+    .map(
+      (version) =>
+        `  ${version}  ${schemaIdFor(version)} (${displayPath(path.join(root, "schemas", `v${version}`, "audit-event.schema.json"))})`,
+    );
+  return `schemas, selected by the specVersion each event declares:\n${lines.join("\n")}\n\n`;
 }
 
 function writeFindings(findings: readonly Finding[], indent: string): void {
   for (const finding of findings) {
-    const where = finding.label === undefined ? "" : `${finding.label}: `;
-    write(`${indent}${where}${finding.message}  [${finding.kind}]\n`);
+    const where = finding.label === undefined ? "" : `${inline(finding.label)}: `;
+    write(`${indent}${where}${inline(finding.message)}  [${finding.kind}]\n`);
     for (const line of finding.detail ?? []) {
-      write(`${indent}  ${line}\n`);
+      write(`${indent}  ${inline(line)}\n`);
     }
   }
 }
@@ -267,22 +336,22 @@ function writeFindings(findings: readonly Finding[], indent: string): void {
 function writeProfileFindings(findings: readonly ProfileFinding[], indent: string): void {
   for (const finding of findings) {
     write(
-      `${indent}${finding.severity.toUpperCase()}  ${finding.ruleId}  ${finding.path}\n${indent}  ${finding.message}\n`,
+      `${indent}${finding.severity.toUpperCase()}  ${finding.ruleId}  ${inline(finding.path)}\n${indent}  ${inline(finding.message)}\n`,
     );
   }
 }
 
 function writeChecks(checks: readonly PassedCheck[], indent: string): void {
   for (const check of checks) {
-    write(`${indent}${check.message}\n`);
+    write(`${indent}${inline(check.message)}\n`);
   }
 }
 
 function writeNotes(notes: readonly Note[], indent: string): void {
   for (const note of notes) {
-    write(`${indent}note: ${note.message}\n`);
+    write(`${indent}note: ${inline(note.message)}\n`);
     for (const line of note.detail ?? []) {
-      write(`${indent}  ${line}\n`);
+      write(`${indent}  ${inline(line)}\n`);
     }
   }
 }
@@ -308,8 +377,8 @@ function loadInput(
   quiet: boolean,
 ): LoadedInput | number {
   if (inputs.length === 0) {
-    process.stderr.write(`auditmodel: ${command} requires at least one file or directory\n\n`);
-    process.stderr.write(USAGE);
+    writeError(`auditmodel: ${command} requires at least one file or directory\n\n`);
+    writeError(USAGE);
     return EXIT_ERROR;
   }
 
@@ -317,12 +386,12 @@ function loadInput(
   try {
     loaded = loadEventDocuments(inputs);
   } catch (cause) {
-    process.stderr.write(`auditmodel: ${(cause as Error).message}\n`);
+    writeError(`auditmodel: ${(cause as Error).message}\n`);
     return EXIT_ERROR;
   }
 
   if (loaded.documents.length === 0 && loaded.failures.length === 0) {
-    process.stderr.write("auditmodel: no events found in the given paths\n");
+    writeError("auditmodel: no events found in the given paths\n");
     return EXIT_ERROR;
   }
 
@@ -330,12 +399,12 @@ function loadInput(
   try {
     validator = createValidator();
   } catch (cause) {
-    process.stderr.write(`auditmodel: ${(cause as Error).message}\n`);
+    writeError(`auditmodel: ${(cause as Error).message}\n`);
     return EXIT_ERROR;
   }
 
   if (!quiet) {
-    write(`schema: ${validator.schemaId} (${displayPath(validator.schemaPath)})\n\n`);
+    write(schemaHeader(validator));
   }
 
   return { documents: loaded.documents, failures: loaded.failures, validator };
@@ -343,7 +412,7 @@ function loadInput(
 
 function reportLoadFailures(failures: DocumentLoadResult["failures"]): void {
   for (const failure of failures) {
-    write(`ERROR ${displayPath(failure.file)}\n    ${failure.error}\n`);
+    write(`ERROR ${displayPath(failure.file)}\n    ${inline(failure.error)}\n`);
   }
 }
 
@@ -377,8 +446,8 @@ function streamInput(
   onEvent: (document: EventDocument, validator: Validator) => void,
 ): StreamedInput | number {
   if (inputs.length === 0) {
-    process.stderr.write(`auditmodel: ${command} requires at least one file or directory\n\n`);
-    process.stderr.write(USAGE);
+    writeError(`auditmodel: ${command} requires at least one file or directory\n\n`);
+    writeError(USAGE);
     return EXIT_ERROR;
   }
 
@@ -386,7 +455,7 @@ function streamInput(
   try {
     validator = createValidator();
   } catch (cause) {
-    process.stderr.write(`auditmodel: ${(cause as Error).message}\n`);
+    writeError(`auditmodel: ${(cause as Error).message}\n`);
     return EXIT_ERROR;
   }
 
@@ -401,7 +470,7 @@ function streamInput(
     }
     headerWritten = true;
     if (!quiet) {
-      write(`schema: ${validator.schemaId} (${displayPath(validator.schemaPath)})\n\n`);
+      write(schemaHeader(validator));
     }
   };
 
@@ -411,7 +480,7 @@ function streamInput(
       if (item.kind === "failure") {
         failures.push(item.failure);
         if (reportFailures) {
-          write(`ERROR ${displayPath(item.failure.file)}\n    ${item.failure.error}\n`);
+          write(`ERROR ${displayPath(item.failure.file)}\n    ${inline(item.failure.error)}\n`);
         }
         continue;
       }
@@ -419,12 +488,12 @@ function streamInput(
       onEvent(item.document, validator);
     }
   } catch (cause) {
-    process.stderr.write(`auditmodel: ${(cause as Error).message}\n`);
+    writeError(`auditmodel: ${(cause as Error).message}\n`);
     return EXIT_ERROR;
   }
 
   if (total === 0 && failures.length === 0) {
-    process.stderr.write("auditmodel: no events found in the given paths\n");
+    writeError("auditmodel: no events found in the given paths\n");
     return EXIT_ERROR;
   }
 
@@ -434,6 +503,9 @@ function streamInput(
 function runValidate(inputs: readonly string[], quiet: boolean): number {
   let valid = 0;
   let invalid = 0;
+  // Events declaring a version this tool does not implement (ADR 0017 §3):
+  // neither valid nor invalid, because no schema was applied to them.
+  let notEvaluated = 0;
 
   const loaded = streamInput(inputs, "validate", quiet, true, (document, validator) => {
     const label = displayLabel(document);
@@ -444,6 +516,9 @@ function runValidate(inputs: readonly string[], quiet: boolean): number {
       if (!quiet) {
         write(`ok    ${label}\n`);
       }
+    } else if (wasNotEvaluated(issues)) {
+      notEvaluated += 1;
+      write(`SKIP  ${label}  (not evaluated)\n${formatIssues(issues)}\n`);
     } else {
       invalid += 1;
       write(`FAIL  ${label}\n${formatIssues(issues)}\n`);
@@ -454,14 +529,24 @@ function runValidate(inputs: readonly string[], quiet: boolean): number {
   }
 
   const noun = loaded.total === 1 ? "event" : "events";
+  const skipped = notEvaluated === 0 ? "" : `, ${notEvaluated} not evaluated`;
   write(
-    `\n${loaded.total} ${noun} checked: ${valid} valid, ${invalid} invalid, ${loaded.failures.length} unreadable\n`,
+    `\n${loaded.total} ${noun} checked: ${valid} valid, ${invalid} invalid${skipped}, ${loaded.failures.length} unreadable\n`,
   );
 
   if (loaded.failures.length > 0) {
     return EXIT_ERROR;
   }
-  return invalid > 0 ? EXIT_INVALID : EXIT_OK;
+  if (invalid > 0) {
+    return EXIT_INVALID;
+  }
+  if (notEvaluated > 0) {
+    writeError(
+      `auditmodel: no verdict for ${notEvaluated} ${notEvaluated === 1 ? "event" : "events"}: ${notEvaluated === 1 ? "it declares" : "they declare"} a specVersion this tool does not implement (${SUPPORTED_SPEC_VERSIONS.join(", ")})\n`,
+    );
+    return EXIT_NO_VERDICT;
+  }
+  return EXIT_OK;
 }
 
 function runVerifyIntegrity(
@@ -520,11 +605,11 @@ function writeChainResult(chain: ChainVerificationResult, quiet: boolean): void 
       ? "none"
       : `${chain.firstSequence}..${chain.lastSequence}`;
 
-  write(`chain ${chain.chainId}\n`);
+  write(`chain ${inline(chain.chainId)}\n`);
   write(`  events:    ${chain.eventCount}\n`);
   write(`  sequences: ${range}\n`);
   if (chain.headHash !== undefined) {
-    write(`  head:      ${chain.headHash}\n`);
+    write(`  head:      ${inline(chain.headHash)}\n`);
   }
 
   if (!quiet) {
@@ -583,8 +668,8 @@ function runVerifyCheckpoint(
   publicKey: KeyObject | undefined,
 ): number {
   if (checkpointFile === undefined) {
-    process.stderr.write("auditmodel: verify-checkpoint requires --checkpoint <file>\n\n");
-    process.stderr.write(USAGE);
+    writeError("auditmodel: verify-checkpoint requires --checkpoint <file>\n\n");
+    writeError(USAGE);
     return EXIT_ERROR;
   }
 
@@ -602,7 +687,7 @@ function runVerifyCheckpoint(
   // what it could not read and produces no verdict.
   if (loaded.failures.length > 0) {
     reportLoadFailures(loaded.failures);
-    process.stderr.write(
+    writeError(
       "auditmodel: no comparison was made: the archive could not be read in full, and an unread event is indistinguishable from a deleted one\n",
     );
     return EXIT_ERROR;
@@ -610,9 +695,7 @@ function runVerifyCheckpoint(
 
   const parsed = readJsonFile(checkpointFile);
   if (!parsed.ok) {
-    process.stderr.write(
-      `auditmodel: cannot read --checkpoint "${checkpointFile}": ${parsed.error}\n`,
-    );
+    writeError(`auditmodel: cannot read --checkpoint "${checkpointFile}": ${parsed.error}\n`);
     return EXIT_ERROR;
   }
 
@@ -620,7 +703,7 @@ function runVerifyCheckpoint(
   try {
     checkpointValidator = createCheckpointValidator();
   } catch (cause) {
-    process.stderr.write(`auditmodel: ${(cause as Error).message}\n`);
+    writeError(`auditmodel: ${(cause as Error).message}\n`);
     return EXIT_ERROR;
   }
 
@@ -652,7 +735,7 @@ function runVerifyCheckpoint(
     return EXIT_ERROR;
   }
   if (report.outcome === "no-chain") {
-    process.stderr.write(
+    writeError(
       "auditmodel: no verdict: the archive holds none of the chains the checkpoint names, so nothing was compared\n",
     );
     return EXIT_NO_VERDICT;
@@ -691,10 +774,12 @@ function writeCheckpointText(
     writeFindings(report.findings, "    ");
   }
   if (report.anchor !== undefined && !quiet) {
-    write(`  anchor:    ${report.anchor.type} — ${report.anchor.reference} (not dereferenced)\n`);
+    write(
+      `  anchor:    ${inline(report.anchor.type)} — ${inline(report.anchor.reference)} (not dereferenced)\n`,
+    );
   }
   if (report.description !== undefined && !quiet) {
-    write(`  describes: ${report.description}\n`);
+    write(`  describes: ${inline(report.description)}\n`);
   }
   if (sharedLocation && !quiet) {
     writeNotes([SHARED_LOCATION_NOTE], "  ");
@@ -715,7 +800,7 @@ function writeCheckpointText(
 
   for (const entry of report.chains) {
     if (entry.chain === undefined) {
-      write(`chain ${entry.claim.chainId}\n`);
+      write(`chain ${inline(entry.claim.chainId)}\n`);
       write("  not in the archive\n");
     } else {
       writeChainResult(entry.chain, quiet);
@@ -777,6 +862,7 @@ function writeCheckpointJson(
     tool: "auditmodel verify-checkpoint",
     specVersion: SPEC_VERSION,
     schemaId: loaded.validator.schemaId,
+    schemas: SCHEMA_IDS,
     checkpoint: {
       file: displayPath(checkpointFile),
       schemaId: checkpointSchemaId,
@@ -846,8 +932,8 @@ function runVerifyProof(
   publicKey: KeyObject | undefined,
 ): number {
   if (proofFile === undefined) {
-    process.stderr.write("auditmodel: verify-proof requires --proof <file>\n\n");
-    process.stderr.write(USAGE);
+    writeError("auditmodel: verify-proof requires --proof <file>\n\n");
+    writeError(USAGE);
     return EXIT_ERROR;
   }
 
@@ -861,7 +947,7 @@ function runVerifyProof(
     return EXIT_ERROR;
   }
   if (loaded.documents.length !== 1) {
-    process.stderr.write(
+    writeError(
       `auditmodel: verify-proof takes exactly one event; ${loaded.documents.length} were given\n`,
     );
     return EXIT_ERROR;
@@ -869,7 +955,7 @@ function runVerifyProof(
 
   const parsed = readJsonFile(proofFile);
   if (!parsed.ok) {
-    process.stderr.write(`auditmodel: cannot read --proof "${proofFile}": ${parsed.error}\n`);
+    writeError(`auditmodel: cannot read --proof "${proofFile}": ${parsed.error}\n`);
     return EXIT_ERROR;
   }
 
@@ -877,7 +963,7 @@ function runVerifyProof(
   try {
     proofValidator = createProofValidator();
   } catch (cause) {
-    process.stderr.write(`auditmodel: ${(cause as Error).message}\n`);
+    writeError(`auditmodel: ${(cause as Error).message}\n`);
     return EXIT_ERROR;
   }
 
@@ -900,7 +986,7 @@ function runVerifyProof(
     return EXIT_ERROR;
   }
   if (report.outcome === "no-leaf") {
-    process.stderr.write(
+    writeError(
       "auditmodel: no verdict: the event's hash cannot be established, so there is nothing to prove\n",
     );
     return EXIT_NO_VERDICT;
@@ -992,6 +1078,7 @@ function writeProofJson(
     tool: "auditmodel verify-proof",
     specVersion: SPEC_VERSION,
     schemaId: loaded.validator.schemaId,
+    schemas: SCHEMA_IDS,
     proof: {
       file: displayPath(proofFile),
       schemaId: proofSchemaId,
@@ -1066,7 +1153,7 @@ function runVerifyChain(
     // from "a chain was checked and is broken". The per-event findings above
     // name why each event could not join a chain — a missing chainId, a missing
     // sequence, or a schema-invalid event.
-    process.stderr.write(
+    writeError(
       "auditmodel: no chain was verified: no event could be assigned to a chain (the findings above name why)\n",
     );
     return EXIT_NO_VERDICT;
@@ -1086,7 +1173,7 @@ function writeLintResult(result: EventLintResult, quiet: boolean): void {
   if (result.status === "schema-invalid") {
     write(`FAIL  ${result.label}  (not an OpenAuditModel event: NOT scanned)\n`);
     for (const issue of result.schemaIssues) {
-      write(`        ${issue}\n`);
+      write(`        ${inline(issue)}\n`);
     }
     return;
   }
@@ -1095,9 +1182,9 @@ function writeLintResult(result: EventLintResult, quiet: boolean): void {
   write(`FAIL  ${result.label}  (${result.findings.length} ${noun})\n`);
   for (const entry of result.findings) {
     write(
-      `        ${entry.severity.toUpperCase()}  ${entry.ruleId}  confidence ${entry.confidence}  ${entry.path}\n`,
+      `        ${entry.severity.toUpperCase()}  ${entry.ruleId}  confidence ${entry.confidence}  ${inline(entry.path)}\n`,
     );
-    write(`          ${entry.message}\n`);
+    write(`          ${inline(entry.message)}\n`);
     if (entry.recommendation !== undefined) {
       write(`          recommendation: ${entry.recommendation}\n`);
     }
@@ -1154,6 +1241,7 @@ function runLintPrivacy(inputs: readonly string[], quiet: boolean, format: strin
       tool: "auditmodel lint-privacy",
       specVersion: SPEC_VERSION,
       schemaId: loaded.validator.schemaId,
+      schemas: SCHEMA_IDS,
       summary,
       unreadable: loaded.failures.map((failure) => ({
         file: displayPath(failure.file),
@@ -1225,7 +1313,7 @@ function writeProfileResult(result: ProfileCheckResult, quiet: boolean): void {
   if (result.status === "core-invalid") {
     write(`FAIL  ${result.label}  (core-invalid: profile rules not evaluated)\n`);
     for (const issue of result.coreIssues) {
-      write(`        ${issue}\n`);
+      write(`        ${inline(issue)}\n`);
     }
     return;
   }
@@ -1248,7 +1336,7 @@ function runCheckProfile(
   profileName: string | undefined,
 ): number {
   if (profileName === undefined || profileName === "") {
-    process.stderr.write(
+    writeError(
       `auditmodel: check-profile requires --profile <name>; available profiles: ${availableProfiles().join(", ")}\n`,
     );
     return EXIT_ERROR;
@@ -1256,9 +1344,9 @@ function runCheckProfile(
 
   const loaded = loadProfile(profileName);
   if (!loaded.ok) {
-    process.stderr.write(`auditmodel: ${loaded.error}\n`);
+    writeError(`auditmodel: ${loaded.error}\n`);
     for (const issue of loaded.issues ?? []) {
-      process.stderr.write(`    ${issue}\n`);
+      writeError(`    ${issue}\n`);
     }
     return EXIT_ERROR;
   }
@@ -1309,6 +1397,7 @@ function runCheckProfile(
           tool: "auditmodel check-profile",
           specVersion: SPEC_VERSION,
           schemaId: input.validator.schemaId,
+          schemas: SCHEMA_IDS,
           profile: { name: profile.name, version: profile.version, status: profile.status },
           summary,
           unreadable: input.failures.map((failure) => ({
@@ -1354,7 +1443,7 @@ function runCheckCoverage(
   profileName: string | undefined,
 ): number {
   if (profileName === undefined || profileName === "") {
-    process.stderr.write(
+    writeError(
       `auditmodel: check-coverage requires --profile <name>; available profiles: ${availableProfiles().join(", ")}\n`,
     );
     return EXIT_ERROR;
@@ -1362,9 +1451,9 @@ function runCheckCoverage(
 
   const loaded = loadProfile(profileName);
   if (!loaded.ok) {
-    process.stderr.write(`auditmodel: ${loaded.error}\n`);
+    writeError(`auditmodel: ${loaded.error}\n`);
     for (const issue of loaded.issues ?? []) {
-      process.stderr.write(`    ${issue}\n`);
+      writeError(`    ${issue}\n`);
     }
     return EXIT_ERROR;
   }
@@ -1388,6 +1477,7 @@ function runCheckCoverage(
           tool: "auditmodel check-coverage",
           specVersion: SPEC_VERSION,
           schemaId: input.validator.schemaId,
+          schemas: SCHEMA_IDS,
           coverage,
           unreadable: input.failures.map((failure) => ({
             file: displayPath(failure.file),
@@ -1448,7 +1538,7 @@ function runCheckCoverage(
         }
         write(`  ${kind}\n`);
         for (const entry of entries.slice(0, COVERAGE_NAME_LIMIT)) {
-          write(`    ${String(entry.events).padStart(7)}  ${entry.name}\n`);
+          write(`    ${String(entry.events).padStart(7)}  ${inline(entry.name)}\n`);
         }
         if (entries.length > COVERAGE_NAME_LIMIT) {
           write(`    and ${entries.length - COVERAGE_NAME_LIMIT} more\n`);
@@ -1491,8 +1581,8 @@ export function run(argv: readonly string[]): number {
       },
     });
   } catch (cause) {
-    process.stderr.write(`auditmodel: ${(cause as Error).message}\n\n`);
-    process.stderr.write(USAGE);
+    writeError(`auditmodel: ${(cause as Error).message}\n\n`);
+    writeError(USAGE);
     return EXIT_ERROR;
   }
 
@@ -1501,7 +1591,7 @@ export function run(argv: readonly string[]): number {
   if (values.version === true) {
     const validator = createValidator();
     write(
-      `auditmodel ${toolVersion(validator.schemaPath)} (specification ${SPEC_VERSION}, experimental)\n`,
+      `auditmodel ${toolVersion(validator.schemaPath)} (specification ${SPEC_VERSION}, stable; reads ${SUPPORTED_SPEC_VERSIONS.join(" and ")})\n`,
     );
     return EXIT_OK;
   }
@@ -1518,7 +1608,7 @@ export function run(argv: readonly string[]): number {
   const format = typeof values.format === "string" ? values.format : "text";
 
   if (!OUTPUT_FORMATS.has(format)) {
-    process.stderr.write(
+    writeError(
       `auditmodel: unknown output format "${format}"; expected ${[...OUTPUT_FORMATS].join(" or ")}\n`,
     );
     return EXIT_ERROR;
@@ -1533,7 +1623,7 @@ export function run(argv: readonly string[]): number {
     IMPLEMENTED_COMMANDS.has(command) &&
     !FORMAT_COMMANDS.has(command)
   ) {
-    process.stderr.write(
+    writeError(
       `auditmodel: --format is not supported by "${command}"; it applies to ${[...FORMAT_COMMANDS].join(" and ")}\n`,
     );
     return EXIT_ERROR;
@@ -1545,7 +1635,7 @@ export function run(argv: readonly string[]): number {
     IMPLEMENTED_COMMANDS.has(command) &&
     command !== "verify-checkpoint"
   ) {
-    process.stderr.write(
+    writeError(
       `auditmodel: --checkpoint is not supported by "${command}"; it applies to verify-checkpoint\n`,
     );
     return EXIT_ERROR;
@@ -1556,7 +1646,7 @@ export function run(argv: readonly string[]): number {
     IMPLEMENTED_COMMANDS.has(command) &&
     command !== "verify-proof"
   ) {
-    process.stderr.write(
+    writeError(
       `auditmodel: --proof is not supported by "${command}"; it applies to verify-proof\n`,
     );
     return EXIT_ERROR;
@@ -1569,7 +1659,7 @@ export function run(argv: readonly string[]): number {
     try {
       pemText = readFileSync(keyPath, "utf8");
     } catch (cause) {
-      process.stderr.write(
+      writeError(
         `auditmodel: cannot read --public-key "${keyPath}": ${(cause as Error).message}\n`,
       );
       return EXIT_ERROR;
@@ -1577,7 +1667,7 @@ export function run(argv: readonly string[]): number {
     try {
       publicKey = loadPublicKey(pemText);
     } catch (cause) {
-      process.stderr.write(`auditmodel: --public-key "${keyPath}" ${(cause as Error).message}\n`);
+      writeError(`auditmodel: --public-key "${keyPath}" ${(cause as Error).message}\n`);
       return EXIT_ERROR;
     }
   }
@@ -1630,14 +1720,14 @@ export function run(argv: readonly string[]): number {
   }
 
   if (PLANNED_COMMANDS.has(command)) {
-    process.stderr.write(
+    writeError(
       `auditmodel: "${command}" is planned for a future specification version and is not implemented in v${SPEC_VERSION}\n`,
     );
     return EXIT_ERROR;
   }
 
-  process.stderr.write(`auditmodel: unknown command "${command}"\n\n`);
-  process.stderr.write(USAGE);
+  writeError(`auditmodel: unknown command "${command}"\n\n`);
+  writeError(USAGE);
   return EXIT_ERROR;
 }
 
@@ -1658,5 +1748,24 @@ function isDirectInvocation(): boolean {
 }
 
 if (isDirectInvocation()) {
-  process.exitCode = run(process.argv.slice(2));
+  // A reader that stops early (`| head`) closes the pipe, and the next write
+  // fails asynchronously, after the verdict's exit code was set. Unhandled,
+  // Node prints a stack trace and exits 1 — "a verdict was produced and it
+  // failed" — for input that may all have passed. The output was not
+  // delivered, so the tool could not do what it was asked: exit 2.
+  process.stdout.on("error", () => {
+    process.exit(EXIT_ERROR);
+  });
+  try {
+    process.exitCode = run(process.argv.slice(2));
+  } catch (cause) {
+    // Nothing should reach here, and when something does it is a defect in
+    // this tool, not a verdict on the input. A stack trace would exit 1 —
+    // "a verdict was produced and it failed" — and print internal paths, so
+    // it is reported as what it is: the tool could not run.
+    writeError(
+      `auditmodel: internal error, no verdict was produced: ${cause instanceof Error ? cause.name : "unknown"}\n`,
+    );
+    process.exitCode = EXIT_ERROR;
+  }
 }

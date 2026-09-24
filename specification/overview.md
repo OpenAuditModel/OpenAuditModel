@@ -1,6 +1,6 @@
 # OpenAuditModel Core Specification — Overview
 
-**Specification version: 0.1 · Status: Experimental · This document: Normative**
+**Specification version: 1.0 · Status: Stable · This document: Normative**
 
 > OpenAuditModel defines a common, verifiable and backend-independent audit event model for business
 > applications.
@@ -39,12 +39,16 @@ See [design-principles.md](design-principles.md) for why these exclusions exist,
 
 ### 3.1 Conforming event
 
-A JSON document is a **conforming OpenAuditModel v0.1 event** if and only if it validates against the
-[OpenAuditModel Audit Event Schema](../schemas/v0.1/audit-event.schema.json), identified by:
+A JSON document is a **conforming OpenAuditModel 1.0 event** if and only if it validates against the
+[OpenAuditModel Audit Event Schema 1.0](../schemas/v1.0/audit-event.schema.json), identified by:
 
 ```text
-https://openauditmodel.org/schemas/audit-event/0.1/schema.json
+https://openauditmodel.org/schemas/audit-event/1.0/schema.json
 ```
+
+An event written against an earlier version conforms to that version by validating against that
+version's schema; [0.1](../schemas/v0.1/audit-event.schema.json) stays published. The version an
+event declares selects the schema it is judged by — see §6.
 
 Schema validation is necessary but **not sufficient** for a good audit event. Rules that a schema
 cannot express — a `subject` used as a target resource, a secret placed in `metadata`, an event name
@@ -86,13 +90,14 @@ Every document in this repository is labelled with one of:
 | ---------------- | ----------------------------------------------------------------------------------------------------------- |
 | **Normative**    | Defines requirements. Conforming implementations MUST satisfy them.                                         |
 | **Informative**  | Explains, illustrates or maps. Carries no requirements, even where it uses examples that look prescriptive. |
-| **Experimental** | Expected to change, possibly incompatibly, before version 1.0. All of version 0.1 is experimental.          |
+| **Stable**       | Changes only as §6 allows: a later minor adds, and nothing an event relies on is taken away.                |
+| **Experimental** | Expected to change, possibly incompatibly. Profiles are experimental; the core specification is stable.     |
 
 Where a document is normative, only the capitalized keywords defined in
 [terminology.md](terminology.md) express requirements.
 
 Everything under [examples/](../examples/), [mappings/](../mappings/) and [profiles/](../profiles/)
-is informative in v0.1. [semantic-conventions/](../semantic-conventions/) is normative only where it
+is informative. [semantic-conventions/](../semantic-conventions/) is normative only where it
 says so explicitly; its recommended vocabularies are otherwise SHOULD-level guidance.
 
 ## 5. Specification documents
@@ -116,34 +121,48 @@ says so explicitly; its recommended vocabularies are otherwise SHOULD-level guid
 
 ## 6. Versioning and compatibility
 
-### 6.1 Version 0.1
+### 6.1 Versions
 
-`specVersion` is a constant in v0.1:
+`specVersion` is a string of the form `MAJOR.MINOR`: two non-negative decimal integers joined by a
+full stop, each without a leading zero. `"1.0"` and `"1.10"` are of the form; `"01.0"`, `"1.00"`,
+`"1"` and `"v1.0"` are not. Each published version has its own schema at its own permanent address,
+and that schema fixes `specVersion` to its own value:
 
-```json
-{ "specVersion": "0.1" }
-```
+| Version | Schema                                                           | Status                                        |
+| ------- | ---------------------------------------------------------------- | --------------------------------------------- |
+| `1.0`   | `https://openauditmodel.org/schemas/audit-event/1.0/schema.json` | Stable. What producers emit.                  |
+| `0.1`   | `https://openauditmodel.org/schemas/audit-event/0.1/schema.json` | Pre-1.0. Still read; its schema never changes |
 
-The canonical schema enforces this with `const`. An event that declares any other value is not a
-conforming v0.1 event.
+1.0 is 0.1 with a new version number and one optional field, `request.parentSpanId`. Every event
+valid under 0.1 is valid under 1.0 once its `specVersion` says `"1.0"`. A sealed event is not
+migrated: `specVersion` is inside its digest, and an archive keeps what was sealed.
 
-Fixing the value keeps the experimental phase unambiguous: there is exactly one version of the model
-in existence, and no producer can claim conformance to a version that has not been published.
+### 6.2 Compatibility
 
-### 6.2 Future versions
+The rules are recorded in [ADR 0017](../decisions/0017-versioning-and-compatibility.md) and are
+normative from 1.0.
 
-The compatibility strategy **is expected to change** after v0.1. Later versions may:
+Within a major version, a minor version MAY only add an optional property (with any `$defs` entry
+only optional properties use), add values to an open vocabulary or examples to any property, or raise
+an upper bound or widen a pattern where measurement shows the old one refused real data. Every other
+change requires a new major version.
 
-- Replace the `const` constraint with a range or a set of accepted versions.
-- Define which changes are compatible and which require a version increment.
-- Define how a consumer should behave when it receives a newer minor version.
+A validator MUST select the schema by the version an event declares:
 
-None of that is decided in v0.1, and implementations MUST NOT assume any particular future strategy.
-The decision will be recorded as an architecture decision record in [decisions/](../decisions/).
+- An event declaring a version the validator implements is validated against that version's schema.
+- An event declaring any other well-formed version — a newer minor, another major, or a version never
+  published — is **not evaluated**. A validator MUST NOT report it conforming and SHOULD NOT report it
+  non-conforming: it reports that the version is not one it implements, and names the versions it
+  does.
+- An event with no `specVersion`, or one not of the form `MAJOR.MINOR`, is non-conforming.
+
+A consumer that only stores, forwards or displays events MAY accept a newer minor of a major it
+implements, MUST ignore the properties it does not know, and MUST NOT present such an event as
+validated.
 
 ### 6.3 What is already committed to
 
-Even in the experimental phase, two rules hold:
+Two rules predate ADR 0017 and hold in every version:
 
 1. **Event names do not silently change meaning.** If the meaning of an event name changes, the name
    changes. See [event-model.md](event-model.md).
@@ -166,7 +185,7 @@ It is designed to be carried by, and mapped to, the standards that already exist
 None of these are required. An OpenAuditModel event is valid on its own, with no envelope and no
 pipeline. See [mappings/](../mappings/), which is informative.
 
-## 8. Stability warning
+## 8. Stability
 
-Version 0.1 is **experimental and not production-ready**. Field names, constraints, vocabularies and
-the compatibility strategy may all change. It carries **no compliance guarantee** of any kind.
+Version 1.0 is **stable**: the schema at its address will not change, and later versions follow §6.
+It is **not yet proven in production**, and it carries **no compliance guarantee** of any kind.

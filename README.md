@@ -11,20 +11,31 @@
 
 |                           |                                                                  |
 | ------------------------- | ---------------------------------------------------------------- |
-| **Specification version** | 0.1                                                              |
-| **Tooling release**       | 0.6.0 — the CLI and MCP server, versioned in `package.json`      |
-| **Project status**        | **Experimental**                                                 |
-| **Production readiness**  | **Not production-ready**                                         |
+| **Specification version** | 1.0 — stable; events written under 0.1 are still read            |
+| **Tooling release**       | 1.0.0 — the CLI and MCP server, versioned in `package.json`      |
+| **Project status**        | **Stable specification**                                         |
+| **Production use**        | **Not yet proven** — see below                                   |
 | **Compliance**            | **No compliance guarantee**                                      |
-| **Canonical schema**      | `https://openauditmodel.org/schemas/audit-event/0.1/schema.json` |
+| **Canonical schema**      | `https://openauditmodel.org/schemas/audit-event/1.0/schema.json` |
 | **License**               | Apache License 2.0                                               |
+
+**1.0 means the specification is frozen and the tooling is complete.** The schema at its 1.0 address
+will not change, the identifiers it publishes are permanent, and every later 1.x version follows the
+compatibility rules in [ADR 0017](decisions/0017-versioning-and-compatibility.md): a minor version
+only adds, and nothing an event valid under 1.0 relies on is taken away. The conformance tooling
+implements everything the specification defines, with one shortfall it names: only `validate` gives
+an event of a version it does not implement a verdict of its own; the other commands never pass such
+an event, but count it as schema-invalid ([ADR 0017](decisions/0017-versioning-and-compatibility.md),
+Consequences).
+
+It does **not** mean the model has been proven in production. One producer has been measured against
+it and does not yet conform, and no deployment is known to run on it. That claim will be made when
+there is evidence for it, and not before.
 
 The two versions move independently: tooling releases ship fixes and commands without touching the
 model, and the specification version changes only when the schema or a normative document changes
-meaning. Every release note states both. Version 0.1 is an experimental specification. Field names,
-constraints, vocabularies and the compatibility strategy may all change. Nothing here constitutes
-legal advice, and conformance to this specification is not compliance with any law, regulation,
-standard or contract.
+meaning. Every release note states both. Nothing here constitutes legal advice, and conformance to
+this specification is not compliance with any law, regulation, standard or contract.
 
 ---
 
@@ -35,7 +46,7 @@ No install, no checkout — three commands against one file.
 ```bash
 cat > audit-event.json <<'EOF'
 {
-  "specVersion": "0.1",
+  "specVersion": "1.0",
   "id": "018f1b70-2c18-7f3a-b46d-5e8a1c9d0b12",
   "time": "2026-03-14T11:47:52.108Z",
   "event": {
@@ -95,6 +106,9 @@ The same contract across every command, so a CI job can branch on it:
 
 `3` is the one worth understanding, because it is the code that is easy to misread as success:
 
+- `validate` returns it when **no event failed and at least one declares a specification version
+  this tool does not implement**, such as a later 1.x. That event was not evaluated: not passed,
+  and not failed either, because the rules it claims are not rules this tool has.
 - `check-profile` returns it when **no rule in the profile governs the event**. That usually means the
   event name does not match the profile's vocabulary — `transfer.created` instead of
   `financial.transfer.execute`, say. **Not-applicable is not conformance.** The profile said nothing
@@ -279,8 +293,8 @@ OpenAuditModel complements existing standards rather than reinventing them. None
 | **OpenTelemetry**             | MAY be used for telemetry transport, collection and trace correlation.           |
 | **ECS**                       | Supported through an informative export mapping.                                 |
 | **OCSF**                      | Supported through an informative security-event mapping.                         |
-| **CADF**                      | A DMTF audit event standard. Prior art; not an export target in v0.1.            |
-| **OSCAL**                     | May later be used for control and assessment mappings. Not addressed in v0.1.    |
+| **CADF**                      | A DMTF audit event standard. Prior art; not an export target in 1.0.             |
+| **OSCAL**                     | May later be used for control and assessment mappings. Not addressed in 1.0.     |
 | **JSON Schema Draft 2020-12** | Defines the canonical machine-verifiable structure.                              |
 
 ### Specifically, OpenTelemetry
@@ -323,11 +337,12 @@ to a file, inserted into a table, published to a topic or held in memory.
 
 See [ADR 0003](decisions/0003-backend-and-transport-independence.md).
 
-## What is in v0.1?
+## What is in 1.0?
 
 ```text
 specification/         15 normative documents defining the model
-schemas/v0.1/          the canonical JSON Schema (Draft 2020-12)
+schemas/v1.0/          the canonical JSON Schema (Draft 2020-12), stable
+schemas/v0.1/          the pre-1.0 schema, kept for events written against it
 schemas/checkpoint/    the chain checkpoint schema, a tooling document versioned on its own
 schemas/proof/         the inclusion proof schema, with RFC 6962 hashing written into it
 semantic-conventions/  recommended event names and vocabularies
@@ -337,12 +352,13 @@ mappings/              informative mappings to CloudEvents, OTel, ECS, OCSF, CAD
 examples/              11 valid and 7 invalid conformance fixtures
 examples/integrity/    generated tamper-evidence fixtures, valid and invalid
 examples/privacy/      clean and finding fixtures for the privacy linter
+examples/compatibility/ events sealed under 0.1, which the 1.x tooling is held to verifying
 examples/profiles/     conforming, violating and out-of-scope profile fixtures
 conformance/           the `auditmodel` CLI and its test suite
 conformance-kit/       every fixture's expected verdict, as data, for any language
 mcp/                   the remote MCP server, distributed as a container image
 deploy/                Docker Compose and reverse-proxy examples
-decisions/             15 architecture decision records
+decisions/             17 architecture decision records
 ```
 
 The core model requires seven fields — `specVersion`, `id`, `time`, `event`, `actor`, `resource`,
@@ -353,27 +369,36 @@ privacy, control categories, metadata and extensions.
 Start with [specification/overview.md](specification/overview.md), then
 [specification/event-model.md](specification/event-model.md).
 
-## What is experimental?
+## What is stable, and what is not
 
-All of it. Specifically, expect these to change:
+**Stable from 1.0**, under the rules of [ADR 0017](decisions/0017-versioning-and-compatibility.md):
 
-- **The compatibility strategy.** `specVersion` is pinned to `"0.1"` by a `const` in the schema.
-  How future versions negotiate compatibility is undecided.
-- **Closed vocabularies.** `actor.type` and `event.severity` are closed enumerations in v0.1.
-  Whether they should be is an open question.
-- **Array bounds and length limits.** The current values are conservative defaults, not researched
-  ones.
-- **Profiles.** Ten are implemented and enforceable, but none has production adoption evidence yet:
-  their requirements are reasoned, not validated against real deployments.
-- **The profile rule vocabulary.** Six capabilities and one conditional operator. Profile inheritance,
-  composition and multi-profile checking are not implemented.
-- **Privacy rule thresholds and vocabularies.** Hard-coded in v0.1, with no configuration and no
-  suppression mechanism.
-- **The digest exclusion set.** Now fixed, so any future change to it invalidates every stored digest
-  rather than only new events.
+- **The event schema.** `schemas/v1.0/` never changes. A later 1.x minor may add an optional field,
+  add a value to an open vocabulary or an example, or raise a bound or widen a pattern where real
+  data needs it — and nothing else.
+- **The closed vocabularies.** Every `enum` in the schema stays closed — `actor.type`,
+  `event.severity`, `event.outcome`, `authorization.decision`, `delegation.type` and the others;
+  adding a value to any of them needs a new major version, because a consumer may rely on the list
+  being complete.
+- **The digest procedure**, including what it excludes. Changing it would invalidate every stored
+  digest, so it does not change.
+- **Event names.** A name does not silently change meaning; a new meaning gets a new name.
+- **Extensions never weaken the core.**
+- **Versions a consumer does not know are not evaluated.** `validate` reports them as such — never
+  as conforming, and not as non-conforming either. The other commands never pass such an event, but
+  in 1.0.0 they count it as they count a schema-invalid one; [ADR 0017](decisions/0017-versioning-and-compatibility.md)
+  lists what each does.
+- **The profile definition format.** `profile-definition/0.1` follows ADR 0017 §2 as the event schema
+  does: a later version only adds, such as a new rule capability. Inheritance, composition and
+  multi-profile checking are not implemented.
 
-Two things are already committed to, even while experimental: event names do not silently change
-meaning, and extensions never weaken the core.
+**Not stable, and labelled so:**
+
+- **Profiles.** Ten are implemented and enforceable, and every one is marked `experimental`: their
+  requirements are reasoned, not validated against real deployments. A revision moves a profile's
+  version and publishes it at a new address; the old address keeps working.
+- **Privacy rule thresholds and vocabularies.** A property of the tooling, not of the specification:
+  hard-coded, with no configuration and no suppression mechanism.
 
 ## How can an event be validated?
 
@@ -396,7 +421,9 @@ auditmodel validate <event-file>          # when installed or linked
 Output:
 
 ```text
-schema: https://openauditmodel.org/schemas/audit-event/0.1/schema.json (schemas/v0.1/audit-event.schema.json)
+schemas, selected by the specVersion each event declares:
+  1.0  https://openauditmodel.org/schemas/audit-event/1.0/schema.json (schemas/v1.0/audit-event.schema.json)
+  0.1  https://openauditmodel.org/schemas/audit-event/0.1/schema.json (schemas/v0.1/audit-event.schema.json)
 
 ok    examples/valid/minimal-event.json
 
@@ -408,8 +435,10 @@ A path may be a JSON file holding one event, a JSON file holding an array of eve
 
 `validate`, `verify-integrity`, `lint-privacy`, `check-profile` and `verify-chain` read a `.jsonl`
 or `.ndjson` file a line at a time, and it may be any size: one event is held at a time, so a year
-of production is checked with the memory one event needs. `verify-checkpoint`, `verify-proof` and
-`check-coverage` need the whole set at once and still refuse a file above 8 MB.
+of production is checked with the memory one event needs. That holds for text output. With
+`--format json` the report lists every event, so it grows with the archive and is held until it is
+written. `verify-checkpoint`, `verify-proof` and `check-coverage` need the whole set at once and
+still refuse a file above 8 MB.
 
 A single JSON document is limited to 8 MB whichever command reads it, because a document whose shape
 is unknown until its closing brace cannot be parsed in pieces; the same 8 MB is the limit for one
@@ -427,7 +456,8 @@ FAIL  examples/invalid/delegation-without-subject.json
 ```
 
 Exit codes: `0` valid, `1` at least one event failed validation, `2` usage error or a file that could
-not be read or parsed.
+not be read or parsed, `3` no event failed and at least one was not evaluated because it declares a
+specification version this tool does not implement.
 
 Validation is one half of conformance. The rules a schema cannot express — do not record secrets, do
 not misuse `subject` as a target, do not silently redefine an event name — are normative in the
@@ -608,7 +638,8 @@ which is not shaped like a secret at all. Severity and confidence are reported s
 reason: a field named `password` is critical/high, a random-looking string in an arbitrary field is
 medium/low.
 
-Exit codes: `0` no findings, `1` findings or a schema-invalid event, `2` usage or input error. Full
+Exit codes: `0` no findings, `1` findings, `2` usage or input error, `3` no findings and at least one
+input that is not a schema-valid event, so it was not scanned. Full
 rule catalogue, thresholds, inspected paths and honest limits:
 [specification/privacy.md](specification/privacy.md) §6 and
 [ADR 0007](decisions/0007-deterministic-privacy-linting.md).
@@ -624,9 +655,9 @@ claude mcp add --transport http openauditmodel https://mcp.openauditmodel.org/mc
 
 Ten tools — `validate_event`, `verify_integrity`, `verify_chain`, `verify_checkpoint`,
 `verify_proof`, `lint_privacy`, `check_profile`, `check_coverage`, `generate_event_template`,
-`get_event_guidance` — three prompts, and thirty-six read-only resources: seven specification
-chapters, four schemas (the canonical audit event schema, the profile definition schema, the chain
-checkpoint schema and the inclusion proof schema), the semantic-conventions index and twelve
+`get_event_guidance` — three prompts, and thirty-seven read-only resources: seven specification
+chapters, five schemas (the audit event schema for 1.0 and for 0.1, the profile definition schema,
+the chain checkpoint schema and the inclusion proof schema), the semantic-conventions index and twelve
 convention documents, the profile index and all ten profile definitions, and the examples index.
 
 **It is a remote service, and this matters.** MCP tool inputs are processed ephemerally by the
@@ -640,8 +671,8 @@ No model runs inside the server: every tool is deterministic and read-only, and 
 guidance text for your agent to act on. Findings never carry the value that produced them.
 
 > Deployed and verified: `https://mcp.openauditmodel.org/mcp` answers, and the site above serves the
-> canonical schemas. Both are still an unauthenticated v0.1 alpha — see
-> [mcp/README.md](mcp/README.md), "Public alpha risk".
+> canonical schemas. The MCP endpoint is public and unauthenticated, with no availability guarantee
+> — see [mcp/README.md](mcp/README.md), "Public service risk".
 
 Run it yourself — which keeps your audit events inside your own network. The image is built from this
 repository; there is no registry to pull from:
@@ -815,7 +846,8 @@ Read this section before citing OpenAuditModel in any compliance context.
    See [specification/integrity.md](specification/integrity.md).
 6. **Validation cannot detect secrets.** A password in `metadata` passes every test in this
    repository. See [specification/privacy.md](specification/privacy.md).
-7. **Experimental.** The model may change incompatibly before 1.0.
+7. **Not proven in production.** The specification is stable; whether it serves real deployments
+   well is what the first adopters will show.
 
 ## Contributing
 
@@ -836,7 +868,7 @@ Please also read [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Security issues go to
 All content in this repository — specification text, JSON Schemas, examples, tooling and tests — is
 licensed under the **Apache License 2.0**. See [LICENSE](LICENSE).
 
-A single license was chosen deliberately for v0.1. Splitting documentation under a separate content
+A single license was chosen deliberately. Splitting documentation under a separate content
 license such as CC BY 4.0 is a reasonable thing for a standards project to do, and adds a licensing
 boundary that contributors have to reason about on every change. If the project's governance later
 justifies that boundary, the change will be recorded as an architecture decision. Until then, one
@@ -847,5 +879,6 @@ licensed regulatory commentary and no vendor documentation.
 
 ## Status of this repository
 
-Version 0.1 is a specification, a canonical schema and a conformance toolchain. It is experimental,
-not production-ready, and carries no compliance guarantee.
+Version 1.0 is a stable specification, a canonical schema and a conformance toolchain. The schema is
+frozen and the tooling complete; production use is not yet proven; and there is no compliance
+guarantee, in this version or any other.

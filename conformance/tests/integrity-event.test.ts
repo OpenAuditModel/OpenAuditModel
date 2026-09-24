@@ -7,6 +7,8 @@
 import assert from "node:assert/strict";
 import {
   constants as cryptoConstants,
+  createHash,
+  createPublicKey,
   generateKeyPairSync,
   sign as cryptoSign,
   type KeyObject,
@@ -27,8 +29,10 @@ import {
 import { canonicalBytes } from "../src/integrity/canonicalize.js";
 import { verifyEventIntegrity } from "../src/integrity/verify-event.js";
 import {
+  isSmallOrderEd25519Point,
   isSupportedSignatureAlgorithm,
   loadPublicKey,
+  UnusablePublicKeyError,
   verifyEventSignature,
 } from "../src/integrity/signature.js";
 import { SUPPORTED_HASH_ALGORITHMS } from "../src/integrity/types.js";
@@ -352,19 +356,198 @@ describe("signatures", () => {
     }
   });
 
-  test("loadPublicKey derives the public key when handed a private key", () => {
-    // Node's own behaviour, exercised because verifyEventSignature relies on
-    // it: pointing --public-key at the wrong (private) file by mistake still
-    // verifies correctly, since the derived key is the genuine public half.
-    const privatePem = keyAPrivate.export({ type: "pkcs8", format: "pem" }) as string;
-    const derived = loadPublicKey(privatePem);
-    const event = sealEvent(baseEvent());
-    const value = signWithKeyA(event);
-    assert.deepEqual(verifyEventSignature(event, "Ed25519", value, derived), { ok: true });
+  test("loadPublicKey refuses a private key by name, and never repeats it", () => {
+    // Node would derive the public half and the verdict would be right, but a
+    // private key where a public one belongs is a mistake to say out loud —
+    // and on the MCP server it has just crossed the network.
+    for (const privatePem of [
+      keyAPrivate.export({ type: "pkcs8", format: "pem" }) as string,
+      "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEE\n-----END EC PRIVATE KEY-----\n",
+      "-----BEGIN RSA PRIVATE KEY-----\nMIIE\n-----END RSA PRIVATE KEY-----\n",
+      "-----BEGIN ENCRYPTED PRIVATE KEY-----\nMIIF\n-----END ENCRYPTED PRIVATE KEY-----\n",
+    ]) {
+      assert.throws(
+        () => loadPublicKey(privatePem),
+        (error: Error) =>
+          /this is a private key/.test(error.message) && !error.message.includes("MI"),
+      );
+    }
   });
 
   test("loadPublicKey rejects unreadable text", () => {
     assert.throws(() => loadPublicKey("not a key"), /not a readable public key/);
+  });
+
+  test("loadPublicKey refuses a private key whatever the case of its label", () => {
+    // OpenSSL reads `-----BEGIN rsa PRIVATE KEY-----` as a private key too.
+    const { privateKey: ecPrivate } = generateKeyPairSync("ec", { namedCurve: "P-256" });
+    const pem = ecPrivate.export({ type: "sec1", format: "pem" }) as string;
+    for (const label of ["ec PRIVATE KEY", "Ec PRIVATE KEY", "ec private key"]) {
+      const relabelled = pem.replaceAll("EC PRIVATE KEY", label);
+      assert.throws(() => loadPublicKey(relabelled), /this is a private key/, label);
+    }
+  });
+
+  test("an EC key at the point at infinity is refused, and does not end the process", () => {
+    // Where OpenSSL parses it, reading its details aborts the process with a
+    // native assertion, so nothing may read them before it is refused. An
+    // OpenSSL that refuses the point itself leaves nothing to test past that.
+    const infinity =
+      "-----BEGIN PUBLIC KEY-----\nMBkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDAgAA\n-----END PUBLIC KEY-----\n";
+    let key: KeyObject;
+    try {
+      key = createPublicKey(infinity);
+    } catch {
+      assert.throws(() => loadPublicKey(infinity));
+      return;
+    }
+    assert.throws(
+      () => loadPublicKey(infinity),
+      (error: Error) =>
+        error instanceof UnusablePublicKeyError && /EC public key/.test(error.message),
+    );
+    const event = sealEvent(baseEvent());
+    const result = verifyEventSignature(event, "ECDSA-P256-SHA256", "AAAA", key);
+    assert.equal(!result.ok && result.kind, "signature-invalid");
+  });
+
+  test("an RSA key with an exponent of 1 is refused", () => {
+    // Under e = 1 a "signature" is the encoded message itself: anyone can make
+    // one. The modulus is a real one; only the exponent is replaced. An
+    // OpenSSL that refuses to build such a key leaves nothing to test.
+    const { publicKey: rsa } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+    const jwk = rsa.export({ format: "jwk" });
+    let weak: KeyObject;
+    try {
+      weak = createPublicKey({ key: { ...jwk, e: "AQ" }, format: "jwk" });
+    } catch {
+      return;
+    }
+    assert.equal(weak.asymmetricKeyDetails?.publicExponent, 1n);
+    assert.throws(
+      () => loadPublicKey(weak.export({ type: "spki", format: "pem" }) as string),
+      (error: Error) => error instanceof UnusablePublicKeyError && /exponent/.test(error.message),
+    );
+    const event = sealEvent(baseEvent());
+    const value = Buffer.alloc(256, 1).toString("base64");
+    const result = verifyEventSignature(event, "RSA-PSS-SHA256", value, weak);
+    assert.equal(!result.ok && result.kind, "signature-invalid");
+    assert.match(!result.ok ? result.message : "", /exponent/);
+  });
+
+  describe("small-order Ed25519 points", () => {
+    const p = 2n ** 255n - 19n;
+    const order = 2n ** 252n + 27742317777372353535851937790883648493n;
+    const IDENTITY = Buffer.from(`01${"00".repeat(31)}`, "hex");
+
+    /** An Ed25519 SubjectPublicKeyInfo around a raw 32-byte point, parsed without checks. */
+    function rawEd25519Key(point: Uint8Array): KeyObject {
+      const der = Buffer.concat([Buffer.from("302a300506032b6570032100", "hex"), point]);
+      return createPublicKey({ key: der, format: "der", type: "spki" });
+    }
+
+    function pem(key: KeyObject): string {
+      return key.export({ type: "spki", format: "pem" }) as string;
+    }
+
+    function littleEndian(bytes: Uint8Array): bigint {
+      return BigInt(`0x${Buffer.from(bytes).reverse().toString("hex") || "0"}`);
+    }
+
+    function toLittleEndian(value: bigint): Buffer {
+      return Buffer.from(value.toString(16).padStart(64, "0"), "hex").reverse();
+    }
+
+    // The encodings are y-coordinates, sign bit cleared. Each is checked here
+    // against the curve itself rather than against the list it came from:
+    // y = 0, 1 and p - 1 (and the non-canonical p, p + 1) are the points of
+    // order 4, 1 and 2; the two others satisfy the order-8 condition that
+    // doubling them lands on y = 0.
+    test("every refused encoding is a point of order dividing 8", () => {
+      const d = (-121665n * modPow(121666n, p - 2n, p)) % p;
+      const mod = (value: bigint) => ((value % p) + p) % p;
+      const doubledY = (y: bigint) => {
+        // On -x² + y² = 1 + d·x²·y², x² = (y² − 1) / (d·y² + 1), and the
+        // y-coordinate of 2P is (y² + x²) / (2 − y² + x²).
+        const x2 = mod((y * y - 1n) * modPow(mod(d * y * y + 1n), p - 2n, p));
+        return mod((y * y + x2) * modPow(mod(2n - y * y + x2), p - 2n, p));
+      };
+      const orderEight = [
+        "26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc05",
+        "c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a",
+      ];
+      for (const hex of orderEight) {
+        const y = littleEndian(Buffer.from(hex, "hex"));
+        assert.equal(doubledY(doubledY(y)), p - 1n, `${hex}: 4P is the point of order 2`);
+        assert.equal(isSmallOrderEd25519Point(Buffer.from(hex, "hex")), true, hex);
+      }
+      for (const y of [0n, 1n, p - 1n, p, p + 1n]) {
+        const encoded = toLittleEndian(y);
+        assert.equal(isSmallOrderEd25519Point(encoded), true, y.toString());
+        const negative = Buffer.from(encoded);
+        negative[31] = (negative[31] as number) | 0x80;
+        assert.equal(isSmallOrderEd25519Point(negative), true, `-${y.toString()}`);
+      }
+      assert.equal(isSmallOrderEd25519Point(toLittleEndian(2n)), false);
+    });
+
+    function modPow(base: bigint, exponent: bigint, modulus: bigint): bigint {
+      let result = 1n;
+      let b = base % modulus;
+      let e = exponent;
+      while (e > 0n) {
+        if (e & 1n) result = (result * b) % modulus;
+        b = (b * b) % modulus;
+        e >>= 1n;
+      }
+      return result;
+    }
+
+    test("loadPublicKey refuses a small-order key", () => {
+      assert.throws(
+        () => loadPublicKey(pem(rawEd25519Key(IDENTITY))),
+        (error: Error) =>
+          error instanceof UnusablePublicKeyError && /small-order point/.test(error.message),
+      );
+    });
+
+    test("under the identity point, R = identity and S = 0 is refused", () => {
+      const event = sealEvent(baseEvent());
+      const key = rawEd25519Key(IDENTITY);
+      const forged = Buffer.concat([IDENTITY, Buffer.alloc(32)]);
+      // The verification equation holds for any message. Whether the primitive
+      // alone accepts it depends on the OpenSSL build — the one this project's
+      // Docker toolchain carries does, the CI runner's does not — so the
+      // verifier refuses it before the primitive is asked.
+
+      const result = verifyEventSignature(event, "Ed25519", forged.toString("base64"), key);
+      assert.equal(!result.ok && result.kind, "signature-invalid");
+      assert.match(!result.ok ? result.message : "", /small-order point/);
+    });
+
+    test("under a genuine key, a signature whose R is the identity is refused", () => {
+      const event = sealEvent(baseEvent());
+      const message = canonicalBytes(buildDigestInput(event));
+      // R = identity is a nonce of zero, so S = H(R ‖ A ‖ M)·a: a signature
+      // only the key's holder can make, and one no honest signer does.
+      const seed = Buffer.from(keyAPrivate.export({ format: "jwk" }).d as string, "base64url");
+      const expanded = createHash("sha512").update(seed).digest();
+      const scalar = Buffer.from(expanded.subarray(0, 32));
+      scalar[0] = (scalar[0] as number) & 248;
+      scalar[31] = ((scalar[31] as number) & 127) | 64;
+      const publicPoint = Buffer.from(keyA.export({ format: "jwk" }).x as string, "base64url");
+      const k =
+        littleEndian(
+          createHash("sha512").update(IDENTITY).update(publicPoint).update(message).digest(),
+        ) % order;
+      const s = (k * littleEndian(scalar)) % order;
+      const signature = Buffer.concat([IDENTITY, toLittleEndian(s)]);
+      // As above, whether the primitive alone accepts it depends on the build.
+
+      const result = verifyEventSignature(event, "Ed25519", signature.toString("base64"), keyA);
+      assert.equal(!result.ok && result.kind, "signature-invalid");
+      assert.match(!result.ok ? result.message : "", /R is a small-order point/);
+    });
   });
 
   describe("verifyEventSignature", () => {

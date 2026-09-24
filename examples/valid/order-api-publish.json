@@ -1,5 +1,5 @@
 {
-  "specVersion": "0.1",
+  "specVersion": "1.0",
   "id": "018f1b5c-7e3b-7d4f-8b2c-5a6f7e8d9c0b",
   "time": "2026-03-14T09:24:31.412Z",
   "event": {
@@ -27,6 +27,7 @@
     "correlationId": "order-process-9d41c7a2",
     "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
     "spanId": "1a2b3c4d5e6f7081",
+    "parentSpanId": "00f067aa0ba902b7",
     "protocol": "https",
     "method": "POST",
     "route": "/orders"

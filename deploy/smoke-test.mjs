@@ -19,7 +19,7 @@
 // Pinned on purpose: a deploy that serves fewer is incomplete and one that
 // serves more is not the release it claims to be. mcp/tests keeps these three
 // numbers equal to what the server registers, so they cannot drift unnoticed.
-const EXPECTED = { tools: 10, prompts: 3, resources: 36 };
+const EXPECTED = { tools: 10, prompts: 3, resources: 37 };
 
 const base = (process.argv[2] ?? "http://127.0.0.1:3000").replace(/\/+$/, "");
 const allowedOrigin = process.argv[3] ?? "https://openauditmodel.org";

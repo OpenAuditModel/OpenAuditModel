@@ -9,7 +9,7 @@
 import type { KeyObject } from "node:crypto";
 import type { EventValidator } from "../validate-core.js";
 import { digestsEqual } from "./digest.js";
-import { verifyEventIntegrity, readIntegrity } from "./verify-event.js";
+import { verifyEventIntegrity, readIntegrity, schemaFailureMessage } from "./verify-event.js";
 import type { ChainReport, ChainVerificationResult, Finding, Note, PassedCheck } from "./types.js";
 
 /** One event offered for chain verification. */
@@ -338,7 +338,7 @@ export function addChainEvent(intake: ChainIntake, input: ChainEventInput): void
       intake.unassigned.push({
         kind: "schema-invalid",
         label: input.label,
-        message: "event does not conform to the canonical schema",
+        message: schemaFailureMessage(issues),
         detail:
           issues.length > shown.length
             ? [...shown, `and ${issues.length - shown.length} further schema issues`]

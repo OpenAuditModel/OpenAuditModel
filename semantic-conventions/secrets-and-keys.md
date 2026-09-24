@@ -1,6 +1,6 @@
 # Secret and Key Events
 
-**Specification version: 0.1 · Status: Experimental**
+**Specification version: 1.0 · Status: Stable**
 
 ## 1. Recommended event names
 
@@ -29,15 +29,16 @@ policy is configuration.
 
 ### Keys
 
-| Name           | Operation                                       |
-| -------------- | ----------------------------------------------- |
-| `key.generate` | A key was created inside the store              |
-| `key.import`   | A key created elsewhere was brought in          |
-| `key.rotate`   | A new key version replaced the active one       |
-| `key.enable`   | A key was made usable                           |
-| `key.disable`  | A key was made unusable without being destroyed |
-| `key.export`   | Key material left the store                     |
-| `key.destroy`  | A key was destroyed and cannot be recovered     |
+| Name                | Operation                                       |
+| ------------------- | ----------------------------------------------- |
+| `key.generate`      | A key was created inside the store              |
+| `key.import`        | A key created elsewhere was brought in          |
+| `key.rotate`        | A new key version replaced the active one       |
+| `key.enable`        | A key was made usable                           |
+| `key.disable`       | A key was made unusable without being destroyed |
+| `key.export`        | Key material left the store                     |
+| `key.destroy`       | A key was destroyed and cannot be recovered     |
+| `key.policy.update` | The policy attached to a key was changed        |
 
 ### Certificates
 
@@ -53,10 +54,15 @@ policy is configuration.
 `secret.policy.update` records a change to the rules governing rotation, expiry or access for a
 secret or a class of secrets.
 
-**Open item.** The profile also selects the prefix `key.policy.`, and no name is published under it
-and no fixture carries one. Either a key policy operation exists and should be named here, or the
-prefix should be withdrawn. It is recorded as an open question rather than filled with an invented
-name.
+`key.policy.update` records a change to the policy attached to a cryptographic key: who may use
+it and for what, its rotation schedule, or whether it may be exported. The operation is real and
+common — a key management service's key policy, a key vault's access policy, an HSM's key usage
+attributes — and it is distinct from `secret.policy.update` because a key is used rather than read.
+It is governed by the same rules as `secret.policy.update`: the change and the reason are required.
+
+Named in 1.0. Until then the profile selected the prefix `key.policy.` with no name published under
+it; the prefix now has one. Event names are an open vocabulary, so a later minor version may add a
+name the same way ([ADR 0017](../decisions/0017-versioning-and-compatibility.md) §2).
 
 ## 2. The overlap with `configuration.secret.access`
 
@@ -65,15 +71,18 @@ for a principal reading a secret held as application configuration. This documen
 `secret.reveal` for a principal reading a secret from a secret store, which is what the
 secrets-and-key-management profile enforces.
 
-These are two names for what is arguably one operation, and this document does not resolve that. A
-convention may not quietly withdraw a name another convention publishes: `event-model.md` §7.2 makes
-name stability a MUST, and a producer already emitting either name is conforming. Reconciling the two
-is a specification change and needs an issue against
-[CONTRIBUTING.md](../CONTRIBUTING.md)'s specification-change process.
+Resolved in 1.0 by keeping both and saying what separates them, which is where the secret is held.
+Neither name is withdrawn: `event-model.md` §7.2 makes name stability a MUST, and a producer already
+emitting either is conforming.
 
-Until then: a producer whose secrets are configuration values SHOULD use
-`configuration.secret.access`; a producer with a secret store as a distinct system SHOULD use
-`secret.reveal`. A producer SHOULD NOT emit both for one read.
+- `configuration.secret.access` — the secret is a value in the application's own configuration, read
+  as part of reading configuration.
+- `secret.reveal` — the secret is held by a secret store that is a system of its own, and a
+  principal asked that store for it. This is the operation the secrets-and-key-management profile
+  governs.
+
+A producer SHOULD NOT emit both for one read. A consumer that wants every read of a secret selects
+both names; they are two views of one kind of act, not two acts.
 
 ## 3. What must never be recorded
 

@@ -1,5 +1,5 @@
 {
-  "specVersion": "0.1",
+  "specVersion": "1.0",
   "id": "018f2a45-9d31-7e42-8b17-2c3d4e5f6a71",
   "time": "2026-04-05T16:42:08.900Z",
   "event": {
@@ -36,10 +36,10 @@
   "integrity": {
     "canonicalization": "RFC8785",
     "hashAlgorithm": "SHA-256",
-    "hash": "bc9808880ddcc485638beec9b17c7996c4640c4627f9a78c9586f2065a8b8065",
+    "hash": "17e64380c692a10bdc5a49fed16b23788e9eff025c5fa5adbc665bfccb7e6165",
     "signature": {
       "algorithm": "ECDSA-P384-SHA384",
-      "value": "BLfdwtWE2r1YaIwE3tQOSQ3UkEm2Az0MMLaK60uWU/VZb/kMyCSxZGrbTNJTl/9G6qUqQSGtaLDNobR3PH9xBg==",
+      "value": "H2P1h3TLRkmsZkMq0wAy5KdQ2WBzg+gSERnf9NwRlq4dRocLOE4xMGGKZ5wdjSePxU82O8404bCris4YUDCIDQ==",
       "keyId": "example-fixture-key-2026"
     }
   }

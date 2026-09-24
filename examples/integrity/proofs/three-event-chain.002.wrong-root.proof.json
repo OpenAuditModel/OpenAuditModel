@@ -2,22 +2,22 @@
   "proofVersion": "0.1",
   "hashAlgorithm": "SHA-256",
   "leaf": {
-    "hash": "f7fbea247bdde9c24f07d81cb6ba82b60372f293b2d618066b065bac880dcbf1",
+    "hash": "afc6dabbab005e2526b93164376c8bdd54184dff2ab49ef09cd7152cd48912cb",
     "index": 1,
     "eventId": "018f2a30-1111-7222-8333-444455556602"
   },
   "path": [
     {
       "side": "left",
-      "hash": "635e335d2d2aa5eb9db74480679bba6774f4662673084b67c16ab8fbd2522039"
+      "hash": "a6eda3d87ca03442e74a2d866ae5cb15c0dbf1b98e9fcbe727ec265f4c71db74"
     },
     {
       "side": "right",
-      "hash": "86c3959712ae98fa0c0d165bc5667703c2b3619923c7bd4bfac6df3554d88198"
+      "hash": "1d06e9f239f757bdad0398feaa49e091fcb5c8de89802025c821eaa93379ad4a"
     }
   ],
   "root": {
-    "hash": "06610d2b8e59b5a15b207b8d67000e0cbe26691eb1f78f598ec172d2e195ed4f",
+    "hash": "da6278cc6a94cec430d8ac7362d58afcbdd48a3cc1a6a9c542cb1d119d8e4889",
     "leafCount": 3,
     "anchor": {
       "type": "publication",

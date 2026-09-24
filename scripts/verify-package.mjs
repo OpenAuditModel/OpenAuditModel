@@ -31,6 +31,7 @@ const problems = [];
 /** Paths the CLI reads at runtime. Absent from the tarball means broken on install. */
 const REQUIRED = [
   "dist/conformance/src/cli.js",
+  "schemas/v1.0/audit-event.schema.json",
   "schemas/v0.1/audit-event.schema.json",
   "schemas/checkpoint/v0.1/checkpoint.schema.json",
   "schemas/proof/v0.1/proof.schema.json",

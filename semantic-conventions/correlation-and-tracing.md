@@ -1,6 +1,6 @@
 # Semantic Conventions: Correlation and Tracing
 
-**Specification version: 0.1 · Status: Experimental · This document: Informative**
+**Specification version: 1.0 · Status: Stable · This document: Informative**
 
 > How to populate the identifiers that let an operator find every audit event, application log and
 > error belonging to one operation — across services, messages and trace boundaries.
@@ -14,7 +14,7 @@ timing. It carries the identifiers a tracing system already produced, so that an
 joined to whatever the operator already runs — and so that correlation still works when nothing is
 running at all.
 
-## 1. The five identifiers
+## 1. The six identifiers
 
 | Field                    | Identifies                        | Stable across services? | Stable across messages? |
 | ------------------------ | --------------------------------- | ----------------------- | ----------------------- |
@@ -22,6 +22,7 @@ running at all.
 | `/request/requestId`     | one inbound request               | usually no              | not applicable          |
 | `/request/traceId`       | one distributed execution         | **yes**                 | yes, if continued       |
 | `/request/spanId`        | one operation inside that trace   | no — new per operation  | no                      |
+| `/request/parentSpanId`  | the operation that caused it      | no — new per operation  | no                      |
 | `/request/correlationId` | one logical or business operation | **yes**                 | **yes**                 |
 
 ### 1.1 `/id` — the audit event identifier
@@ -319,11 +320,13 @@ identifier, and it must never be a usable session token or cookie value.
 
 ## 7. Experimental: messaging causation
 
-**Experimental. Not a stable core field, not a required convention, and not part of the v0.1
+**Experimental. Not a stable core field, not a required convention, and not part of the
 conformance surface.** Nothing validates it, and it may change or be withdrawn.
 
-The core schema deliberately has no `causationId`. A shared `traceId` groups events; it does not say
-which event caused which. Where that relationship must be recorded, producers MAY use the reserved
+The core schema deliberately has no `causationId`. A shared `traceId` groups events, and from 1.0
+`/request/parentSpanId` says which span caused which within one trace. Neither says which event
+caused which across a message boundary, where the consumer starts a new trace or continues one that
+many producers fed. Where that relationship must be recorded, producers MAY use the reserved
 extension:
 
 ```json
@@ -360,7 +363,10 @@ the **same values** under whatever names their stack already uses.
 | `/request/correlationId` | attribute     | label      |
 
 The values are byte-identical across all three, so a log backend needs a field alias, not a
-transformation. Emit `traceId` and `spanId` into application logs, error logs, producer logs and
+transformation. `/request/parentSpanId` has no counterpart here: an OpenTelemetry log record carries
+no parent span and ECS defines no field for one. The parent belongs to the span, which the tracing
+backend already holds; the audit event records it so that the audit trail can be arranged without
+that backend. Emit `traceId` and `spanId` into application logs, error logs, producer logs and
 consumer logs, and a search for one trace identifier returns the audit events alongside them.
 
 OpenAuditModel keeps its own `camelCase` naming rather than adopting `trace.id`, because that naming

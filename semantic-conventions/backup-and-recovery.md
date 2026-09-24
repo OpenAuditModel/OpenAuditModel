@@ -1,6 +1,6 @@
 # Backup and Recovery Events
 
-**Specification version: 0.1 · Status: Experimental**
+**Specification version: 1.0 · Status: Stable**
 
 ## 1. Recommended event names
 

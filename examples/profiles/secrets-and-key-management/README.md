@@ -49,6 +49,7 @@ that an operation happened and nothing about what was protected.
 | `key-import.json`              | `key.import`           | Externally generated material accepted, and why                 |
 | `key-destroy.json`             | `key.destroy`          | Irreversible destruction under an approval its policy required  |
 | `key-export.json`              | `key.export`           | Key material leaving one custodian for another                  |
+| `key-policy-update.json`       | `key.policy.update`    | A key's usage policy narrowed, recorded as before and after     |
 | `certificate-issue.json`       | `certificate.issue`    | Issuance recording when validity ends                           |
 
 Two of these produce a **warning** and no error, which is intentional:

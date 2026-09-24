@@ -1,6 +1,6 @@
 # Privacy
 
-**Specification version: 0.1 · Status: Experimental · This document: Normative**
+**Specification version: 1.0 · Status: Stable · This document: Normative**
 
 Audit data concentrates the most sensitive relationship in a system: who did what to whom, and when.
 It is frequently retained longer than production data, replicated to more systems, and read by more
@@ -125,7 +125,7 @@ it.
 | `reference` | Personal data was replaced with a reference to another system. |
 
 A single value describes the treatment applied to the event as a whole. Per-field processing
-descriptions are an open question for v0.2.
+descriptions are an open question for a later version.
 
 Note that `hash` is not anonymization. Hashing a low-entropy identifier such as an email address or a
 national identification number is reversible by enumeration and MUST NOT be presented as removing the
@@ -283,7 +283,7 @@ published credential format is reported even if it also looks like an identifier
 
 ### 6.8 Fixed thresholds
 
-Version 0.1 hard-codes these. They are not configurable; see
+The reference tooling hard-codes these. They are not configurable; see
 [ADR 0007](../decisions/0007-deterministic-privacy-linting.md).
 
 | Threshold                       | Value                                |
@@ -336,12 +336,14 @@ structure yields findings whose paths mean nothing.
 
 ```text
 0  no findings
-1  one or more privacy findings, or a schema-invalid event
+1  one or more privacy findings
 2  usage error, or a file could not be read or parsed
+3  no findings, and at least one input was not linted because it is not a schema-valid event
 ```
 
 A schema-invalid event is reported and **not** deep linted, and exits non-zero: a clean privacy
-result for an event that was never linted would be misleading.
+result for an event that was never linted would be misleading. It exits `3` rather than `1` because
+nothing was scanned, so no verdict was produced; a finding elsewhere in the same run still exits `1`.
 
 ### 6.12 Using it
 

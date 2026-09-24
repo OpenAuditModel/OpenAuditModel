@@ -1,6 +1,6 @@
 {
-  "specVersion": "0.1",
-  "schemaId": "https://openauditmodel.org/schemas/audit-event/0.1/schema.json",
+  "specVersion": "1.0",
+  "schemaId": "https://openauditmodel.org/schemas/audit-event/1.0/schema.json",
   "claims": [
     "Each record states what the reference implementation answers for one published fixture.",
     "An implementation that answers the same has demonstrated that, and nothing else.",
@@ -11,50 +11,531 @@
   "profiles": [
     {
       "name": "api-and-integration-management",
-      "version": "0.1"
-    },
-    {
-      "name": "backup-and-recovery",
-      "version": "0.1"
-    },
-    {
-      "name": "customer-and-account-management",
-      "version": "0.1"
-    },
-    {
-      "name": "deployment-and-change-management",
-      "version": "0.1"
-    },
-    {
-      "name": "document-management",
-      "version": "0.1"
-    },
-    {
-      "name": "financial-transaction-management",
-      "version": "0.1"
-    },
-    {
-      "name": "identity-and-access-management",
-      "version": "0.1"
-    },
-    {
-      "name": "incident-management",
       "version": "0.2"
     },
     {
+      "name": "backup-and-recovery",
+      "version": "0.2"
+    },
+    {
+      "name": "customer-and-account-management",
+      "version": "0.2"
+    },
+    {
+      "name": "deployment-and-change-management",
+      "version": "0.2"
+    },
+    {
+      "name": "document-management",
+      "version": "0.2"
+    },
+    {
+      "name": "financial-transaction-management",
+      "version": "0.2"
+    },
+    {
+      "name": "identity-and-access-management",
+      "version": "0.2"
+    },
+    {
+      "name": "incident-management",
+      "version": "0.3"
+    },
+    {
       "name": "message-broker-management",
-      "version": "0.1"
+      "version": "0.2"
     },
     {
       "name": "secrets-and-key-management",
-      "version": "0.1"
+      "version": "0.2"
     }
   ],
   "fixtures": [
     {
+      "fixture": "examples/compatibility/v0.1/integrity/invalid/broken-previous-hash/001.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/invalid/broken-previous-hash/002.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/invalid/broken-previous-hash/003.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/invalid/duplicate-sequence/001.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/invalid/duplicate-sequence/002.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/invalid/duplicate-sequence/003.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/invalid/missing-sequence/001.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/invalid/missing-sequence/002.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/invalid/missing-sequence/003.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/invalid/reordered-chain/001.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/invalid/reordered-chain/002.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": false,
+        "findings": ["hash-mismatch"]
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/invalid/reordered-chain/003.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": false,
+        "findings": ["hash-mismatch"]
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/invalid/tampered-event.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": false,
+        "findings": ["hash-mismatch"]
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/invalid/tampered-signed-event.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": false,
+        "findings": ["hash-mismatch"]
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/invalid/truncated-chain/001.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/invalid/truncated-chain/002.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/invalid/unsupported-algorithm.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": false,
+        "findings": ["unsupported-algorithm"]
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/invalid/unsupported-signature-algorithm.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": false,
+        "findings": ["unsupported-signature-algorithm"]
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/invalid/wrong-declared-hash.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": false,
+        "findings": ["hash-mismatch"]
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/valid/chain-in-two-batches/001.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/valid/chain-in-two-batches/002.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/valid/chain-in-two-batches/003.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/valid/signed-event-ecdsa-p256.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/valid/signed-event-ed25519.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/valid/signed-event-rsa-pss.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/valid/single-event-sha256.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/valid/three-event-chain/001.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/valid/three-event-chain/002.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/valid/three-event-chain/003.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/compatibility/v0.1/integrity/valid/unicode-and-number-event.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "verifyIntegrity": {
+        "verified": true,
+        "findings": []
+      }
+    },
+    {
       "fixture": "examples/integrity/invalid/broken-previous-hash/001.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -70,6 +551,7 @@
       "fixture": "examples/integrity/invalid/broken-previous-hash/002.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -85,6 +567,7 @@
       "fixture": "examples/integrity/invalid/broken-previous-hash/003.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -100,6 +583,7 @@
       "fixture": "examples/integrity/invalid/duplicate-sequence/001.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -115,6 +599,7 @@
       "fixture": "examples/integrity/invalid/duplicate-sequence/002.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -130,6 +615,7 @@
       "fixture": "examples/integrity/invalid/duplicate-sequence/003.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -145,6 +631,7 @@
       "fixture": "examples/integrity/invalid/missing-sequence/001.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -160,6 +647,7 @@
       "fixture": "examples/integrity/invalid/missing-sequence/002.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -175,6 +663,7 @@
       "fixture": "examples/integrity/invalid/missing-sequence/003.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -190,6 +679,7 @@
       "fixture": "examples/integrity/invalid/reordered-chain/001.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -205,6 +695,7 @@
       "fixture": "examples/integrity/invalid/reordered-chain/002.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -220,6 +711,7 @@
       "fixture": "examples/integrity/invalid/reordered-chain/003.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -235,6 +727,7 @@
       "fixture": "examples/integrity/invalid/tampered-event.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -250,6 +743,7 @@
       "fixture": "examples/integrity/invalid/tampered-signed-event.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -265,6 +759,7 @@
       "fixture": "examples/integrity/invalid/truncated-chain/001.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -280,6 +775,7 @@
       "fixture": "examples/integrity/invalid/truncated-chain/002.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -295,6 +791,7 @@
       "fixture": "examples/integrity/invalid/unsupported-algorithm.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -310,6 +807,7 @@
       "fixture": "examples/integrity/invalid/unsupported-signature-algorithm.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -325,6 +823,7 @@
       "fixture": "examples/integrity/invalid/wrong-declared-hash.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -340,6 +839,7 @@
       "fixture": "examples/integrity/valid/chain-in-two-batches/001.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -355,6 +855,7 @@
       "fixture": "examples/integrity/valid/chain-in-two-batches/002.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -370,6 +871,7 @@
       "fixture": "examples/integrity/valid/chain-in-two-batches/003.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -385,6 +887,7 @@
       "fixture": "examples/integrity/valid/signed-event-ecdsa-p256.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -400,6 +903,7 @@
       "fixture": "examples/integrity/valid/signed-event-ed25519.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -415,6 +919,7 @@
       "fixture": "examples/integrity/valid/signed-event-rsa-pss.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -430,6 +935,7 @@
       "fixture": "examples/integrity/valid/single-event-sha256.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -445,6 +951,7 @@
       "fixture": "examples/integrity/valid/three-event-chain/001.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -460,6 +967,7 @@
       "fixture": "examples/integrity/valid/three-event-chain/002.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -475,6 +983,7 @@
       "fixture": "examples/integrity/valid/three-event-chain/003.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -490,6 +999,7 @@
       "fixture": "examples/integrity/valid/unicode-and-number-event.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -505,6 +1015,7 @@
       "fixture": "examples/invalid/delegation-without-subject.json",
       "validate": {
         "valid": false,
+        "notEvaluated": false,
         "issues": [
           {
             "path": "/subject",
@@ -525,6 +1036,7 @@
       "fixture": "examples/invalid/failure-without-error.json",
       "validate": {
         "valid": false,
+        "notEvaluated": false,
         "issues": [
           {
             "path": "/event/error",
@@ -545,6 +1057,7 @@
       "fixture": "examples/invalid/invalid-event-name.json",
       "validate": {
         "valid": false,
+        "notEvaluated": false,
         "issues": [
           {
             "path": "/event/name",
@@ -561,6 +1074,7 @@
       "fixture": "examples/invalid/invalid-extension-name.json",
       "validate": {
         "valid": false,
+        "notEvaluated": false,
         "issues": [
           {
             "path": "/extensions/clusterId",
@@ -581,6 +1095,7 @@
       "fixture": "examples/invalid/missing-actor.json",
       "validate": {
         "valid": false,
+        "notEvaluated": false,
         "issues": [
           {
             "path": "/actor",
@@ -597,6 +1112,7 @@
       "fixture": "examples/invalid/missing-resource.json",
       "validate": {
         "valid": false,
+        "notEvaluated": false,
         "issues": [
           {
             "path": "/resource",
@@ -613,6 +1129,7 @@
       "fixture": "examples/invalid/unknown-core-property.json",
       "validate": {
         "valid": false,
+        "notEvaluated": false,
         "issues": [
           {
             "path": "/actor/department",
@@ -629,6 +1146,7 @@
       "fixture": "examples/privacy/clean/hashes-and-identifiers.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -640,6 +1158,7 @@
       "fixture": "examples/privacy/clean/minimal-clean-event.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -651,6 +1170,7 @@
       "fixture": "examples/privacy/clean/safe-evidence-reference.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -662,6 +1182,7 @@
       "fixture": "examples/privacy/clean/sanitized-change.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -673,6 +1194,7 @@
       "fixture": "examples/privacy/clean/structured-metadata.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -684,6 +1206,7 @@
       "fixture": "examples/privacy/findings/access-token-field.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -702,6 +1225,7 @@
       "fixture": "examples/privacy/findings/bearer-token.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -720,6 +1244,7 @@
       "fixture": "examples/privacy/findings/credentialed-connection-string.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -738,6 +1263,7 @@
       "fixture": "examples/privacy/findings/evidence-query-string.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -756,6 +1282,7 @@
       "fixture": "examples/privacy/findings/high-entropy-token.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -774,6 +1301,7 @@
       "fixture": "examples/privacy/findings/jwt-token.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -792,6 +1320,7 @@
       "fixture": "examples/privacy/findings/oversized-change-before.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -810,6 +1339,7 @@
       "fixture": "examples/privacy/findings/password-field.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -828,6 +1358,7 @@
       "fixture": "examples/privacy/findings/private-key.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -846,6 +1377,7 @@
       "fixture": "examples/privacy/findings/raw-response-body.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -864,6 +1396,7 @@
       "fixture": "examples/privacy/findings/url-userinfo.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -882,6 +1415,7 @@
       "fixture": "examples/profiles/api-and-integration-management/invalid/api-key-create-missing-authentication.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -914,6 +1448,7 @@
       "fixture": "examples/profiles/api-and-integration-management/invalid/api-key-create-missing-authorization.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -946,6 +1481,7 @@
       "fixture": "examples/profiles/api-and-integration-management/invalid/api-key-rotate-missing-credential-reference.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -983,6 +1519,7 @@
       "fixture": "examples/profiles/api-and-integration-management/invalid/integration-configuration-update-missing-connection-id.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1013,6 +1550,7 @@
       "fixture": "examples/profiles/api-and-integration-management/invalid/integration-connect-missing-approval-status.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1045,6 +1583,7 @@
       "fixture": "examples/profiles/api-and-integration-management/invalid/integration-disconnect-missing-authentication.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1077,6 +1616,7 @@
       "fixture": "examples/profiles/api-and-integration-management/invalid/integration-reauthorize-missing-error-type.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1109,6 +1649,7 @@
       "fixture": "examples/profiles/api-and-integration-management/invalid/integration-sync-start-missing-correlation-id.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1148,6 +1689,7 @@
       "fixture": "examples/profiles/api-and-integration-management/invalid/webhook-create-missing-endpoint-class.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1177,6 +1719,7 @@
       "fixture": "examples/profiles/api-and-integration-management/invalid/webhook-create-missing-type.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1206,6 +1749,7 @@
       "fixture": "examples/profiles/api-and-integration-management/invalid/webhook-disable-missing-reason.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1241,6 +1785,7 @@
       "fixture": "examples/profiles/api-and-integration-management/invalid/webhook-update-missing-change.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1276,6 +1821,7 @@
       "fixture": "examples/profiles/api-and-integration-management/not-applicable/api-request.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1294,6 +1840,7 @@
       "fixture": "examples/profiles/api-and-integration-management/not-applicable/integration-sync-progress.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1312,6 +1859,7 @@
       "fixture": "examples/profiles/api-and-integration-management/not-applicable/webhook-delivery.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1330,6 +1878,7 @@
       "fixture": "examples/profiles/api-and-integration-management/valid/api-key-create.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1357,6 +1906,7 @@
       "fixture": "examples/profiles/api-and-integration-management/valid/api-key-revoke.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1384,6 +1934,7 @@
       "fixture": "examples/profiles/api-and-integration-management/valid/api-key-rotate.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1416,6 +1967,7 @@
       "fixture": "examples/profiles/api-and-integration-management/valid/integration-configuration-update.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1441,6 +1993,7 @@
       "fixture": "examples/profiles/api-and-integration-management/valid/integration-connect.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1468,6 +2021,7 @@
       "fixture": "examples/profiles/api-and-integration-management/valid/integration-disconnect.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1495,6 +2049,7 @@
       "fixture": "examples/profiles/api-and-integration-management/valid/integration-reauthorize-failure.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1522,6 +2077,7 @@
       "fixture": "examples/profiles/api-and-integration-management/valid/integration-sync-cancel.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1548,6 +2104,7 @@
       "fixture": "examples/profiles/api-and-integration-management/valid/integration-sync-start.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1578,6 +2135,7 @@
       "fixture": "examples/profiles/api-and-integration-management/valid/webhook-create.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1602,6 +2160,7 @@
       "fixture": "examples/profiles/api-and-integration-management/valid/webhook-disable.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1627,6 +2186,7 @@
       "fixture": "examples/profiles/api-and-integration-management/valid/webhook-test.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1656,6 +2216,7 @@
       "fixture": "examples/profiles/api-and-integration-management/valid/webhook-update.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1681,6 +2242,7 @@
       "fixture": "examples/profiles/backup-and-recovery/invalid/backup-complete-missing-backup-id.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1709,6 +2271,7 @@
       "fixture": "examples/profiles/backup-and-recovery/invalid/backup-complete-missing-recovery-point.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1737,6 +2300,7 @@
       "fixture": "examples/profiles/backup-and-recovery/invalid/backup-create-missing-authorization.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1765,6 +2329,7 @@
       "fixture": "examples/profiles/backup-and-recovery/invalid/backup-delete-missing-reason.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1799,6 +2364,7 @@
       "fixture": "examples/profiles/backup-and-recovery/invalid/backup-expire-missing-retention-class.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1832,6 +2398,7 @@
       "fixture": "examples/profiles/backup-and-recovery/invalid/backup-verify-missing-verification-status.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1860,6 +2427,7 @@
       "fixture": "examples/profiles/backup-and-recovery/invalid/policy-update-missing-change.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1883,6 +2451,7 @@
       "fixture": "examples/profiles/backup-and-recovery/invalid/recovery-failover-missing-recovery-id.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1912,6 +2481,7 @@
       "fixture": "examples/profiles/backup-and-recovery/invalid/recovery-failover-missing-target-scope.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1941,6 +2511,7 @@
       "fixture": "examples/profiles/backup-and-recovery/invalid/restore-start-missing-approval.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -1974,6 +2545,7 @@
       "fixture": "examples/profiles/backup-and-recovery/invalid/restore-start-missing-source-id.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2002,6 +2574,7 @@
       "fixture": "examples/profiles/backup-and-recovery/invalid/snapshot-create-missing-snapshot-id.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2025,6 +2598,7 @@
       "fixture": "examples/profiles/backup-and-recovery/not-applicable/backup-chunk-write.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2043,6 +2617,7 @@
       "fixture": "examples/profiles/backup-and-recovery/not-applicable/restore-progress.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2061,6 +2636,7 @@
       "fixture": "examples/profiles/backup-and-recovery/not-applicable/storage-replica-heartbeat.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2079,6 +2655,7 @@
       "fixture": "examples/profiles/backup-and-recovery/valid/backup-complete-failed.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2097,6 +2674,7 @@
       "fixture": "examples/profiles/backup-and-recovery/valid/backup-complete.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2120,6 +2698,7 @@
       "fixture": "examples/profiles/backup-and-recovery/valid/backup-create.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2143,6 +2722,7 @@
       "fixture": "examples/profiles/backup-and-recovery/valid/backup-delete.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2167,6 +2747,7 @@
       "fixture": "examples/profiles/backup-and-recovery/valid/backup-expire.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2190,6 +2771,7 @@
       "fixture": "examples/profiles/backup-and-recovery/valid/backup-verify.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2213,6 +2795,7 @@
       "fixture": "examples/profiles/backup-and-recovery/valid/policy-update.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2231,6 +2814,7 @@
       "fixture": "examples/profiles/backup-and-recovery/valid/recovery-complete.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2249,6 +2833,7 @@
       "fixture": "examples/profiles/backup-and-recovery/valid/recovery-failback.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2273,6 +2858,7 @@
       "fixture": "examples/profiles/backup-and-recovery/valid/recovery-failover.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2297,6 +2883,7 @@
       "fixture": "examples/profiles/backup-and-recovery/valid/recovery-start.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2315,6 +2902,7 @@
       "fixture": "examples/profiles/backup-and-recovery/valid/restore-complete.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2333,6 +2921,7 @@
       "fixture": "examples/profiles/backup-and-recovery/valid/restore-start.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2356,6 +2945,7 @@
       "fixture": "examples/profiles/backup-and-recovery/valid/snapshot-create.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2374,6 +2964,7 @@
       "fixture": "examples/profiles/backup-and-recovery/valid/snapshot-delete.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2403,6 +2994,7 @@
       "fixture": "examples/profiles/customer-and-account-management/invalid/account-close-missing-approval.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2440,6 +3032,7 @@
       "fixture": "examples/profiles/customer-and-account-management/invalid/account-freeze-missing-restriction-scope.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2473,6 +3066,7 @@
       "fixture": "examples/profiles/customer-and-account-management/invalid/account-freeze-missing-status.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2506,6 +3100,7 @@
       "fixture": "examples/profiles/customer-and-account-management/invalid/account-limit-missing-before.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2538,6 +3133,7 @@
       "fixture": "examples/profiles/customer-and-account-management/invalid/account-open-missing-owner.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2568,6 +3164,7 @@
       "fixture": "examples/profiles/customer-and-account-management/invalid/account-status-missing-subject.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2600,6 +3197,7 @@
       "fixture": "examples/profiles/customer-and-account-management/invalid/account-update-missing-override-reason.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2636,6 +3234,7 @@
       "fixture": "examples/profiles/customer-and-account-management/invalid/customer-close-missing-authorization.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2667,6 +3266,7 @@
       "fixture": "examples/profiles/customer-and-account-management/invalid/customer-create-missing-customer-type.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2696,6 +3296,7 @@
       "fixture": "examples/profiles/customer-and-account-management/invalid/customer-delete-missing-scope.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2727,6 +3328,7 @@
       "fixture": "examples/profiles/customer-and-account-management/invalid/customer-merge-missing-source.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2758,6 +3360,7 @@
       "fixture": "examples/profiles/customer-and-account-management/invalid/customer-update-missing-change.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2793,6 +3396,7 @@
       "fixture": "examples/profiles/customer-and-account-management/not-applicable/account-balance-view.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2811,6 +3415,7 @@
       "fixture": "examples/profiles/customer-and-account-management/not-applicable/customer-profile-view.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2829,6 +3434,7 @@
       "fixture": "examples/profiles/customer-and-account-management/not-applicable/customer-search.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2847,6 +3453,7 @@
       "fixture": "examples/profiles/customer-and-account-management/valid/account-close-approved.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2874,6 +3481,7 @@
       "fixture": "examples/profiles/customer-and-account-management/valid/account-freeze.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2902,6 +3510,7 @@
       "fixture": "examples/profiles/customer-and-account-management/valid/account-limit-increase.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2929,6 +3538,7 @@
       "fixture": "examples/profiles/customer-and-account-management/valid/account-open.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2954,6 +3564,7 @@
       "fixture": "examples/profiles/customer-and-account-management/valid/account-status-on-behalf.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -2981,6 +3592,7 @@
       "fixture": "examples/profiles/customer-and-account-management/valid/account-update-override.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3007,6 +3619,7 @@
       "fixture": "examples/profiles/customer-and-account-management/valid/customer-close.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3033,6 +3646,7 @@
       "fixture": "examples/profiles/customer-and-account-management/valid/customer-create.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3057,6 +3671,7 @@
       "fixture": "examples/profiles/customer-and-account-management/valid/customer-delete.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3083,6 +3698,7 @@
       "fixture": "examples/profiles/customer-and-account-management/valid/customer-merge.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3109,6 +3725,7 @@
       "fixture": "examples/profiles/customer-and-account-management/valid/customer-restrict.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3136,6 +3753,7 @@
       "fixture": "examples/profiles/customer-and-account-management/valid/customer-update.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3161,6 +3779,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/invalid/cancel-missing-authorization.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3195,6 +3814,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/invalid/cancel-missing-reason.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3234,6 +3854,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/invalid/change-request-approve-missing-approval.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3278,6 +3899,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/invalid/configuration-update-missing-authorization.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3316,6 +3938,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/invalid/deploy-approved-missing-approval.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3350,6 +3973,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/invalid/deploy-failed-missing-resulting-state.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3384,6 +4008,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/invalid/deploy-missing-approval-required.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3418,6 +4043,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/invalid/deploy-missing-deployment-id.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3452,6 +4078,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/invalid/deploy-missing-environment.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3486,6 +4113,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/invalid/deploy-missing-previous-version.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3520,6 +4148,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/invalid/deploy-missing-version.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3554,6 +4183,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/invalid/deploy-partial-missing-resulting-state.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3588,6 +4218,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/invalid/secret-rotate-missing-changed-fields.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3621,6 +4252,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/invalid/secret-rotate-missing-reason.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3659,6 +4291,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/not-applicable/build-log-append.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3677,6 +4310,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/not-applicable/pipeline-poll.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3695,6 +4329,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/not-applicable/secret-access.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3713,6 +4348,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/valid/change-request-approve.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3744,6 +4380,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/valid/configuration-update.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3777,6 +4414,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/valid/deploy-approved.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3806,6 +4444,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/valid/deploy-automated.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3835,6 +4474,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/valid/deploy-failed.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3864,6 +4504,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/valid/deploy-partial.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3893,6 +4534,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/valid/infrastructure-apply.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3922,6 +4564,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/valid/release-approve.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3949,6 +4592,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/valid/release-cancel.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -3978,6 +4622,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/valid/release-create.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4004,6 +4649,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/valid/rollback-emergency.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4034,6 +4680,7 @@
       "fixture": "examples/profiles/deployment-and-change-management/valid/secret-rotate-emergency.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4062,6 +4709,7 @@
       "fixture": "examples/profiles/document-management/invalid/delete-missing-reason.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4090,6 +4738,7 @@
       "fixture": "examples/profiles/document-management/invalid/download-missing-classification.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4118,6 +4767,7 @@
       "fixture": "examples/profiles/document-management/invalid/external-share-missing-expiry.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4152,6 +4802,7 @@
       "fixture": "examples/profiles/document-management/invalid/external-share-missing-reason.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4186,6 +4837,7 @@
       "fixture": "examples/profiles/document-management/invalid/legal-hold-missing-state.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4209,6 +4861,7 @@
       "fixture": "examples/profiles/document-management/invalid/permission-grant-missing-grantee.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4232,6 +4885,7 @@
       "fixture": "examples/profiles/document-management/invalid/retention-update-missing-class.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4255,6 +4909,7 @@
       "fixture": "examples/profiles/document-management/invalid/share-create-missing-permission.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4289,6 +4944,7 @@
       "fixture": "examples/profiles/document-management/invalid/share-missing-recipient-type.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4323,6 +4979,7 @@
       "fixture": "examples/profiles/document-management/invalid/upload-missing-authorization.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4351,6 +5008,7 @@
       "fixture": "examples/profiles/document-management/invalid/version-rollback-missing-previous.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4374,6 +5032,7 @@
       "fixture": "examples/profiles/document-management/not-applicable/file-view.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4392,6 +5051,7 @@
       "fixture": "examples/profiles/document-management/valid/file-delete.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4410,6 +5070,7 @@
       "fixture": "examples/profiles/document-management/valid/file-download.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4433,6 +5094,7 @@
       "fixture": "examples/profiles/document-management/valid/file-upload.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4456,6 +5118,7 @@
       "fixture": "examples/profiles/document-management/valid/legal-hold-apply.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4474,6 +5137,7 @@
       "fixture": "examples/profiles/document-management/valid/permission-grant.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4492,6 +5156,7 @@
       "fixture": "examples/profiles/document-management/valid/retention-update.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4510,6 +5175,7 @@
       "fixture": "examples/profiles/document-management/valid/share-external.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4534,6 +5200,7 @@
       "fixture": "examples/profiles/document-management/valid/share-internal.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4563,6 +5230,7 @@
       "fixture": "examples/profiles/document-management/valid/share-revoke.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4581,6 +5249,7 @@
       "fixture": "examples/profiles/document-management/valid/version-rollback.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4599,6 +5268,7 @@
       "fixture": "examples/profiles/financial-transaction-management/invalid/limit-update-missing-limit-type.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4628,6 +5298,7 @@
       "fixture": "examples/profiles/financial-transaction-management/invalid/manual-deposit-missing-change.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4658,6 +5329,7 @@
       "fixture": "examples/profiles/financial-transaction-management/invalid/payment-capture-missing-amount.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4688,6 +5360,7 @@
       "fixture": "examples/profiles/financial-transaction-management/invalid/payment-capture-missing-authorization.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4718,6 +5391,7 @@
       "fixture": "examples/profiles/financial-transaction-management/invalid/payout-missing-direction.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4753,6 +5427,7 @@
       "fixture": "examples/profiles/financial-transaction-management/invalid/reconciliation-adjust-missing-change.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4783,6 +5458,7 @@
       "fixture": "examples/profiles/financial-transaction-management/invalid/reconciliation-missing-identifier.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4813,6 +5489,7 @@
       "fixture": "examples/profiles/financial-transaction-management/invalid/refund-missing-reason.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4849,6 +5526,7 @@
       "fixture": "examples/profiles/financial-transaction-management/invalid/reversal-missing-original-transaction.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4881,6 +5559,7 @@
       "fixture": "examples/profiles/financial-transaction-management/invalid/transfer-missing-related-resources.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4917,6 +5596,7 @@
       "fixture": "examples/profiles/financial-transaction-management/invalid/withdrawal-missing-approval-status.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4947,6 +5627,7 @@
       "fixture": "examples/profiles/financial-transaction-management/invalid/withdrawal-missing-correlation.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4977,6 +5658,7 @@
       "fixture": "examples/profiles/financial-transaction-management/not-applicable/balance-view.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -4995,6 +5677,7 @@
       "fixture": "examples/profiles/financial-transaction-management/not-applicable/quote-create.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5013,6 +5696,7 @@
       "fixture": "examples/profiles/financial-transaction-management/not-applicable/report-generate.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5031,6 +5715,7 @@
       "fixture": "examples/profiles/financial-transaction-management/valid/chargeback-open.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5063,6 +5748,7 @@
       "fixture": "examples/profiles/financial-transaction-management/valid/deposit-manual-correction.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5088,6 +5774,7 @@
       "fixture": "examples/profiles/financial-transaction-management/valid/limit-update.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5112,6 +5799,7 @@
       "fixture": "examples/profiles/financial-transaction-management/valid/payment-capture.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5137,6 +5825,7 @@
       "fixture": "examples/profiles/financial-transaction-management/valid/payment-reject.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5163,6 +5852,7 @@
       "fixture": "examples/profiles/financial-transaction-management/valid/payout-execute.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5193,6 +5883,7 @@
       "fixture": "examples/profiles/financial-transaction-management/valid/reconciliation-adjust.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5218,6 +5909,7 @@
       "fixture": "examples/profiles/financial-transaction-management/valid/refund-create.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5244,6 +5936,7 @@
       "fixture": "examples/profiles/financial-transaction-management/valid/reversal-execute.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5271,6 +5964,7 @@
       "fixture": "examples/profiles/financial-transaction-management/valid/settlement-execute.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5302,6 +5996,7 @@
       "fixture": "examples/profiles/financial-transaction-management/valid/transfer-execute.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5328,6 +6023,7 @@
       "fixture": "examples/profiles/financial-transaction-management/valid/withdrawal-execute.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5353,6 +6049,7 @@
       "fixture": "examples/profiles/identity-and-access-management/invalid/credential-rotate-missing-reason.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5381,6 +6078,7 @@
       "fixture": "examples/profiles/identity-and-access-management/invalid/permission-grant-missing-scope.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5409,6 +6107,7 @@
       "fixture": "examples/profiles/identity-and-access-management/invalid/privileged-role-without-approval.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5437,6 +6136,7 @@
       "fixture": "examples/profiles/identity-and-access-management/invalid/privileged-role-without-mfa.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5460,6 +6160,7 @@
       "fixture": "examples/profiles/identity-and-access-management/invalid/role-assign-missing-authorization.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5492,6 +6193,7 @@
       "fixture": "examples/profiles/identity-and-access-management/invalid/role-assign-missing-role-id.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5520,6 +6222,7 @@
       "fixture": "examples/profiles/identity-and-access-management/invalid/service-account-missing-owner.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5543,6 +6246,7 @@
       "fixture": "examples/profiles/identity-and-access-management/not-applicable/document-share.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5561,6 +6265,7 @@
       "fixture": "examples/profiles/identity-and-access-management/valid/credential-rotate.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5579,6 +6284,7 @@
       "fixture": "examples/profiles/identity-and-access-management/valid/permission-revoke.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5597,6 +6303,7 @@
       "fixture": "examples/profiles/identity-and-access-management/valid/role-assign-privileged.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5615,6 +6322,7 @@
       "fixture": "examples/profiles/identity-and-access-management/valid/role-assign-standard.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5633,6 +6341,7 @@
       "fixture": "examples/profiles/identity-and-access-management/valid/service-account-create.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5651,6 +6360,7 @@
       "fixture": "examples/profiles/identity-and-access-management/valid/user-create.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5669,6 +6379,7 @@
       "fixture": "examples/profiles/identity-and-access-management/valid/user-disable.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5687,6 +6398,7 @@
       "fixture": "examples/profiles/incident-management/invalid/assignment-change-missing-assignee.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5710,6 +6422,7 @@
       "fixture": "examples/profiles/incident-management/invalid/assignment-change-missing-change.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5733,6 +6446,7 @@
       "fixture": "examples/profiles/incident-management/invalid/case-close-missing-approval.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5771,6 +6485,7 @@
       "fixture": "examples/profiles/incident-management/invalid/case-close-missing-authorization.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5800,6 +6515,7 @@
       "fixture": "examples/profiles/incident-management/invalid/case-close-missing-reason.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5829,6 +6545,7 @@
       "fixture": "examples/profiles/incident-management/invalid/case-create-missing-status.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5852,6 +6569,7 @@
       "fixture": "examples/profiles/incident-management/invalid/case-reopen-missing-change.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5875,6 +6593,7 @@
       "fixture": "examples/profiles/incident-management/invalid/case-reopen-missing-reason.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5898,6 +6617,7 @@
       "fixture": "examples/profiles/incident-management/invalid/case-resolve-missing-resolution-type.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5921,6 +6641,7 @@
       "fixture": "examples/profiles/incident-management/invalid/corrective-action-verify-missing-method.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5944,6 +6665,7 @@
       "fixture": "examples/profiles/incident-management/invalid/priority-change-missing-priority.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -5973,6 +6695,7 @@
       "fixture": "examples/profiles/incident-management/invalid/rca-approve-missing-approval.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6011,6 +6734,7 @@
       "fixture": "examples/profiles/incident-management/invalid/rca-create-missing-method.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6034,6 +6758,7 @@
       "fixture": "examples/profiles/incident-management/invalid/sla-breach-missing-target.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6057,6 +6782,7 @@
       "fixture": "examples/profiles/incident-management/not-applicable/case-view.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6075,6 +6801,7 @@
       "fixture": "examples/profiles/incident-management/not-applicable/monitoring-alert-raise.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6093,6 +6820,7 @@
       "fixture": "examples/profiles/incident-management/not-applicable/note-create.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6111,6 +6839,7 @@
       "fixture": "examples/profiles/incident-management/valid/assignment-change.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6129,6 +6858,7 @@
       "fixture": "examples/profiles/incident-management/valid/case-close.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6153,6 +6883,7 @@
       "fixture": "examples/profiles/incident-management/valid/case-create.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6171,6 +6902,7 @@
       "fixture": "examples/profiles/incident-management/valid/case-reopen.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6189,6 +6921,7 @@
       "fixture": "examples/profiles/incident-management/valid/case-resolve.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6207,6 +6940,7 @@
       "fixture": "examples/profiles/incident-management/valid/corrective-action-open.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6225,6 +6959,7 @@
       "fixture": "examples/profiles/incident-management/valid/corrective-action-verify.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6243,6 +6978,7 @@
       "fixture": "examples/profiles/incident-management/valid/create-short-form.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6261,6 +6997,7 @@
       "fixture": "examples/profiles/incident-management/valid/major-declare.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6285,6 +7022,7 @@
       "fixture": "examples/profiles/incident-management/valid/priority-change.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6309,6 +7047,7 @@
       "fixture": "examples/profiles/incident-management/valid/problem-case-close.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6333,6 +7072,7 @@
       "fixture": "examples/profiles/incident-management/valid/rca-approve.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6357,6 +7097,7 @@
       "fixture": "examples/profiles/incident-management/valid/rca-create.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6375,6 +7116,7 @@
       "fixture": "examples/profiles/incident-management/valid/sla-breach.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6393,6 +7135,7 @@
       "fixture": "examples/profiles/message-broker-management/invalid/acl-grant-missing-principal.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6425,6 +7168,7 @@
       "fixture": "examples/profiles/message-broker-management/invalid/configuration-update-missing-change.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6469,6 +7213,7 @@
       "fixture": "examples/profiles/message-broker-management/invalid/message-replay-missing-scope.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6500,6 +7245,7 @@
       "fixture": "examples/profiles/message-broker-management/invalid/offset-reset-missing-target.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6532,6 +7278,7 @@
       "fixture": "examples/profiles/message-broker-management/invalid/queue-purge-missing-destructive-flag.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6562,6 +7309,7 @@
       "fixture": "examples/profiles/message-broker-management/invalid/queue-purge-missing-reason.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6597,6 +7345,7 @@
       "fixture": "examples/profiles/message-broker-management/invalid/quota-update-missing-dimension.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6629,6 +7378,7 @@
       "fixture": "examples/profiles/message-broker-management/invalid/topic-create-missing-authorization.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6660,6 +7410,7 @@
       "fixture": "examples/profiles/message-broker-management/invalid/topic-create-missing-classification.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6691,6 +7442,7 @@
       "fixture": "examples/profiles/message-broker-management/invalid/topic-create-missing-cluster.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6722,6 +7474,7 @@
       "fixture": "examples/profiles/message-broker-management/invalid/topic-delete-denied-missing-error-type.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6757,6 +7510,7 @@
       "fixture": "examples/profiles/message-broker-management/invalid/topic-delete-missing-approval.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6792,6 +7546,7 @@
       "fixture": "examples/profiles/message-broker-management/not-applicable/consumer-group-rebalance.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6810,6 +7565,7 @@
       "fixture": "examples/profiles/message-broker-management/not-applicable/message-consume.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6828,6 +7584,7 @@
       "fixture": "examples/profiles/message-broker-management/not-applicable/message-publish.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6846,6 +7603,7 @@
       "fixture": "examples/profiles/message-broker-management/valid/acl-grant.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6873,6 +7631,7 @@
       "fixture": "examples/profiles/message-broker-management/valid/cluster-upgrade.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6903,6 +7662,7 @@
       "fixture": "examples/profiles/message-broker-management/valid/configuration-update.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6938,6 +7698,7 @@
       "fixture": "examples/profiles/message-broker-management/valid/consumer-group-delete.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6968,6 +7729,7 @@
       "fixture": "examples/profiles/message-broker-management/valid/message-replay.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -6994,6 +7756,7 @@
       "fixture": "examples/profiles/message-broker-management/valid/offset-reset.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7021,6 +7784,7 @@
       "fixture": "examples/profiles/message-broker-management/valid/queue-purge.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7046,6 +7810,7 @@
       "fixture": "examples/profiles/message-broker-management/valid/quota-update.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7073,6 +7838,7 @@
       "fixture": "examples/profiles/message-broker-management/valid/topic-create.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7099,6 +7865,7 @@
       "fixture": "examples/profiles/message-broker-management/valid/topic-delete-denied.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7129,6 +7896,7 @@
       "fixture": "examples/profiles/message-broker-management/valid/topic-delete.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7154,6 +7922,7 @@
       "fixture": "examples/profiles/message-broker-management/valid/topic-retention-reduce.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7180,6 +7949,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/invalid/certificate-issue-missing-expiry.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7210,6 +7980,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/invalid/emergency-reveal-missing-approval.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7245,6 +8016,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/invalid/key-destroy-missing-approval.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7279,6 +8051,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/invalid/key-generate-missing-owner.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7309,6 +8082,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/invalid/key-import-missing-reason.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7349,6 +8123,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/invalid/policy-update-missing-change.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7378,6 +8153,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/invalid/secret-create-missing-authorization.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7407,6 +8183,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/invalid/secret-export-missing-destination.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7438,6 +8215,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/invalid/secret-reveal-missing-reason.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7473,6 +8251,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/invalid/secret-revoke-missing-reason.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7507,6 +8286,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/invalid/secret-rotate-missing-change.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7545,6 +8325,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/invalid/secret-rotate-missing-type.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7579,6 +8360,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/not-applicable/key-decrypt.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7597,6 +8379,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/not-applicable/secret-cache-refresh.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7615,6 +8398,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/not-applicable/secret-retrieve.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7633,6 +8417,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/valid/certificate-issue.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7658,6 +8443,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/valid/key-destroy.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7682,6 +8468,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/valid/key-export.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7708,6 +8495,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/valid/key-generate.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7733,6 +8521,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/valid/key-import.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7761,9 +8550,35 @@
       }
     },
     {
+      "fixture": "examples/profiles/secrets-and-key-management/valid/key-policy-update.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      },
+      "checkProfile": {
+        "profile": "secrets-and-key-management",
+        "status": "conforming",
+        "matchedRules": [
+          "SECRET-CORE-001",
+          "SECRET-CORE-002",
+          "SECRET-CORE-003",
+          "SECRET-APPROVAL-001",
+          "SECRET-POLICY-001"
+        ],
+        "errors": [],
+        "warnings": []
+      }
+    },
+    {
       "fixture": "examples/profiles/secrets-and-key-management/valid/secret-create.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7788,6 +8603,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/valid/secret-export.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7814,6 +8630,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/valid/secret-policy-update.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7838,6 +8655,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/valid/secret-reveal-emergency.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7863,6 +8681,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/valid/secret-reveal.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7888,6 +8707,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/valid/secret-revoke.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7912,6 +8732,7 @@
       "fixture": "examples/profiles/secrets-and-key-management/valid/secret-rotate.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7941,6 +8762,7 @@
       "fixture": "examples/valid/access-request-approval.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7952,6 +8774,7 @@
       "fixture": "examples/valid/document-external-share.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7963,6 +8786,7 @@
       "fixture": "examples/valid/incident-case-close.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7974,6 +8798,7 @@
       "fixture": "examples/valid/kafka-consumer-offset-reset.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7985,6 +8810,7 @@
       "fixture": "examples/valid/minimal-event.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -7996,6 +8822,7 @@
       "fixture": "examples/valid/nightly-reconciliation-job.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -8007,6 +8834,7 @@
       "fixture": "examples/valid/order-api-publish.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -8018,6 +8846,7 @@
       "fixture": "examples/valid/order-consumer-new-trace.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -8029,6 +8858,7 @@
       "fixture": "examples/valid/privileged-configuration-change.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -8044,6 +8874,7 @@
       "fixture": "examples/valid/service-account-data-export.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {
@@ -8055,6 +8886,133 @@
       "fixture": "examples/valid/user-role-assignment.json",
       "validate": {
         "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/versions/leading-zero-version.json",
+      "validate": {
+        "valid": false,
+        "notEvaluated": false,
+        "issues": [
+          {
+            "path": "/specVersion",
+            "keyword": "const"
+          }
+        ]
+      },
+      "lintPrivacy": {
+        "status": "schema-invalid",
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/versions/malformed-version.json",
+      "validate": {
+        "valid": false,
+        "notEvaluated": false,
+        "issues": [
+          {
+            "path": "/specVersion",
+            "keyword": "const"
+          }
+        ]
+      },
+      "lintPrivacy": {
+        "status": "schema-invalid",
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/versions/never-published.json",
+      "validate": {
+        "valid": false,
+        "notEvaluated": true,
+        "issues": [
+          {
+            "path": "/specVersion",
+            "keyword": "specVersion-not-implemented"
+          }
+        ]
+      },
+      "lintPrivacy": {
+        "status": "schema-invalid",
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/versions/newer-minor.json",
+      "validate": {
+        "valid": false,
+        "notEvaluated": true,
+        "issues": [
+          {
+            "path": "/specVersion",
+            "keyword": "specVersion-not-implemented"
+          }
+        ]
+      },
+      "lintPrivacy": {
+        "status": "schema-invalid",
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/versions/other-major.json",
+      "validate": {
+        "valid": false,
+        "notEvaluated": true,
+        "issues": [
+          {
+            "path": "/specVersion",
+            "keyword": "specVersion-not-implemented"
+          }
+        ]
+      },
+      "lintPrivacy": {
+        "status": "schema-invalid",
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/versions/parent-span-under-0.1.json",
+      "validate": {
+        "valid": false,
+        "notEvaluated": false,
+        "issues": [
+          {
+            "path": "/request/parentSpanId",
+            "keyword": "additionalProperties"
+          }
+        ]
+      },
+      "lintPrivacy": {
+        "status": "schema-invalid",
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/versions/parent-span-under-1.0.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
+        "issues": []
+      },
+      "lintPrivacy": {
+        "status": "clean",
+        "findings": []
+      }
+    },
+    {
+      "fixture": "examples/versions/valid-under-0.1.json",
+      "validate": {
+        "valid": true,
+        "notEvaluated": false,
         "issues": []
       },
       "lintPrivacy": {

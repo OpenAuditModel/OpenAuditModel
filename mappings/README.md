@@ -1,6 +1,6 @@
 # External Mappings
 
-**Specification version: 0.1 · Status: Experimental · These documents: Informative**
+**Specification version: 1.0 · Status: Stable · These documents: Informative**
 
 OpenAuditModel is designed to complement existing standards rather than replace them. These documents
 describe, informatively, how an OpenAuditModel event relates to standards that already exist.
@@ -21,7 +21,7 @@ fully conforming.
 | [ocsf.md](ocsf.md)                   | OCSF                  | Security-event mapping                             |
 | [cadf.md](cadf.md)                   | CADF                  | Prior art; a comparison, not a mapping             |
 
-OSCAL may later be supported for control and assessment mappings. It is not addressed in v0.1.
+OSCAL may later be supported for control and assessment mappings. It is not addressed in 1.0.
 
 ## Why OpenAuditModel exists alongside these
 

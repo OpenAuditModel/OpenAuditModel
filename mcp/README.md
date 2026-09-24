@@ -1,6 +1,6 @@
 # OpenAuditModel MCP server
 
-**Experimental. Not production-ready. No compliance guarantee.**
+**Implements specification 1.0, and reads 0.1. Not yet proven in production. No compliance guarantee.**
 
 A stateless Node.js MCP server over Streamable HTTP, exposing the OpenAuditModel conformance engines.
 Built as a local Docker image and self-hosted behind a reverse proxy that terminates TLS. There is no
@@ -11,8 +11,8 @@ https://mcp.openauditmodel.org/mcp
 ```
 
 > **Deployed and verified.** `curl https://mcp.openauditmodel.org/health` answers, and
-> [deploy/smoke-test.mjs](../deploy/smoke-test.mjs) passes against it. Still a v0.1 alpha — see
-> "Public alpha risk" below.
+> [deploy/smoke-test.mjs](../deploy/smoke-test.mjs) passes against it. Public and unauthenticated, with
+> no availability guarantee — see "Public service risk" below.
 
 Deployment, reverse-proxy configuration, environment variables, upgrade and rollback:
 [deploy/README.md](../deploy/README.md). Why it is self-hosted rather than serverless:
@@ -32,7 +32,7 @@ never leaves — which is the option a hosted-only service could not offer.
 
 |                    |                                                                  |
 | ------------------ | ---------------------------------------------------------------- |
-| Authentication     | none in the v0.1 alpha                                           |
+| Authentication     | none                                                             |
 | User-specific data | none                                                             |
 | Write operations   | none                                                             |
 | Persistence        | none — no database, no volume, no writable application directory |
@@ -121,10 +121,10 @@ contributed no requirements.
 
 ## Resources
 
-Thirty-six read-only documents under `openauditmodel://`: seven specification chapters, four
-schemas — the canonical audit event schema, the profile definition schema, the chain checkpoint
-schema and the inclusion proof schema — the semantic conventions index and twelve convention
-documents, the profile index, all ten profile definitions and the examples index.
+Thirty-seven read-only documents under `openauditmodel://`: seven specification chapters, five
+schemas — the audit event schema for 1.0 and for 0.1, the profile definition schema, the chain
+checkpoint schema and the inclusion proof schema — the semantic conventions index and twelve
+convention documents, the profile index, all ten profile definitions and the examples index.
 
 Content is compiled in at build time from an allowlist in
 [scripts/generate-resource-manifest.mjs](scripts/generate-resource-manifest.mjs). The server reads no
@@ -151,31 +151,39 @@ and middleware behaviour to a service whose security argument is that very littl
 socket and the deterministic engines. MCP is handled by the official `@modelcontextprotocol/server`
 and `@modelcontextprotocol/node` packages.
 
-| Route                   | Behaviour                                                        |
-| ----------------------- | ---------------------------------------------------------------- |
-| `POST /mcp`, `GET /mcp` | Streamable HTTP, stateless — a fresh server instance per request |
-| `GET /health`           | `{"status":"ok"}`                                                |
-| `GET /`                 | Fixed metadata; no version, hostname or container detail         |
-| anything else           | 404                                                              |
+| Route                           | Behaviour                                                                                 |
+| ------------------------------- | ----------------------------------------------------------------------------------------- |
+| `POST /mcp`                     | Streamable HTTP, stateless — a fresh server instance per request; one message per request |
+| `GET`, `DELETE`, `OPTIONS /mcp` | 405: no stream is offered, and there is no session to end                                 |
+| `GET /health`                   | `{"status":"ok"}`                                                                         |
+| `GET /`                         | Fixed metadata; no version, hostname or container detail                                  |
+| anything else                   | 404                                                                                       |
+
+A JSON-RPC batch is refused with 400: one request's body limit does not bound the work a batch asks
+for, and the protocol dropped batching in 2025-06-18. `subscriptions/listen` is refused as a method
+not offered, because the server publishes no notifications.
 
 Registration is separate from transport, so standards-based OAuth can later wrap the HTTP boundary
 without touching a tool implementation.
 
 ## Build
 
-Two files are generated and must be regenerated when their sources change. CI fails when either is
+Five files are generated and must be regenerated when their sources change. CI fails when any is
 stale, and the Docker build regenerates and re-verifies them so a stale artifact cannot reach an
 image.
 
 ```bash
-npm run generate --workspace mcp        # write both
-npm run generate:check --workspace mcp  # fail if stale
+npm run generate --workspace mcp        # write all five
+npm run generate:check --workspace mcp  # fail if any is stale
 ```
 
-- `src/schema-validator.generated.ts` — Ajv's standalone output for the canonical schema. Kept even
-  though Node permits runtime compilation: it is Ajv's own compiled logic, so this server's verdict is
-  identical to the CLI's by construction, and the schema stays a build artifact rather than a runtime
-  input.
+- `src/schema-validator-1.0.generated.ts` and `src/schema-validator-0.1.generated.ts` — Ajv's
+  standalone output for each version's audit event schema; the server judges each event by the one
+  its `specVersion` names. Kept even though Node permits runtime compilation: it is Ajv's own
+  compiled logic, so this server's verdict is identical to the CLI's by construction, and the schema
+  stays a build artifact rather than a runtime input.
+- `src/checkpoint-validator.generated.ts` and `src/proof-validator.generated.ts` — the same, for the
+  checkpoint and inclusion proof formats.
 - `src/resource-manifest.generated.ts` — the bundled resource content.
 
 ```bash
@@ -211,19 +219,26 @@ configuration and a public deployment must state the names it serves. `X-Forward
 consulted **only** when `OAM_TRUST_PROXY=true`: believing it by default would let any client assert
 any host.
 
+Host validation defends against DNS rebinding, a browser led to this server under another name. It
+does not keep out a client that reaches the server directly: such a client writes its own `Host`
+header, and can write an allowed one. What keeps direct clients out is the network — a tunnel with no
+inbound port, or a firewall that admits only the proxy.
+
 ## Logging
 
-Application logs carry a generated request identifier, the route, the tool name, a result category, a
-status code and a duration — and nothing else. There is no parameter through which a request body, an
-event identifier, an actor, a resource, a digest or a privacy finding could be logged. `toolName` is
-one of ten published names and says which analysis ran; an _event_ name is excluded, because that
-would describe the caller's business operations.
+A request's log line carries a generated request identifier, the route that answered it (`/`,
+`/health`, `/mcp`, or `other` — never the path the caller sent), a result category, a status code
+and a duration, and nothing else. There is no parameter through which a request body, an event
+identifier, an actor, a resource, a digest or a privacy finding could be logged. The logger accepts
+a `toolName` field, one of ten published names, but no request line sets it; an _event_ name is
+excluded, because it would describe the caller's business operations.
 
 Set `OAM_LOG_LEVEL=error` or `silent` to reduce or disable output.
 
-## Public alpha risk
+## Public service risk
 
-Unauthenticated. Anyone who can reach the endpoint can call every tool. That is defensible only
+Unauthenticated, and offered without an availability guarantee: the specification is stable from
+1.0, the hosted service is a convenience. Anyone who can reach the endpoint can call every tool. That is defensible only
 because every tool is read-only, there is no account, no write operation and no persistence — and it
 stops being defensible the moment any of those changes. Apply reverse-proxy rate limiting before
 public exposure.

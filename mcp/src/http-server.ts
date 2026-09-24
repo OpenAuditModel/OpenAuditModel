@@ -134,6 +134,57 @@ export interface McpHttpServer {
 }
 
 /** Builds the HTTP server. Nothing is bound until {@link McpHttpServer.listen}. */
+/**
+ * A request whose JSON contains a member named `__proto__`, anywhere.
+ *
+ * `JSON.parse` keeps such a member as an ordinary property, which is what the
+ * command line tool validates, hashes and verifies. The tool-argument schemas
+ * copy objects before a tool sees them, and the copy drops `__proto__`: an
+ * event carrying unsigned content under that key reached the engines without
+ * it and was reported valid, verified and clean, where the command line tool
+ * rejects the same bytes. No audit event, checkpoint or proof needs the member,
+ * so the request is refused at the boundary rather than judged on something
+ * other than what was sent.
+ */
+class ProtoMemberError extends Error {}
+
+const LISTEN_REFUSAL =
+  "subscriptions/listen is not offered: this server publishes no notifications";
+
+/** The routes the server answers, which are the only paths a log line names. */
+const LOGGED_ROUTES: ReadonlySet<string> = new Set(["/", "/health", "/mcp"]);
+
+/** A `subscriptions/listen` request. */
+function listenRequest(body: unknown): { id: unknown } | undefined {
+  const isListen =
+    body !== null &&
+    typeof body === "object" &&
+    (body as Record<string, unknown>)["method"] === "subscriptions/listen";
+  return isListen ? { id: (body as Record<string, unknown>)["id"] ?? null } : undefined;
+}
+
+/**
+ * A JSON-RPC batch is refused. The request body limit bounds a batch's size,
+ * not the work it asks for or the response it earns: one 1 MB body held
+ * thousands of `resources/read` calls, drew a response of over a hundred
+ * megabytes, took the process past a gigabyte of memory, and passed a
+ * per-request rate limit as one request. The MCP protocol dropped batching in
+ * 2025-06-18, and no client this server is for sends one.
+ */
+const BATCH_REFUSAL = "JSON-RPC batches are not accepted: send one request per HTTP request";
+
+const PROTO_MEMBER_REFUSAL =
+  "a member named __proto__ is not accepted: this server would not see it, and would judge a different document from the one sent";
+
+function parseRequestBody(text: string): unknown {
+  return JSON.parse(text, (key, value: unknown) => {
+    if (key === "__proto__") {
+      throw new ProtoMemberError();
+    }
+    return value;
+  });
+}
+
 export function createHttpApplication(
   config: ServerConfig,
   logger: Logger = createLogger(config.logLevel),
@@ -159,7 +210,10 @@ export function createHttpApplication(
   const server = createHttpServer((request, response) => {
     const started = Date.now();
     const requestId = randomUUID();
-    const route = (request.url ?? "/").split("?")[0] ?? "/";
+    const path = (request.url ?? "/").split("?")[0] ?? "/";
+    // The log names which route answered, never the path the caller sent: a
+    // path is caller-chosen text, and whatever it carries would land in the log.
+    const route = LOGGED_ROUTES.has(path) ? path : "other";
 
     const finish = (statusCode: number, resultCategory: string): void => {
       logger.info({
@@ -188,17 +242,17 @@ export function createHttpApplication(
           return;
         }
 
-        if (route === "/health" && request.method === "GET") {
+        if (path === "/health" && request.method === "GET") {
           sendJson(response, 200, { status: "ok" });
           finish(200, "ok");
           return;
         }
 
-        if (route === "/" && request.method === "GET") {
+        if (path === "/" && request.method === "GET") {
           // Deliberately fixed: no version, no hostname, no container detail.
           sendJson(response, 200, {
             name: "OpenAuditModel MCP",
-            status: "experimental",
+            status: "stable",
             endpoint: "/mcp",
             website: "https://openauditmodel.org",
           });
@@ -206,7 +260,7 @@ export function createHttpApplication(
           return;
         }
 
-        if (route === "/mcp") {
+        if (path === "/mcp") {
           let parsedBody: unknown;
           if (request.method === "POST") {
             const body = await readBody(request, config.maxRequestBytes);
@@ -217,14 +271,40 @@ export function createHttpApplication(
             }
             if (body.length > 0) {
               try {
-                parsedBody = JSON.parse(body.toString("utf8"));
-              } catch {
+                parsedBody = parseRequestBody(body.toString("utf8"));
+              } catch (cause) {
+                if (cause instanceof ProtoMemberError) {
+                  sendJson(response, 400, { error: PROTO_MEMBER_REFUSAL });
+                  finish(400, "proto-member");
+                  return;
+                }
                 // The parser message can quote the body; it is not forwarded.
                 sendJson(response, 400, { error: "invalid JSON" });
                 finish(400, "invalid-json");
                 return;
               }
             }
+          }
+
+          if (Array.isArray(parsedBody)) {
+            sendJson(response, 400, { error: BATCH_REFUSAL });
+            finish(400, "batch-refused");
+            return;
+          }
+
+          // This server publishes no notifications, so a `subscriptions/listen`
+          // stream would carry nothing but keep-alive frames for as long as a
+          // client held it open — up to the SDK's default of 1,024 per process.
+          // It is answered as the method it is: not offered.
+          const listen = listenRequest(parsedBody);
+          if (listen !== undefined) {
+            sendJson(response, 200, {
+              jsonrpc: "2.0",
+              id: listen.id,
+              error: { code: -32601, message: LISTEN_REFUSAL },
+            });
+            finish(200, "listen-refused");
+            return;
           }
 
           // The SDK adapter accepts a duck-typed request; Node's optional properties

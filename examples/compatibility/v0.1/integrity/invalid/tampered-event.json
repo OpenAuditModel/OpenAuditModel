@@ -1,0 +1,51 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2a10-4c21-7b83-9e05-1d2f3a4b5c60",
+  "time": "2026-04-02T13:20:44.117Z",
+  "sequence": 1,
+  "event": {
+    "name": "configuration.setting.update",
+    "category": "configuration",
+    "type": "update",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "Audit retention period extended on the production configuration."
+  },
+  "actor": {
+    "type": "admin",
+    "id": "admin-0091",
+    "roles": ["platform-administrator"]
+  },
+  "resource": {
+    "type": "configuration",
+    "id": "configuration-audit-retention",
+    "classification": "internal"
+  },
+  "application": {
+    "name": "platform-control-service",
+    "environment": "production",
+    "version": "9.1.0",
+    "instance": "instance-7c1a"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "privileged-configuration-change"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["retentionDays"],
+    "before": {
+      "retentionDays": 365
+    },
+    "after": {
+      "retentionDays": 2555
+    },
+    "ticketId": "change-10241"
+  },
+  "controlCategories": ["configuration-integrity", "privileged-access"],
+  "integrity": {
+    "canonicalization": "RFC8785",
+    "hashAlgorithm": "SHA-256",
+    "hash": "03638029fc5fa4b1b043b762ab6c59b21ab8a60328a7a9956dcb8ccd9aac4e93"
+  }
+}

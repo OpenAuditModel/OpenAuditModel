@@ -1,0 +1,33 @@
+{
+  "proofVersion": "0.1",
+  "hashAlgorithm": "SHA-256",
+  "leaf": {
+    "hash": "f7fbea247bdde9c24f07d81cb6ba82b60372f293b2d618066b065bac880dcbf1",
+    "index": 1,
+    "eventId": "018f2a30-1111-7222-8333-444455556602"
+  },
+  "path": [
+    {
+      "side": "left",
+      "hash": "635e335d2d2aa5eb9db74480679bba6774f4662673084b67c16ab8fbd2522039"
+    },
+    {
+      "side": "right",
+      "hash": "86c3959712ae98fa0c0d165bc5667703c2b3619923c7bd4bfac6df3554d88198"
+    }
+  ],
+  "root": {
+    "hash": "4f83525cbcfd63496374822d49d6c60161273cdea739f08742d6e83f46043b2f",
+    "leafCount": 3,
+    "anchor": {
+      "type": "publication",
+      "reference": "https://audit-archive.example/trees/platform-control-service/2026-04-03",
+      "recordedAt": "2026-04-03T10:00:05Z"
+    },
+    "signature": {
+      "algorithm": "Ed25519",
+      "value": "w2kYt36QW8U/0T8dDldRPcFHenfFwToXmNX4XaVkpm0j+cyOZgsiZshwUTKM+8jnibkPmkTsaEry5KN8oRYYCA==",
+      "keyId": "example-fixture-key-2026"
+    }
+  }
+}

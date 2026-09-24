@@ -1,6 +1,6 @@
 # Incident Management Profile
 
-**Status: Experimental. Implemented in v0.1, 15 rules — 12 enforceable, 3 advisory.**
+**Status: Experimental. Applies to core versions 0.1 and 1.0; 15 rules — 12 enforceable, 3 advisory.**
 
 Scope: applications that manage the lifecycle of incidents, problems and corrective actions —
 operations tooling, IT service management, quality management, safety reporting, regulatory event

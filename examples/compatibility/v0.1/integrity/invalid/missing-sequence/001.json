@@ -1,0 +1,53 @@
+{
+  "specVersion": "0.1",
+  "id": "018f2a30-1111-7222-8333-444455556601",
+  "time": "2026-04-03T08:00:12.500Z",
+  "sequence": 1,
+  "event": {
+    "name": "privileged.access.grant",
+    "category": "privileged-operation",
+    "type": "grant",
+    "outcome": "success",
+    "severity": "critical",
+    "summary": "Time-bound platform administrator access granted for a change window."
+  },
+  "actor": {
+    "type": "user",
+    "id": "user-1180",
+    "roles": ["access-approver"]
+  },
+  "resource": {
+    "type": "user",
+    "id": "admin-0091"
+  },
+  "application": {
+    "name": "platform-control-service",
+    "environment": "production",
+    "instance": "instance-7c1a"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policy": "just-in-time-access"
+  },
+  "approval": {
+    "status": "approved",
+    "requiredApprovals": 1,
+    "receivedApprovals": 1,
+    "approvedAt": "2026-04-03T07:58:40Z"
+  },
+  "reason": {
+    "code": "scheduled-maintenance",
+    "reference": "change-10241"
+  },
+  "controlCategories": ["privileged-access", "change-approval"],
+  "metadata": {
+    "grantedRole": "platform-administrator",
+    "expiresAt": "2026-04-03T10:00:00Z"
+  },
+  "integrity": {
+    "canonicalization": "RFC8785",
+    "hashAlgorithm": "SHA-256",
+    "hash": "3e9462f941036e9b676694cf80fcf17bb438ddff9fb4fb6f67220eca3399ba1b",
+    "chainId": "chain-platform-control-service-instance-7c1a"
+  }
+}

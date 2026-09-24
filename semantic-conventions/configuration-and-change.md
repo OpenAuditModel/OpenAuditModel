@@ -1,6 +1,6 @@
 # Configuration and Change Events
 
-**Specification version: 0.1 · Status: Experimental**
+**Specification version: 1.0 · Status: Stable**
 
 Categories: `configuration`, `deployment`
 
@@ -107,8 +107,11 @@ together.
 
 ## 6. Secret access
 
-`configuration.secret.access` records that a principal read a secret. It MUST NOT record the secret,
-any part of it, or a hash of it that would allow verification against a guess.
+`configuration.secret.access` records that a principal read a secret held as a value in the
+application's own configuration. It MUST NOT record the secret, any part of it, or a hash of it that
+would allow verification against a guess. A secret held by a secret store that is a system of its own
+is read as `secret.reveal`; see [secrets-and-keys.md](secrets-and-keys.md) §2 for where the line
+falls.
 
 Where secret access is routine for a workload, producers SHOULD consider whether recording every read
 is useful, or whether recording grants, rotations and out-of-pattern access is more valuable. Volume

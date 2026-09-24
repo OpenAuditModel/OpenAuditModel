@@ -1,6 +1,6 @@
 # Terminology
 
-**Specification version: 0.1 · Status: Experimental · This document: Normative**
+**Specification version: 1.0 · Status: Stable · This document: Normative**
 
 ## 1. Normative keywords
 
@@ -48,7 +48,8 @@ Universal across industries, jurisdictions and architectures.
 `application`. Core objects reject unknown properties.
 
 **Canonical schema** — The JSON Schema document that machine-verifies the core model, identified by
-`https://openauditmodel.org/schemas/audit-event/0.1/schema.json`.
+`https://openauditmodel.org/schemas/audit-event/1.0/schema.json` for 1.0. Each published version has
+its own; see [overview.md](overview.md) §6.
 
 ### 3.2 Participants
 

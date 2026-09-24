@@ -12,6 +12,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import test, { describe } from "node:test";
 import { createValidator, resolveSchemaPath, type ValidationIssue } from "../src/validate.js";
+import { NOT_EVALUATED_KEYWORD, wasNotEvaluated } from "../src/validator-interface.js";
 
 const schemaPath = resolveSchemaPath();
 const repoRoot = path.dirname(path.dirname(path.dirname(schemaPath)));
@@ -137,10 +138,46 @@ describe("required fields", () => {
     assertRejected(event, "/documentClassification", "additionalProperties");
   });
 
-  test("specVersion is pinned to 0.1", () => {
+  test("a version is MAJOR.MINOR; anything else is non-conforming", () => {
+    // ADR 0017 §3: an event with no well-formed version is not an event of any
+    // version, and the current schema says what is wrong with it.
+    for (const declared of ["1", "v1.0", "1.0.0", "01.0", "", " 1.0"]) {
+      const event = minimalEvent();
+      event["specVersion"] = declared;
+      assertRejected(event, "/specVersion", "const");
+    }
+    const numeric = minimalEvent();
+    numeric["specVersion"] = 1.0;
+    assertRejected(numeric, "/specVersion", "const");
+    const absent = minimalEvent();
+    delete absent["specVersion"];
+    assertRejected(absent, "/specVersion", "required");
+  });
+
+  test("a version this tool does not implement is not evaluated, not rejected", () => {
+    // A newer minor, another major, and a version never published. Each is
+    // reported once, under a keyword that is not a schema keyword, and with no
+    // schema failure beside it: nothing about the event was found wrong.
+    for (const declared of ["1.1", "2.0", "0.2"]) {
+      const event = minimalEvent();
+      event["specVersion"] = declared;
+      const issues = validator.validateEvent(event);
+      assert.equal(issues.length, 1, report(issues));
+      assert.equal(issues[0]?.keyword, NOT_EVALUATED_KEYWORD);
+      assert.equal(issues[0]?.path, "/specVersion");
+      assert.ok(wasNotEvaluated(issues));
+    }
+  });
+
+  test("each implemented version is judged by its own schema", () => {
+    // `parentSpanId` exists from 1.0. The same event is valid under 1.0 and
+    // rejected under 0.1, where the closed request object does not know it.
     const event = minimalEvent();
-    event["specVersion"] = "0.2";
-    assertRejected(event, "/specVersion", "const");
+    event["request"] = { spanId: "00f067aa0ba902b7", parentSpanId: "0af7651916cd43dd" };
+    event["specVersion"] = "1.0";
+    assert.deepEqual(validator.validateEvent(event), []);
+    event["specVersion"] = "0.1";
+    assertRejected(event, "/request/parentSpanId", "additionalProperties");
   });
 });
 

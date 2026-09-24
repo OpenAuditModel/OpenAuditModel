@@ -1,0 +1,74 @@
+{
+  "specVersion": "1.0",
+  "id": "018f6d10-0007-7a2b-9c3d-4e5f60710017",
+  "time": "2026-05-26T09:12:40.118Z",
+  "event": {
+    "name": "key.policy.update",
+    "category": "configuration",
+    "type": "update",
+    "outcome": "success",
+    "severity": "high",
+    "summary": "The signing key's policy was narrowed to the release pipeline and export was disabled."
+  },
+  "actor": {
+    "type": "admin",
+    "id": "user-1150",
+    "tenantId": "tenant-4"
+  },
+  "resource": {
+    "type": "key",
+    "id": "key-release-signing",
+    "name": "release-signing-key",
+    "classification": "restricted",
+    "ownerId": "team-platform",
+    "tenantId": "tenant-4"
+  },
+  "application": {
+    "name": "key-management-service",
+    "environment": "production",
+    "version": "3.8.1"
+  },
+  "request": {
+    "requestId": "request-d41",
+    "correlationId": "change-9402"
+  },
+  "authorization": {
+    "decision": "allow",
+    "engine": "policy-service",
+    "policy": "secret-governance",
+    "policyVersion": "9"
+  },
+  "approval": {
+    "status": "approved",
+    "workflowId": "secret-governance-review",
+    "requestId": "approval-9288",
+    "requiredApprovals": 1,
+    "receivedApprovals": 1,
+    "approvedAt": "2026-05-26T08:55:00Z"
+  },
+  "change": {
+    "type": "update",
+    "changedFields": ["allowedPrincipals", "exportable"],
+    "before": {
+      "allowedPrincipals": ["group-platform-admins", "service-release-pipeline"],
+      "exportable": true
+    },
+    "after": {
+      "allowedPrincipals": ["service-release-pipeline"],
+      "exportable": false
+    },
+    "ticketId": "change-9402"
+  },
+  "reason": {
+    "code": "least-privilege",
+    "text": "Only the release pipeline signs; administrators no longer need to use or export the key.",
+    "reference": "change-9402"
+  },
+  "controlCategories": ["secret-management", "configuration-integrity", "change-approval"],
+  "metadata": {
+    "secret": {
+      "type": "signing-key",
+      "provider": "hsm"
+    }
+  }
+}

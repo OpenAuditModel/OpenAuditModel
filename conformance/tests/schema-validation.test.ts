@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import test, { describe } from "node:test";
 import {
+  resolveSchemaPathFor,
   createAjv,
   createValidator,
   loadSchema,
@@ -304,7 +305,40 @@ describe("regular expression portability", () => {
 
 describe("schema discovery", () => {
   test("resolves from the compiled output directory", () => {
-    assert.ok(schemaPath.endsWith(path.join("schemas", "v0.1", "audit-event.schema.json")));
+    assert.ok(schemaPath.endsWith(path.join("schemas", "v1.0", "audit-event.schema.json")));
+  });
+
+  test("1.0 is 0.1 with a new version and parentSpanId, and nothing else", () => {
+    // ADR 0017 §5 says everything else in 0.1 was carried into 1.0 unchanged.
+    // This holds the published schemas to that sentence: strip the differences
+    // the ADR names, and the two documents must be identical.
+    type Node = Record<string, unknown>;
+    const at = (node: Node, ...keys: string[]): Node =>
+      keys.reduce<Node>((current, key) => current[key] as Node, node);
+    const drop = (node: Node, ...keys: string[]): void => {
+      const last = keys.pop() as string;
+      delete at(node, ...keys)[last];
+    };
+
+    const v01 = structuredClone(loadSchema(resolveSchemaPathFor("0.1", schemaPath))) as Node;
+    const v10 = structuredClone(loadSchema(schemaPath)) as Node;
+
+    assert.equal(v10["$id"], "https://openauditmodel.org/schemas/audit-event/1.0/schema.json");
+    assert.equal(at(v10, "properties", "specVersion")["const"], "1.0");
+    assert.equal(
+      at(v10, "$defs", "request", "properties", "parentSpanId")["$ref"],
+      "#/$defs/spanId",
+    );
+
+    for (const document of [v01, v10]) {
+      drop(document, "$id");
+      drop(document, "description");
+      drop(document, "properties", "specVersion", "$comment");
+      drop(document, "properties", "specVersion", "const");
+      drop(document, "$defs", "integrity", "properties", "hashAlgorithm", "description");
+    }
+    drop(v10, "$defs", "request", "properties", "parentSpanId");
+    assert.deepEqual(v10, v01);
   });
 
   test("the validator reports the canonical schema identifier", () => {

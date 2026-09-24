@@ -290,6 +290,10 @@ export function lintEvent(
     traverse(root.value, root.path, ({ path, key, value }) => {
       if (key !== undefined) {
         collected.push(...nameFindings(key, value, path));
+        // A credential used as a property name is as exposed as one used as a
+        // value; it is scanned with the value rules and reported at its
+        // member, whose path already has the key redacted.
+        collected.push(...valueFindings(key, path, undefined));
       }
       if (typeof value === "string") {
         collected.push(...valueFindings(value, path, key));

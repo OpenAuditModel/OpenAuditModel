@@ -14,12 +14,22 @@ import { verifyChains } from "../../conformance/src/integrity/verify-chain.js";
 import { verifyCheckpoint } from "../../conformance/src/integrity/verify-checkpoint.js";
 import { verifyProof } from "../../conformance/src/integrity/verify-proof.js";
 import type { Finding } from "../../conformance/src/integrity/types.js";
-import { loadPublicKey } from "../../conformance/src/integrity/signature.js";
+import {
+  isPrivateKeyText,
+  loadPublicKey,
+  UnusablePublicKeyError,
+} from "../../conformance/src/integrity/signature.js";
 import { lintEvent } from "../../conformance/src/privacy/lint-event.js";
 import { checkProfile } from "../../conformance/src/profiles/check-profile.js";
 import { selectRules } from "../../conformance/src/profiles/select-rules.js";
 import { summariseCoverage } from "../../conformance/src/profiles/coverage.js";
 import type { ProfileRule } from "../../conformance/src/profiles/types.js";
+import {
+  declaredSpecVersion,
+  schemaIdFor,
+  SUPPORTED_SPEC_VERSIONS,
+  wasNotEvaluated,
+} from "../../conformance/src/validator-interface.js";
 import {
   checkpointValidator,
   ENFORCEABLE_PROFILES,
@@ -104,9 +114,20 @@ function resolvePublicKey(publicKeyPem: string | undefined): KeyObject | undefin
   if (publicKeyPem === undefined) {
     return undefined;
   }
+  if (isPrivateKeyText(publicKeyPem)) {
+    throw new InputLimitError(
+      "private-key-supplied",
+      "publicKeyPem holds a private key. It has been sent to this server; treat it as exposed and replace it. Only the public key is needed.",
+    );
+  }
   try {
     return loadPublicKey(publicKeyPem);
-  } catch {
+  } catch (cause) {
+    // The one message forwarded: UnusablePublicKeyError's is written by the
+    // signature module itself, never by a decoder.
+    if (cause instanceof UnusablePublicKeyError) {
+      throw new InputLimitError("unusable-public-key", `publicKeyPem: ${cause.message}`);
+    }
     throw new InputLimitError(
       "invalid-public-key",
       "publicKeyPem could not be parsed as a public key",
@@ -152,20 +173,35 @@ export function registerTools(server: McpServer, limits: EventLimits = DEFAULT_E
     {
       title: "Validate an audit event",
       description:
-        "Validates an audit event against the canonical OpenAuditModel schema and returns the failures with their JSON Pointers. The event itself is never returned.",
+        "Validates an audit event against the canonical OpenAuditModel schema of the version it declares (0.1 or 1.0) and returns the failures with their JSON Pointers. An event declaring a version this server does not implement is not evaluated: notEvaluated is true, and it is neither valid nor invalid. The event itself is never returned.",
       inputSchema: z.object({ event: eventSchema }),
     },
     ({ event }) =>
       runTool(() => {
         assertEventWithinLimits(event, LABEL, limits);
         const issues = validator.validateEvent(event);
-        const declared = (event as Record<string, unknown>)["specVersion"];
+        const declared = declaredSpecVersion(event);
 
         return {
           valid: issues.length === 0,
-          specVersion: typeof declared === "string" ? declared : null,
-          expectedSpecVersion: SPEC_VERSION,
-          schemaId: validator.schemaId,
+          // ADR 0017 §3: a version this server does not implement is neither
+          // valid nor invalid. Stated in a field of its own so that an agent
+          // does not read the one issue as something to fix in the event.
+          notEvaluated: wasNotEvaluated(issues),
+          specVersion: declared.kind === "malformed" ? null : declared.version,
+          // The schema this event was judged by, not merely the newest one: a
+          // 0.1 event is judged by 0.1, and must not be told to move to 1.0 —
+          // a sealed event's version is inside its digest. An absent or
+          // malformed version is judged by the current schema; an
+          // unimplemented one by none.
+          schemaId:
+            declared.kind === "supported"
+              ? schemaIdFor(declared.version)
+              : declared.kind === "malformed"
+                ? schemaIdFor(SPEC_VERSION)
+                : null,
+          implementedSpecVersions: [...SUPPORTED_SPEC_VERSIONS],
+          currentSpecVersion: SPEC_VERSION,
           errorCount: issues.length,
           errors: issues.map((issue) => ({
             path: issue.path,

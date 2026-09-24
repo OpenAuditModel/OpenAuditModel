@@ -17,7 +17,7 @@
  *   5. Its Shannon entropy is at least 4.0 bits per character.
  *   6. It is not a recognised safe format (see safe-formats.ts).
  *
- * The thresholds are fixed in v0.1 and are documented in
+ * The thresholds are fixed and are documented in
  * specification/privacy.md §6.
  */
 import { isKnownSafeFormat } from "./safe-formats.js";

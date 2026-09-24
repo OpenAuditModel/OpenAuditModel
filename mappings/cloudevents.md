@@ -8,17 +8,17 @@ They compose cleanly because neither one tries to do the other's job.
 
 ## Conceptual mapping
 
-| OpenAuditModel                              | CloudEvents attribute | Notes                                                            |
-| ------------------------------------------- | --------------------- | ---------------------------------------------------------------- |
-| `id`                                        | `id`                  | Both are producer-assigned and used for deduplication            |
-| `time`                                      | `time`                | Both are RFC 3339 date-times                                     |
-| `event.name`                                | `type`                | See §2 on namespacing                                            |
-| `application.name` or `application.service` | `source`              | See §3                                                           |
-| the complete audit event                    | `data`                | Carried whole and unmodified                                     |
-| —                                           | `datacontenttype`     | `application/json`                                               |
-| —                                           | `dataschema`          | `https://openauditmodel.org/schemas/audit-event/0.1/schema.json` |
-| `resource.type` and `resource.id`           | `subject` (optional)  | Only when it identifies the affected sub-resource. See §4        |
-| `request.correlationId`                     | — (unmapped)          | No standard attribute. See §4                                    |
+| OpenAuditModel                              | CloudEvents attribute | Notes                                                                                                                                                 |
+| ------------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                                        | `id`                  | Both are producer-assigned and used for deduplication                                                                                                 |
+| `time`                                      | `time`                | Both are RFC 3339 date-times                                                                                                                          |
+| `event.name`                                | `type`                | See §2 on namespacing                                                                                                                                 |
+| `application.name` or `application.service` | `source`              | See §3                                                                                                                                                |
+| the complete audit event                    | `data`                | Carried whole and unmodified                                                                                                                          |
+| —                                           | `datacontenttype`     | `application/json`                                                                                                                                    |
+| —                                           | `dataschema`          | `https://openauditmodel.org/schemas/audit-event/1.0/schema.json`, for an event declaring `1.0`; the schema of the version `data.specVersion` declares |
+| `resource.type` and `resource.id`           | `subject` (optional)  | Only when it identifies the affected sub-resource. See §4                                                                                             |
+| `request.correlationId`                     | — (unmapped)          | No standard attribute. See §4                                                                                                                         |
 
 ## 1. The event travels whole
 
@@ -36,9 +36,9 @@ extension attribute names cannot express the nested structure of `actor`, `chang
   "type": "com.example.audit.document.share.create",
   "time": "2026-03-14T11:47:52.108Z",
   "datacontenttype": "application/json",
-  "dataschema": "https://openauditmodel.org/schemas/audit-event/0.1/schema.json",
+  "dataschema": "https://openauditmodel.org/schemas/audit-event/1.0/schema.json",
   "data": {
-    "specVersion": "0.1",
+    "specVersion": "1.0",
     "id": "018f1b70-2c18-7f3a-b46d-5e8a1c9d0b12",
     "time": "2026-03-14T11:47:52.108Z",
     "event": { "name": "document.share.create", "category": "data-access", "outcome": "success" },
