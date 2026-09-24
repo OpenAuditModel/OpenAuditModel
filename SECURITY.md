@@ -168,14 +168,15 @@ found is fixed in 1.0.0, and the items that are the maintainer's to act on are l
 **Fixed in 1.0.0:**
 
 - A forged Ed25519 signature was accepted: under a small-order public key such as the identity
-  point, a signature verifies for any message, and OpenSSL checks neither the key nor `R`. A
+  point, a signature verifies for any message, and some OpenSSL builds check neither the key nor `R`. A
   small-order key is now refused when it is loaded, and a small-order `R` when a signature is
   checked.
 - An RSA key with an exponent of 1 was accepted, and a "signature" made from the message alone
   verified under it. An RSA key whose exponent is even or below 3 is refused.
-- An EC public key at the point at infinity was accepted, and checking a signature under it aborted
-  the process — on the MCP server, with one unauthenticated request. It is refused before anything
-  reads it.
+- An EC public key at the point at infinity was accepted, and under Node 22 checking a signature
+  under it aborted the process — for an MCP server run on Node 22, with one unauthenticated request.
+  Node 24, which the MCP image uses, reads the key without aborting. It is refused before anything
+  reads it, under either.
 - JSON nested deeply enough to exhaust the stack ended a command with an internal error. Every
   command now refuses a document or line nested more than 200 levels deep, with exit 2.
 - A named pipe or device given as a file was read. Only regular files are read now.

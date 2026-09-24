@@ -11,7 +11,6 @@ import {
   createPublicKey,
   generateKeyPairSync,
   sign as cryptoSign,
-  verify as cryptoVerify,
   type KeyObject,
 } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
@@ -390,27 +389,40 @@ describe("signatures", () => {
   });
 
   test("an EC key at the point at infinity is refused, and does not end the process", () => {
-    // Node parses it, and reading its details aborts the process with a
-    // native assertion. Nothing may read them before it is refused.
+    // Where OpenSSL parses it, reading its details aborts the process with a
+    // native assertion, so nothing may read them before it is refused. An
+    // OpenSSL that refuses the point itself leaves nothing to test past that.
     const infinity =
       "-----BEGIN PUBLIC KEY-----\nMBkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDAgAA\n-----END PUBLIC KEY-----\n";
+    let key: KeyObject;
+    try {
+      key = createPublicKey(infinity);
+    } catch {
+      assert.throws(() => loadPublicKey(infinity));
+      return;
+    }
     assert.throws(
       () => loadPublicKey(infinity),
       (error: Error) =>
         error instanceof UnusablePublicKeyError && /EC public key/.test(error.message),
     );
-    const key = createPublicKey(infinity);
     const event = sealEvent(baseEvent());
     const result = verifyEventSignature(event, "ECDSA-P256-SHA256", "AAAA", key);
     assert.equal(!result.ok && result.kind, "signature-invalid");
   });
 
-  test("an RSA key with an exponent of 1 is refused, though its forgery verifies", () => {
+  test("an RSA key with an exponent of 1 is refused", () => {
     // Under e = 1 a "signature" is the encoded message itself: anyone can make
-    // one. The modulus is a real one; only the exponent is replaced.
+    // one. The modulus is a real one; only the exponent is replaced. An
+    // OpenSSL that refuses to build such a key leaves nothing to test.
     const { publicKey: rsa } = generateKeyPairSync("rsa", { modulusLength: 2048 });
     const jwk = rsa.export({ format: "jwk" });
-    const weak = createPublicKey({ key: { ...jwk, e: "AQ" }, format: "jwk" });
+    let weak: KeyObject;
+    try {
+      weak = createPublicKey({ key: { ...jwk, e: "AQ" }, format: "jwk" });
+    } catch {
+      return;
+    }
     assert.equal(weak.asymmetricKeyDetails?.publicExponent, 1n);
     assert.throws(
       () => loadPublicKey(weak.export({ type: "spki", format: "pem" }) as string),
@@ -499,13 +511,14 @@ describe("signatures", () => {
       );
     });
 
-    test("under the identity point, R = identity and S = 0 is refused though OpenSSL accepts it", () => {
+    test("under the identity point, R = identity and S = 0 is refused", () => {
       const event = sealEvent(baseEvent());
       const key = rawEd25519Key(IDENTITY);
       const forged = Buffer.concat([IDENTITY, Buffer.alloc(32)]);
-      // The forgery is real: the primitive alone accepts it, for any message.
-      assert.equal(cryptoVerify(null, canonicalBytes(buildDigestInput(event)), key, forged), true);
-      assert.equal(cryptoVerify(null, Buffer.from("anything at all"), key, forged), true);
+      // The verification equation holds for any message. Whether the primitive
+      // alone accepts it depends on the OpenSSL build — the one this project's
+      // Docker toolchain carries does, the CI runner's does not — so the
+      // verifier refuses it before the primitive is asked.
 
       const result = verifyEventSignature(event, "Ed25519", forged.toString("base64"), key);
       assert.equal(!result.ok && result.kind, "signature-invalid");
@@ -529,7 +542,7 @@ describe("signatures", () => {
         ) % order;
       const s = (k * littleEndian(scalar)) % order;
       const signature = Buffer.concat([IDENTITY, toLittleEndian(s)]);
-      assert.equal(cryptoVerify(null, message, keyA, signature), true);
+      // As above, whether the primitive alone accepts it depends on the build.
 
       const result = verifyEventSignature(event, "Ed25519", signature.toString("base64"), keyA);
       assert.equal(!result.ok && result.kind, "signature-invalid");

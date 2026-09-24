@@ -144,8 +144,9 @@ const SMALL_ORDER_KEY_MESSAGE =
  * y = p and y = p + 1. It is the list libsodium refuses, derived again for
  * this file by multiplying random points by the prime subgroup order.
  *
- * OpenSSL checks neither the key nor a signature's R against it. Under the
- * identity point as a key, R = identity and S = 0 verify for every message;
+ * Some OpenSSL builds Node carries check neither the key nor a signature's R
+ * against it, and others do; this verifier does not depend on which. Under
+ * the identity point as a key, R = identity and S = 0 verify for every message;
  * under a genuine key, a small-order R is a nonce no honest signer produces.
  * Both are refused, as a strict verifier such as ed25519-dalek's
  * `verify_strict` refuses them.

@@ -72,9 +72,10 @@ An Ed25519 public key that is a small-order point, an RSA public key whose expon
 3, and an EC public key at the point at infinity are refused when they are loaded, with exit 2 from
 the command line and `unusable-public-key` from the MCP server. An Ed25519 signature whose `R` is a
 small-order point is refused when it is checked. Before, the first two were accepted along with a
-signature anyone could make: under the identity point as a key, `R` the identity and `S` zero verify
-for every message, and under an exponent of 1 the "signature" is the encoded message. The third
-aborted the process. A signature a genuine key's holder made is unaffected. `integrity.md` §6.1 now
+signature anyone could make, wherever Node's OpenSSL build does not check for them itself: under the
+identity point as a key, `R` the identity and `S` zero verify for every message, and under an
+exponent of 1 the "signature" is the encoded message. The third
+aborted the process under Node 22. A signature a genuine key's holder made is unaffected. `integrity.md` §6.1 now
 requires this of every verifier, not only of this one. The desktop viewer already refused the
 Ed25519 cases, and recorded the difference as a deliberate divergence; the two now agree.
 
@@ -125,8 +126,9 @@ covered by a test; the deployment and release-workflow changes are not.
 - Control characters in a file name or a message reached the terminal as written. They are escaped,
   and a newline, carriage return or tab from input no longer starts a line of its own, so input
   cannot print a forged summary.
-- An EC public key at the point at infinity aborted the process when a signature was checked under
-  it — on the MCP server, with one unauthenticated request. It is refused before anything reads it.
+- An EC public key at the point at infinity aborted the process under Node 22 when a signature was
+  checked under it — for an MCP server run on Node 22, with one unauthenticated request. Node 24,
+  which the MCP image uses, was not affected. It is refused before anything reads it.
 - A file was checked by name and then opened by name, so it could be replaced in between, and a
   file that grew after its size was taken was read whole. It is opened once, checked as opened, and
   read no further than the size it had.
